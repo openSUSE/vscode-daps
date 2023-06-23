@@ -1,6 +1,12 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
+const fs = require('fs');
+const { exec } = require('child_process');
+const execSync = require('child_process').execSync;
+const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
+const buildTargets = ['pdf', 'html'];
+
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -17,18 +23,79 @@ function activate(context) {
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with  registerCommand
 	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('daps.helloWorld', function () {
-		// The code you place here will be executed every time your command is executed
-
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from DAPS extension!');
+	let disposable1 = vscode.commands.registerCommand('daps.validate.DCfile', function () {
+		// change working directory to current workspace
+		try {
+			process.chdir(workspaceFolderUri.path);
+			console.log('cwd is ' + workspaceFolderUri.path);
+		} catch (err) {
+			console.error('cwd: ' + err);
+		}
+		// get DC files from user
+		let DCfiles = getDCfiles();
+		// open input for DC file
+		vscode.window.showQuickPick(DCfiles).then((DCfile) => {
+			// assemble daps command
+			const dapsCmd = 'daps -d ' + DCfile + ' validate';
+			try {
+				vscode.window.showInformationMessage('Running ' + dapsCmd);
+				execSync(dapsCmd);
+				vscode.window.showInformationMessage('Validation succeeded.');
+			} catch (err) {
+				vscode.window.showErrorMessage('Validation failed: ' + err);
+			}
+		})
 	});
 
-	context.subscriptions.push(disposable);
+	let disposable2 = vscode.commands.registerCommand('daps.build', function () {
+		// change working directory to current workspace
+		try {
+			process.chdir(workspaceFolderUri.path);
+			console.log('cwd is ' + workspaceFolderUri.path);
+		} catch (err) {
+			console.error('cwd: ' + err);
+		}
+		// get DC files from user
+		let DCfiles = getDCfiles();
+		// select DC file
+		vscode.window.showQuickPick(DCfiles).then((DCfile) => {
+			// select build target
+			vscode.window.showQuickPick(buildTargets).then((buildTarget) => {
+				// assemble daps command
+				const dapsCmd = 'daps -d ' + DCfile + ' ' + buildTarget;
+				try {
+					vscode.window.showInformationMessage('Running ' + dapsCmd);
+					let cmdOutput = execSync(dapsCmd);
+					let targetBuild = cmdOutput.toString();
+					if (buildTarget == 'html') {
+						targetBuild = targetBuild.trim() + 'index.html';
+					}
+					console.log('target build: ' + targetBuild);
+					vscode.window.showInformationMessage('Build succeeded.', 'Open document').then(selected => {
+						console.log(selected);
+						if (selected === 'Open document') {
+							exec('xdg-open ' + targetBuild);
+						}
+					});
+				} catch (err) {
+					vscode.window.showErrorMessage('Build failed: ' + err);
+				}
+			});
+
+		})
+	});
+
+	context.subscriptions.push(disposable1, disposable2);
 }
 
+function getDCfiles() {
+	// get list of DC files in the workspace
+	console.log(workspaceFolderUri.path);
+	const items = fs.readdirSync(workspaceFolderUri.path).filter(it => it.startsWith('DC-'));
+	return items;
+}
 // This method is called when your extension is deactivated
-function deactivate() {}
+function deactivate() { }
 
 module.exports = {
 	activate,
