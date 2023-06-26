@@ -16,51 +16,61 @@ const buildTargets = ['pdf', 'html'];
  */
 function activate(context) {
 
-	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "daps" is now active!');
-
-	// The commandId parameter must match the command field in package.json
 	let disposable1 = vscode.commands.registerCommand('daps.validate.DCfile', () => validateDCfile());
+	let disposable2 = vscode.commands.registerCommand('daps.build', () => buildTarget());
 
-	let disposable2 = vscode.commands.registerCommand('daps.build', function () {
-		// change working directory to current workspace
-		try {
-			process.chdir(workspaceFolderUri.path);
-			console.log('cwd is ' + workspaceFolderUri.path);
-		} catch (err) {
-			console.error('cwd: ' + err);
-		}
-		// get DC files from user
-		let DCfiles = getDCfiles();
-		// select DC file
-		vscode.window.showQuickPick(DCfiles).then((DCfile) => {
-			// select build target
-			vscode.window.showQuickPick(buildTargets).then((buildTarget) => {
-				// assemble daps command
-				const dapsCmd = 'daps -d ' + DCfile + ' ' + buildTarget;
-				try {
-					vscode.window.showInformationMessage('Running ' + dapsCmd);
-					let cmdOutput = execSync(dapsCmd);
-					let targetBuild = cmdOutput.toString();
-					if (buildTarget == 'html') {
-						targetBuild = targetBuild.trim() + 'index.html';
-					}
-					console.log('target build: ' + targetBuild);
-					vscode.window.showInformationMessage('Build succeeded.', 'Open document').then(selected => {
-						console.log(selected);
-						if (selected === 'Open document') {
-							exec('xdg-open ' + targetBuild);
-						}
-					});
-				} catch (err) {
-					vscode.window.showErrorMessage('Build failed: ' + err);
-				}
-			});
-
-		})
-	});
 
 	context.subscriptions.push(disposable1, disposable2);
+}
+
+async function buildTarget() {
+	var DCfile, buildTarget;
+	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	// change working directory to current workspace
+	try {
+		process.chdir(workspaceFolderUri.path);
+		console.log('cwd is ' + workspaceFolderUri.path);
+	} catch (err) {
+		console.error('cwd: ' + err);
+	}
+	// try if DC file is included in settings or get it from user
+	if (DCfile = dapsConfig.get('DCfile')) {
+		console.log('DC file from config: ' + DCfile);
+	} else {
+		DCfile = await vscode.window.showQuickPick(getDCfiles());
+		console.log('DC file form picker: ' + DCfile);
+	}
+	// try if buildTarget is included in settings or get it from user
+	if (buildTarget = dapsConfig.get('buildTarget')) {
+		console.log('buildTarget from config: ' + buildTarget);
+	} else {
+		buildTarget = await vscode.window.showQuickPick(buildTargets);
+		console.log('buildTarget form picker: ' + buildTarget);
+	}
+	// assemble daps command
+	const dapsCmd = 'daps -d ' + DCfile + ' ' + buildTarget;
+	if (DCfile && buildTarget) {
+		try {
+			vscode.window.showInformationMessage('Running ' + dapsCmd);
+			let cmdOutput = execSync(dapsCmd);
+			let targetBuild = cmdOutput.toString().trim();
+			if (buildTarget == 'html') {
+				targetBuild = targetBuild + 'index.html';
+			}
+			console.log('target build: ' + targetBuild);
+			vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
+				console.log(selected);
+				if (selected === 'Open document') {
+					exec('xdg-open ' + targetBuild);
+				} else if (selected === 'Copy link') {
+					vscode.env.clipboard.writeText(targetBuild);
+				}
+			});
+		} catch (err) {
+			vscode.window.showErrorMessage('Build failed: ' + err);
+		}
+	}
 }
 
 async function validateDCfile() {
@@ -73,8 +83,8 @@ async function validateDCfile() {
 	} catch (err) {
 		console.error('cwd: ' + err);
 	}
-	// try if DC file is included in settings
-	if (DCfile = dapsConfig.get('setDCfile')) {
+	// try if DC file is included in settings or get it from user
+	if (DCfile = dapsConfig.get('DCfile')) {
 		console.log('DC file from config: ' + DCfile);
 	} else {
 		DCfile = await vscode.window.showQuickPick(getDCfiles());

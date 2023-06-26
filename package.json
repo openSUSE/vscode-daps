@@ -29,10 +29,15 @@
     "configuration": {
       "title": "DAPS",
       "properties": {
-        "daps.setDCfile": {
+        "daps.DCfile": {
+          "description": "Set the DC file for the current workspace. If not specified, the user is asked to select one",
           "type": "string",
-          "default": null,
-          "description": "Set the DC file for the current workspace. If specified, DAPS will not ask for DC file during build and validation."
+          "default": null
+        },
+        "daps.buildTarget": {
+          "description": "The build target for the current workspace. If not specified, the user is asked to select one",
+          "type": "string",
+          "default": null
         }
       }
     },
