@@ -3,20 +3,28 @@
   "displayName": "DAPS",
   "description": "Tool for authorign and publishing documentation written in DocBook XML and AsciiDoc.",
   "version": "0.0.1",
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.79.0"
   },
   "categories": [
-    "Other"
+    "Linters"
   ],
   "activationEvents": [
     "workspaceContains:**/DC-*"
   ],
   "main": "./extension.js",
   "contributes": {
+    "keybindings": [
+      {
+        "command": "daps.XMLformat",
+        "key": "ctrl+shift+i",
+        "when": "editorLangId == xml"
+      }
+    ],
     "commands": [
       {
-        "command": "daps.validate.DCfile",
+        "command": "daps.validate",
         "title": "Validate with DC file",
         "category": "DAPS"
       },
@@ -24,6 +32,12 @@
         "command": "daps.build",
         "title": "Build documentation",
         "category": "DAPS"
+      },
+      {
+        "command": "daps.XMLformat",
+        "title": "Format XML document",
+        "category": "DAPS",
+        "enablement": "editorLangId == xml"
       }
     ],
     "configuration": {

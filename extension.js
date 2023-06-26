@@ -17,11 +17,22 @@ const buildTargets = ['pdf', 'html'];
 function activate(context) {
 
 	console.log('Congratulations, your extension "daps" is now active!');
-	let disposable1 = vscode.commands.registerCommand('daps.validate.DCfile', () => validateDCfile());
+	let disposable1 = vscode.commands.registerCommand('daps.validate', () => validate());
 	let disposable2 = vscode.commands.registerCommand('daps.build', () => buildTarget());
+	let disposable3 = vscode.commands.registerCommand('daps.XMLformat', () => XMLformat());
 
 
-	context.subscriptions.push(disposable1, disposable2);
+	context.subscriptions.push(disposable1, disposable2, disposable3);
+}
+
+function XMLformat() {
+	var curFile = vscode.window.activeTextEditor.document.fileName;
+	console.log('Current file to format: ' + curFile);
+	try {
+		execSync('daps-xmlformat -i ' + curFile);
+	} catch (err) {
+		console.error(err);
+	}
 }
 
 async function buildTarget() {
@@ -73,7 +84,7 @@ async function buildTarget() {
 	}
 }
 
-async function validateDCfile() {
+async function validate() {
 	var DCfile;
 	const dapsConfig = vscode.workspace.getConfiguration('daps');
 	// change working directory to current workspace
