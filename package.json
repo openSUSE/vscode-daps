@@ -25,7 +25,20 @@
         "title": "Build documentation",
         "category": "DAPS"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "DAPS",
+      "properties": {
+        "daps.setDCfile": {
+          "type": "string",
+          "default": null,
+          "description": "Set the DC file for the current workspace. If specified, DAPS will not ask for DC file during build and validation."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "xml.format.enabled": false
+    }
   },
   "scripts": {
     "lint": "eslint .",

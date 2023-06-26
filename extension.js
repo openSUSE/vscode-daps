@@ -16,36 +16,11 @@ const buildTargets = ['pdf', 'html'];
  */
 function activate(context) {
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "daps" is now active!');
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
 	// The commandId parameter must match the command field in package.json
-	let disposable1 = vscode.commands.registerCommand('daps.validate.DCfile', function () {
-		// change working directory to current workspace
-		try {
-			process.chdir(workspaceFolderUri.path);
-			console.log('cwd is ' + workspaceFolderUri.path);
-		} catch (err) {
-			console.error('cwd: ' + err);
-		}
-		// get DC files from user
-		let DCfiles = getDCfiles();
-		// open input for DC file
-		vscode.window.showQuickPick(DCfiles).then((DCfile) => {
-			// assemble daps command
-			const dapsCmd = 'daps -d ' + DCfile + ' validate';
-			try {
-				vscode.window.showInformationMessage('Running ' + dapsCmd);
-				execSync(dapsCmd);
-				vscode.window.showInformationMessage('Validation succeeded.');
-			} catch (err) {
-				vscode.window.showErrorMessage('Validation failed: ' + err);
-			}
-		})
-	});
+	let disposable1 = vscode.commands.registerCommand('daps.validate.DCfile', () => validateDCfile());
 
 	let disposable2 = vscode.commands.registerCommand('daps.build', function () {
 		// change working directory to current workspace
@@ -86,6 +61,36 @@ function activate(context) {
 	});
 
 	context.subscriptions.push(disposable1, disposable2);
+}
+
+async function validateDCfile() {
+	var DCfile;
+	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	// change working directory to current workspace
+	try {
+		process.chdir(workspaceFolderUri.path);
+		console.log('cwd is ' + workspaceFolderUri.path);
+	} catch (err) {
+		console.error('cwd: ' + err);
+	}
+	// try if DC file is included in settings
+	if (DCfile = dapsConfig.get('setDCfile')) {
+		console.log('DC file from config: ' + DCfile);
+	} else {
+		DCfile = await vscode.window.showQuickPick(getDCfiles());
+		console.log('DC file form picker: ' + DCfile);
+	}
+	// assemble daps command
+	if (DCfile) {
+		const dapsCmd = 'daps -d ' + DCfile + ' validate';
+		try {
+			vscode.window.showInformationMessage('Running ' + dapsCmd);
+			execSync(dapsCmd);
+			vscode.window.showInformationMessage('Validation succeeded.');
+		} catch (err) {
+			vscode.window.showErrorMessage('Validation failed: ' + err);
+		}
+	}
 }
 
 function getDCfiles() {
