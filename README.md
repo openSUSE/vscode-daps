@@ -18,4 +18,4 @@ This extension requires that you install DAPS on your system. Refer to
 ## Known Issues
 
 See our issue tracker at
-[openSUSE/suse-vscode-doc/issues](https://github.com/openSUSE/vscode-daps/issues)
+[openSUSE/vscode-daps/issues](https://github.com/openSUSE/vscode-daps/issues)
