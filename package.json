@@ -3,6 +3,8 @@
   "displayName": "DAPS",
   "description": "Tool for authorign and publishing documentation written in DocBook XML and AsciiDoc.",
   "version": "0.0.1",
+  "repository": "https://github.com/openSUSE/vscode-daps",
+  "publisher": "openSUSE",
   "icon": "icon.png",
   "engines": {
     "vscode": "^1.79.0"
