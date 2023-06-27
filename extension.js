@@ -8,6 +8,7 @@ const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
 
 
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 
@@ -17,11 +18,9 @@ const buildTargets = ['pdf', 'html'];
 function activate(context) {
 
 	console.log('Congratulations, your extension "daps" is now active!');
-	let disposable1 = vscode.commands.registerCommand('daps.validate', () => validate());
+	let disposable1 = vscode.commands.registerCommand('daps.validate', (DCfile) => validate(DCfile));
 	let disposable2 = vscode.commands.registerCommand('daps.build', () => buildTarget());
 	let disposable3 = vscode.commands.registerCommand('daps.XMLformat', () => XMLformat());
-
-
 	context.subscriptions.push(disposable1, disposable2, disposable3);
 }
 
@@ -85,8 +84,6 @@ async function buildTarget() {
 }
 
 async function validate() {
-	var DCfile;
-	const dapsConfig = vscode.workspace.getConfiguration('daps');
 	// change working directory to current workspace
 	try {
 		process.chdir(workspaceFolderUri.path);
@@ -94,12 +91,19 @@ async function validate() {
 	} catch (err) {
 		console.error('cwd: ' + err);
 	}
-	// try if DC file is included in settings or get it from user
-	if (DCfile = dapsConfig.get('DCfile')) {
-		console.log('DC file from config: ' + DCfile);
+	var DCfile;
+	if (DCfile = arguments[0]) {
+		DCfile = DCfile.path.split('/').pop();
+		console.log('DCfile from context: ' + DCfile + ', ' + typeof DCfile);
 	} else {
-		DCfile = await vscode.window.showQuickPick(getDCfiles());
-		console.log('DC file form picker: ' + DCfile);
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		// try if DC file is included in settings or get it from user
+		if (DCfile = dapsConfig.get('DCfile')) {
+			console.log('DC file from config: ' + DCfile);
+		} else {
+			DCfile = await vscode.window.showQuickPick(getDCfiles());
+			console.log('DC file form picker: ' + DCfile);
+		}
 	}
 	// assemble daps command
 	if (DCfile) {

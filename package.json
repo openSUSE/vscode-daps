@@ -17,6 +17,29 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "submenus": [
+      {
+        "id": "daps",
+        "label": "DAPS",
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "submenu": "daps",
+          "when": "resourceFilename =~ /DC-*/",
+          "group": "daps"
+        }
+      ],
+      "daps": [
+        {
+          "command": "daps.validate"
+        },
+        {
+          "command": "daps.build"
+        }
+      ]
+    },
     "keybindings": [
       {
         "command": "daps.XMLformat",
@@ -27,12 +50,12 @@
     "commands": [
       {
         "command": "daps.validate",
-        "title": "Validate with DC file",
+        "title": "Validate",
         "category": "DAPS"
       },
       {
         "command": "daps.build",
-        "title": "Build documentation",
+        "title": "Build",
         "category": "DAPS"
       },
       {
