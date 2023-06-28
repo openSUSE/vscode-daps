@@ -18,17 +18,27 @@ function activate(context) {
 	console.log('Congratulations, your extension "daps" is now active!');
 	let disposable1 = vscode.commands.registerCommand('daps.validate', (DCfile) => validate(DCfile));
 	let disposable2 = vscode.commands.registerCommand('daps.build', (DCfile) => buildTarget(DCfile));
-	let disposable3 = vscode.commands.registerCommand('daps.XMLformat', () => XMLformat());
+	let disposable3 = vscode.commands.registerCommand('daps.XMLformat', (XMLfile) => XMLformat(XMLfile));
 	context.subscriptions.push(disposable1, disposable2, disposable3);
 }
 
 function XMLformat() {
-	var curFile = vscode.window.activeTextEditor.document.fileName;
-	console.log('Current file to format: ' + curFile);
+	var XMLfile;
+	if (XMLfile = arguments[0]) { //check if XML file was passed as context
+		XMLfile = XMLfile.path;
+		console.log('XMLfile from context: ' + XMLfile);
+	} else { // try the current open file
+		XMLfile = vscode.window.activeTextEditor.document.fileName;
+		console.log('XML file from active editor: ' + XMLfile);
+	}
 	try {
-		execSync('daps-xmlformat -i ' + curFile);
+		vscode.window.showInformationMessage('XMLformatting ' + XMLfile);
+		execSync('daps-xmlformat -i ' + XMLfile);
+		vscode.window.showInformationMessage('XMLformat succeeded. ' + XMLfile);
+		return true;
 	} catch (err) {
-		console.error(err);
+		vscode.window.showErrorMessage('XMLformat failed: ' + err);
+		return false;
 	}
 }
 /**

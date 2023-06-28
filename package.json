@@ -19,24 +19,44 @@
   "contributes": {
     "submenus": [
       {
-        "id": "daps",
+        "id": "daps.explorer.context",
+        "label": "DAPS"
+      },
+      {
+        "id": "daps.editor.context",
         "label": "DAPS"
       }
     ],
     "menus": {
-      "explorer/context": [
+      "editor/title/context": [
         {
-          "submenu": "daps",
-          "when": "resourceFilename =~ /DC-*/",
-          "group": "daps"
+          "submenu": "daps.editor.context",
+          "when": "resourceExtname == .xml"
         }
       ],
-      "daps": [
+      "daps.editor.context": [
         {
-          "command": "daps.validate"
+          "command": "daps.XMLformat"
+        }
+      ],
+      "explorer/context": [
+        {
+          "submenu": "daps.explorer.context",
+          "when": "resourceFilename =~ /DC-*/ || resourceExtname == .xml"
+        }
+      ],
+      "daps.explorer.context": [
+        {
+          "command": "daps.validate",
+          "when": "resourceFilename =~ /DC-*/"
         },
         {
-          "command": "daps.build"
+          "command": "daps.build",
+          "when": "resourceFilename =~ /DC-*/"
+        },
+        {
+          "command": "daps.XMLformat",
+          "when": "resourceExtname == .xml"
         }
       ]
     },
@@ -44,7 +64,7 @@
       {
         "command": "daps.XMLformat",
         "key": "ctrl+shift+i",
-        "when": "editorLangId == xml"
+        "when": "resourceExtname == .xml"
       }
     ],
     "commands": [
@@ -62,7 +82,7 @@
         "command": "daps.XMLformat",
         "title": "Format XML document",
         "category": "DAPS",
-        "enablement": "editorLangId == xml"
+        "enablement": "resourceExtname == .xml"
       }
     ],
     "configuration": {
