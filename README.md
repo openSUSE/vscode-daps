@@ -1,4 +1,4 @@
-# docbook-snippets README
+# vscode-daps README
 
 ## Features
 
