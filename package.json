@@ -19,22 +19,37 @@
   "contributes": {
     "submenus": [
       {
+        "id": "daps.editor.context",
+        "label": "DAPS"
+      },
+      {
         "id": "daps.explorer.context",
         "label": "DAPS"
       },
       {
-        "id": "daps.editor.context",
+        "id": "daps.editor.title.context",
         "label": "DAPS"
       }
     ],
     "menus": {
-      "editor/title/context": [
+      "editor/context": [
         {
           "submenu": "daps.editor.context",
-          "when": "resourceExtname == .xml"
+          "when": "editorHasSelection"
         }
       ],
       "daps.editor.context": [
+        {
+          "command": "daps.buildRootId"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "submenu": "daps.editor.title.context",
+          "when": "resourceExtname == .xml"
+        }
+      ],
+      "daps.editor.title.context": [
         {
           "command": "daps.XMLformat"
         }
@@ -51,7 +66,7 @@
           "when": "resourceFilename =~ /DC-*/"
         },
         {
-          "command": "daps.build",
+          "command": "daps.buildDCfile",
           "when": "resourceFilename =~ /DC-*/"
         },
         {
@@ -74,8 +89,13 @@
         "category": "DAPS"
       },
       {
-        "command": "daps.build",
-        "title": "Build",
+        "command": "daps.buildDCfile",
+        "title": "Build with DC file",
+        "category": "DAPS"
+      },
+      {
+        "command": "daps.buildRootId",
+        "title": "Build with DC file and root ID",
         "category": "DAPS"
       },
       {
@@ -88,13 +108,18 @@
     "configuration": {
       "title": "DAPS",
       "properties": {
+        "daps.buildRootId": {
+          "description": "Set the root ID of an XML element to build. If not specified, the user is asked to enter it.",
+          "type": "string",
+          "default": null
+        },
         "daps.DCfile": {
-          "description": "Set the DC file for the current workspace. If not specified, the user is asked to select one",
+          "description": "Set the DC file for the current workspace. If not specified, the user is asked to select one.",
           "type": "string",
           "default": null
         },
         "daps.buildTarget": {
-          "description": "The build target for the current workspace. If not specified, the user is asked to select one",
+          "description": "The build target for the current workspace. If not specified, the user is asked to select one.",
           "type": "string",
           "default": null
         }
