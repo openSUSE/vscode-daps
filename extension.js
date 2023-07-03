@@ -14,13 +14,89 @@ const buildTargets = ['pdf', 'html'];
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-
 	console.log('Congratulations, your extension "daps" is now active!');
+	var extensionPath = context.extensionPath;
+	console.log(`Extension path: ${extensionPath}`)
 	let disposable1 = vscode.commands.registerCommand('daps.validate', (DCfile) => validate(DCfile));
 	let disposable2 = vscode.commands.registerCommand('daps.buildDCfile', (DCfile) => buildDCfile(DCfile));
-	let disposable3 = vscode.commands.registerCommand('daps.buildRootId', (rootId) => buildRootId(rootId));
+	let buildRootID = vscode.commands.registerCommand('daps.buildRootId', async function buildRootId(contextFileURI) {
+		var buildTarget;
+		var DCfile = await getDCfile();
+		var rootId = await getRootId(contextFileURI, DCfile);
+		// try if buildTarget is included in settings or get it from user
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		if (buildTarget = dapsConfig.get('buildTarget')) {
+			console.log('buildTarget from config: ' + buildTarget);
+		} else {
+			buildTarget = await vscode.window.showQuickPick(buildTargets);
+			console.log('buildTarget form picker: ' + buildTarget);
+		}
+
+		// assemble daps command
+		if (DCfile && rootId && buildTarget) {
+			var dapsCmd = 'daps -d ' + DCfile + ' ' + buildTarget + ' --rootid ' + rootId;
+			try {
+				vscode.window.showInformationMessage('Running ' + dapsCmd);
+				// change working directory to current workspace
+				process.chdir(workspaceFolderUri.path);
+				console.log('cwd is ' + workspaceFolderUri.path);
+				let cmdOutput = execSync(dapsCmd);
+				let targetBuild = cmdOutput.toString().trim();
+				if (buildTarget == 'html') {
+					targetBuild = targetBuild + 'index.html';
+				}
+				console.log('target build: ' + targetBuild);
+				vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
+					console.log(selected);
+					if (selected === 'Open document') {
+						exec('xdg-open ' + targetBuild);
+					} else if (selected === 'Copy link') {
+						vscode.env.clipboard.writeText(targetBuild);
+					}
+				});
+				return true;
+			} catch (err) {
+				vscode.window.showErrorMessage('Build failed: ' + err);
+			}
+		}
+		return false;
+	});
+	/**
+	 * @description resolves root ID from context, config, or user input
+	 * @param {string} contextFileURI optional from context
+	 * @param {string} DCfile DC file to get the target root ID from
+	 * @returns {string} discovered root ID
+	 */
+	async function getRootId(contextFileURI, DCfile) {
+		var rootId;
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		if (contextFileURI) { // check if rootId was passed as argument
+			const editor = vscode.window.activeTextEditor;
+			const selection = editor.selection;
+			if (selection && !selection.isEmpty) {
+				const selectionRange = new vscode.Range(selection.start.line, selection.start.character, selection.end.line, selection.end.character);
+				rootId = editor.document.getText(selectionRange);
+			}
+			console.log('rootId from context: ' + rootId);
+		} else if (rootId = dapsConfig.get('buildRootId')) { // try if rootId is included in settings.json
+			console.log('rootId from config: ' + rootId);
+		} else { // get rootId from picker
+			rootId = await vscode.window.showQuickPick(getRootIds(DCfile));
+			console.log('rootId form picker: ' + rootId);
+		}
+		return rootId;
+	}
+	function getRootIds(DCfile) {
+		process.chdir(workspaceFolderUri.path);
+		console.log('cwd is ' + workspaceFolderUri.path);
+		var rootIdsCmd = `sh -c "cat \`daps -d ${DCfile} bigfile | tail -n1\` | xsltproc ${extensionPath}/xslt/get-ids-from-structure.xsl - | cut -d# -f2"`;
+		console.log('root IDs cmd: ' + rootIdsCmd);
+		var rootIds = execSync(rootIdsCmd).toString().trim().split('\n');
+		console.log(`Count of root IDs: ${rootIds.length}`);
+		return rootIds;
+	}
 	let disposable4 = vscode.commands.registerCommand('daps.XMLformat', (XMLfile) => XMLformat(XMLfile));
-	context.subscriptions.push(disposable1, disposable2, disposable3, disposable4);
+	context.subscriptions.push(disposable1, disposable2, buildRootID, disposable4);
 }
 
 function XMLformat() {
@@ -89,49 +165,6 @@ async function buildDCfile() {
 	return false;
 }
 
-async function buildRootId() {
-	var buildTarget;
-	var DCfile = await getDCfile();
-	var rootId = await getRootId(arguments[0], DCfile);
-	// try if buildTarget is included in settings or get it from user
-	const dapsConfig = vscode.workspace.getConfiguration('daps');
-	if (buildTarget = dapsConfig.get('buildTarget')) {
-		console.log('buildTarget from config: ' + buildTarget);
-	} else {
-		buildTarget = await vscode.window.showQuickPick(buildTargets);
-		console.log('buildTarget form picker: ' + buildTarget);
-	}
-
-	// assemble daps command
-	if (DCfile && rootId && buildTarget) {
-		var dapsCmd = 'daps -d ' + DCfile + ' ' + buildTarget + ' --rootid ' + rootId;
-		try {
-			vscode.window.showInformationMessage('Running ' + dapsCmd);
-			// change working directory to current workspace
-			process.chdir(workspaceFolderUri.path);
-			console.log('cwd is ' + workspaceFolderUri.path);
-			let cmdOutput = execSync(dapsCmd);
-			let targetBuild = cmdOutput.toString().trim();
-			if (buildTarget == 'html') {
-				targetBuild = targetBuild + 'index.html';
-			}
-			console.log('target build: ' + targetBuild);
-			vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
-				console.log(selected);
-				if (selected === 'Open document') {
-					exec('xdg-open ' + targetBuild);
-				} else if (selected === 'Copy link') {
-					vscode.env.clipboard.writeText(targetBuild);
-				}
-			});
-			return true;
-		} catch (err) {
-			vscode.window.showErrorMessage('Build failed: ' + err);
-		}
-	}
-	return false;
-}
-
 /**
  * @description validates documentation identified by DC file
  * @param {obj} DCfile URI from context command (optional)
@@ -171,15 +204,6 @@ function getDCfiles(folderUri) {
 	return DCfiles;
 }
 
-function getRootIds(DCfile) {
-	process.chdir(workspaceFolderUri.path);
-	console.log('cwd is ' + workspaceFolderUri.path);
-	var rootIdsCmd = 'sh -c "cat `daps -d ' + DCfile + ' bigfile | tail -n1` | xsltproc /usr/share/daps/daps-xslt/common/get-bookstructure.xsl - | cut -d# -f2"';
-	console.log('root IDs cmd: ' + rootIdsCmd);
-	var rootIds = execSync(rootIdsCmd).toString().trim().split('\n');
-	console.log(rootIds);
-	return rootIds;
-}
 /**
  * @description picks DC file from various sources
  * @param {obj} DCfile URI from context command (optional)
@@ -201,19 +225,7 @@ async function getDCfile() {
 	return DCfile;
 }
 
-async function getRootId() {
-	var rootId;
-	const dapsConfig = vscode.workspace.getConfiguration('daps');
-	if (rootId = arguments[0]) { // check if rootId URI was passed as argument
-		console.log('rootId from context: ' + rootId);
-	} else if (rootId = dapsConfig.get('buildRootId')) { // try if rootId is included in settings.json
-		console.log('rootId from config: ' + rootId);
-	} else { // get rootId from picker
-		rootId = await vscode.window.showQuickPick(getRootIds(arguments[1]));
-		console.log('rootId form picker: ' + rootId);
-	}
-	return rootId;
-}
+
 // This method is called when your extension is deactivated
 function deactivate() { }
 
