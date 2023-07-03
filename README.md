@@ -27,7 +27,7 @@ Explorer shows a documentation project, then press `CTRL`+`SHIFT`+P to open a
 command palette. Start to type `DAPS` and select the `Build with DC file`
 command. Then select the desired DC file and build format from the populated
 drop down lists.
-![Validate from command palette]()
+![Validate from command palette](https://github.com/openSUSE/vscode-daps/blob/419337d218c8608a241f57fbb631322e01048d07/media/daps-validate-palette.webm)
 
 
 
