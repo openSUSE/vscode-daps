@@ -25,9 +25,8 @@ the Explorer view and select `Daps` -> `Validate`.
 
 Or, you can specify the DC file manually from a drop down list. Verify that the
 Explorer shows a documentation project, then press `CTRL`+`SHIFT`+`P` to open a
-command palette. Start to type `DAPS` and select the `Build with DC file`
-command. Then select the desired DC file and build format from the populated
-drop down lists.
+command palette. Start to type `DAPS` and select  `Validate`. Then select the
+desired DC file from the populated drop down lists.
 
 <img src="./media/daps-validate-palette.gif" width="800px"/>
 
