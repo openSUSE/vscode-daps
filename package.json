@@ -95,7 +95,7 @@
       },
       {
         "command": "daps.buildRootId",
-        "title": "Build with DC file and root ID",
+        "title": "Build with root ID",
         "category": "DAPS"
       },
       {

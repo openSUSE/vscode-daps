@@ -11,15 +11,44 @@ editor.
 This extension requires that you install DAPS on your system. Refer to
 (https://opensuse.github.io/daps/) for more details.
 
-## Usage
+## Known Issues
+
+See our issue tracker at
+[openSUSE/vscode-daps/issues](https://github.com/openSUSE/vscode-daps/issues)
+
+# Usage
 
 The following sections illustrate how to use the `vscode-daps` extension to run
 DAPS commands.
 
-### Validate XML documents
+## Making it quicker with options
+
+If you are working on a project and use the same DC file, target format, or root
+ID over and over, you can specify this information in a `.vscode/settings.json`
+file of your project. After you save the modified  `.vscode/settings.json` file,
+you will not be asked by VSCode to specify the included options when running the
+below described commands.
+
+<img src="./media/daps-options.gif" width="800px"/>
+
+## Formatting an XML document
+
+To format currently opened active XML document, right click its tab and select
+`DAPS`> `Format XML Document`.
+
+<img src="./media/format-xml-editor-tab.gif" width="800px"/>
+
+TIP: Use the predefined `CTRL` + `SHIFT` + `I` shortcut to do the same job.
+
+To format *any* XML document from the Explorer view, right click its name in
+Explorer and select `DAPS` > `Format XML Document`.
+
+<img src="./media/format-xml-explorer-context.gif" width="800px"/>
+
+## Validating an XML document
 
 You can validate a document specified by its DC file. Right click the DC file in
-the Explorer view and select `Daps` -> `Validate`.
+the Explorer view and select `DAPS` > `Validate`.
 
 <img src="./media/daps-validate-explorer-context.gif" width="800px"/>
 
@@ -30,7 +59,40 @@ desired DC file from the populated drop down lists.
 
 <img src="./media/daps-validate-palette.gif" width="800px"/>
 
-## Known Issues
+## Building PDF and HTML versions by DC file
 
-See our issue tracker at
-[openSUSE/vscode-daps/issues](https://github.com/openSUSE/vscode-daps/issues)
+To build a document specified by its DC file, right click the DC file in the
+Explorer view and select `DAPS` > `Build with DC file`. When asked, choose
+whether to build `pdf` or `html`.
+
+<img src="./media/build-html-explorer-context.gif" width="800px"/>
+
+If you prefer typing to mouse movements, you can run the build command from a
+Command Palette. Press `CTRL` + `SHIFT` + `P`, start typing `daps` and when
+available, select the `DAPS: Build with DC file` command. Choose the DC file
+from the populated list and, finally, whether to build `pdf` or `html`.
+
+<img src="./media/build-xml-DC-palette.gif" width="800px"/>
+
+TIP: after the build is finished, you can directly open the resulting document
+or copy its path to a clipboard.
+
+## Building PDF and HTML versions by root ID
+
+Besides building a whole book, you can build only a part of it, for example, a
+chapter or a topic. To achieve this, you need to specify a toplevel element root
+ID. Press `CTRL` + `SHIFT` + `P`, start typing `daps` and when available, select
+the `DAPS: Build with root ID`. Choose the DC file from the populated list, then
+the root ID to build. Finally, choose whether to build `pdf` or `html`.
+
+<img src="./media/build-root-id-palette.gif" width="800px"/>
+
+IMPORTANT: populating the list of root IDs can take a few seconds.
+
+Alternatively, you can select the root ID with the mouse in your active editor
+and right click the selection. Then select `DAPS` > `Build with root ID`. Choose
+the DC file from the populated list and, finally, whether to build `pdf` or
+`html`.
+
+<img src="./media/build-root-id-selection.gif" width="800px"/>
+
