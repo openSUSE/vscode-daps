@@ -1,4 +1,5 @@
-# daps-vscode README
+
+# vscode-daps README
 
 ## Features
 
