@@ -17,9 +17,9 @@ function activate(context) {
 	console.log('Congratulations, your extension "daps" is now active!');
 	var extensionPath = context.extensionPath;
 	console.log(`Extension path: ${extensionPath}`)
-	let disposable1 = vscode.commands.registerCommand('daps.validate', (DCfile) => validate(DCfile));
-	let disposable2 = vscode.commands.registerCommand('daps.buildDCfile', (DCfile) => buildDCfile(DCfile));
-	let buildRootID = vscode.commands.registerCommand('daps.buildRootId', async function buildRootId(contextFileURI) {
+	let disposeValidate = vscode.commands.registerCommand('daps.validate', (DCfile) => validate(DCfile));
+	let disposeBuildDC = vscode.commands.registerCommand('daps.buildDCfile', (DCfile) => buildDCfile(DCfile));
+	let disposeBuildRootId = vscode.commands.registerCommand('daps.buildRootId', async function buildRootId(contextFileURI) {
 		var buildTarget;
 		var DCfile = await getDCfile();
 		var rootId = await getRootId(contextFileURI, DCfile);
@@ -95,18 +95,31 @@ function activate(context) {
 		console.log(`Count of root IDs: ${rootIds.length}`);
 		return rootIds;
 	}
-	let disposable4 = vscode.commands.registerCommand('daps.XMLformat', (XMLfile) => XMLformat(XMLfile));
-	context.subscriptions.push(disposable1, disposable2, buildRootID, disposable4);
+	let disposeXMLformat = vscode.commands.registerCommand('daps.XMLformat', (XMLfile) => XMLformat(XMLfile));
+	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat);
 }
 
-function XMLformat() {
+async function XMLformat() {
 	var XMLfile;
 	if (XMLfile = arguments[0]) { //check if XML file was passed as context
 		XMLfile = XMLfile.path;
 		console.log('XMLfile from context: ' + XMLfile);
-	} else { // try the current open file
-		XMLfile = vscode.window.activeTextEditor.document.fileName;
+	} else if (XMLfile = vscode.window.activeTextEditor.document.fileName) { // try the currently open file
 		console.log('XML file from active editor: ' + XMLfile);
+		// save the file before format if option is set
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		if (dapsConfig.get('saveBeforeXMLformat') == true) {
+			var activeDocument = vscode.window.activeTextEditor.document;
+			if (activeDocument.isDirty == true) {
+				console.log('The active document is dirty, saving');
+				try {
+					await activeDocument.save();
+				} catch (err) {
+					vscode.window.showErrorMessage(err);
+					return false;
+				}
+			}
+		}
 	}
 	try {
 		vscode.window.showInformationMessage('XMLformatting ' + XMLfile);

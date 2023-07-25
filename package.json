@@ -122,6 +122,11 @@
           "description": "The build target for the current workspace. If not specified, the user is asked to select one.",
           "type": "string",
           "default": null
+        },
+        "daps.saveBeforeXMLformat": {
+          "description": "Specify whether the active editor should be automatically saved before running the XML format.",
+          "type": "boolean",
+          "default": true
         }
       }
     },
