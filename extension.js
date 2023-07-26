@@ -37,7 +37,7 @@ function activate(context) {
 			var dapsCmd = `daps -m ${XMLfile} ${buildTarget} --single --norefcheck`;
 			try {
 				vscode.window.showInformationMessage(`Running ${dapsCmd}`);
-				// change working directory to current workspace
+				await autoSave(XMLfile);
 				let cmdOutput = execSync(dapsCmd);
 				let targetBuild = cmdOutput.toString().trim();
 				if (buildTarget == 'html') {
@@ -103,23 +103,10 @@ function activate(context) {
 			console.error('No XML file specified or active');
 			return false;
 		}
-		// save the file before format if option is set
-		const dapsConfig = vscode.workspace.getConfiguration('daps');
-		if (dapsConfig.get('saveBeforeXMLformat') == true) {
-			var activeDocument = vscode.window.activeTextEditor.document;
-			if (activeDocument.isDirty == true) {
-				console.log('The active document is dirty, saving');
-				try {
-					await activeDocument.save();
-				} catch (err) {
-					vscode.window.showErrorMessage(err);
-					return false;
-				}
-			}
-		}
 
 		try {
 			vscode.window.showInformationMessage(`XMLformatting ${XMLfile}`);
+			await autoSave(XMLfile);
 			execSync(`daps-xmlformat -i ${XMLfile}`);
 			vscode.window.showInformationMessage(`XMLformat succeeded. ${XMLfile}`);
 			return true;
@@ -128,6 +115,7 @@ function activate(context) {
 			return false;
 		}
 	});
+	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
 
 	/**
 	 * @description resolves root ID from context, config, or user input
@@ -163,8 +151,58 @@ function activate(context) {
 		console.log(`Count of root IDs: ${rootIds.length}`);
 		return rootIds;
 	}
-	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
+	/**
+	 * @description checks if given path represents a textDocument and saves it if dirty
+	 * @param {string} XMLfile - path to file on filesystem
+	 * @returns {boolean}
+	 */
+	async function autoSave(XMLfile) {
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		if (dapsConfig.get('autoSave') == true) {
+			//var document = vscode.Uri.parse(XMLfile);
+			const textDocuments = vscode.workspace.textDocuments;
+			console.log(`Number of text documents: ${textDocuments.length}`);
+			for (let i = 0; i < textDocuments.length; i++) {
+				if (XMLfile == textDocuments[i].fileName && textDocuments[i].isDirty) {
+					try {
+						await textDocuments[i].save();
+						console.log(`document ${XMLfile} saved`);
+						return true;
+					} catch (err) {
+						vscode.window.showErrorMessage(err);
+						return false;
+					}
+				}
+			}
+		}
+	}
+	/**
+ * @description validates documentation identified by DC file
+ * @param {obj} DCfile URI from context command (optional)
+ * @returns true or false depending on how validation happened
+ */
+	async function validate() {
+		var DCfile = await getDCfile(arguments[0]);
+		if (DCfile) {
+			// assemble daps command
+			const dapsCmd = `daps -d ${DCfile} validate`;
+			try {
+				vscode.window.showInformationMessage(`Running ${dapsCmd}`);
+				// change working directory to current workspace
+				process.chdir(workspaceFolderUri.path);
+				console.log(`cwd is ${workspaceFolderUri.path}`);
+				execSync(dapsCmd);
+				vscode.window.showInformationMessage('Validation succeeded.');
+				return true;
+			} catch (err) {
+				vscode.window.showErrorMessage(`Validation failed: ${err}`);
+			}
+		}
+		return false;
+	}
 }
+
+
 
 /**
  * @description builds HTML or PDF targets given DC file
@@ -208,31 +246,6 @@ async function buildDCfile() {
 			return true;
 		} catch (err) {
 			vscode.window.showErrorMessage(`Build failed: ${err}`);
-		}
-	}
-	return false;
-}
-
-/**
- * @description validates documentation identified by DC file
- * @param {obj} DCfile URI from context command (optional)
- * @returns true or false depending on how validation happened
- */
-async function validate() {
-	var DCfile = await getDCfile(arguments[0]);
-	if (DCfile) {
-		// assemble daps command
-		const dapsCmd = `daps -d ${DCfile} validate`;
-		try {
-			vscode.window.showInformationMessage(`Running ${dapsCmd}`);
-			// change working directory to current workspace
-			process.chdir(workspaceFolderUri.path);
-			console.log(`cwd is ${workspaceFolderUri.path}`);
-			execSync(dapsCmd);
-			vscode.window.showInformationMessage('Validation succeeded.');
-			return true;
-		} catch (err) {
-			vscode.window.showErrorMessage(`Validation failed: ${err}`);
 		}
 	}
 	return false;
