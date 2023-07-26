@@ -52,6 +52,9 @@
       "daps.editor.title.context": [
         {
           "command": "daps.XMLformat"
+        },
+        {
+          "command": "daps.buildXMLfile"
         }
       ],
       "explorer/context": [
@@ -71,6 +74,10 @@
         },
         {
           "command": "daps.XMLformat",
+          "when": "resourceExtname == .xml"
+        },
+        {
+          "command": "daps.buildXMLfile",
           "when": "resourceExtname == .xml"
         }
       ]
@@ -99,8 +106,14 @@
         "category": "DAPS"
       },
       {
+        "command": "daps.buildXMLfile",
+        "title": "Build XML file",
+        "category": "DAPS",
+        "enablement": "resourceExtname == .xml"
+      },
+      {
         "command": "daps.XMLformat",
-        "title": "Format XML document",
+        "title": "Format XML file",
         "category": "DAPS",
         "enablement": "resourceExtname == .xml"
       }
