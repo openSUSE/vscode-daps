@@ -136,8 +136,8 @@
           "type": "string",
           "default": null
         },
-        "daps.saveBeforeXMLformat": {
-          "description": "Specify whether the active editor should be automatically saved before running the XML format.",
+        "daps.autoSave": {
+          "description": "Specify if the active editor will be automatically saved before running file-specific command.",
           "type": "boolean",
           "default": true
         }
