@@ -91,6 +91,44 @@ function activate(context) {
 		}
 		return false;
 	});
+	let disposeXMLformat = vscode.commands.registerCommand('daps.XMLformat', async function XMLformat(contextFileURI) {
+		var XMLfile;
+		if (contextFileURI) { //check if XML file was passed as context
+			XMLfile = contextFileURI.path;
+			console.log(`XMLfile from context: ${XMLfile}`);
+		} else if (vscode.window.activeTextEditor) { // try the currently open file
+			XMLfile = vscode.window.activeTextEditor.document.fileName;
+			console.log(`XML file from active editor: ${XMLfile}`);
+		} else {
+			console.error('No XML file specified or active');
+			return false;
+		}
+		// save the file before format if option is set
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		if (dapsConfig.get('saveBeforeXMLformat') == true) {
+			var activeDocument = vscode.window.activeTextEditor.document;
+			if (activeDocument.isDirty == true) {
+				console.log('The active document is dirty, saving');
+				try {
+					await activeDocument.save();
+				} catch (err) {
+					vscode.window.showErrorMessage(err);
+					return false;
+				}
+			}
+		}
+
+		try {
+			vscode.window.showInformationMessage(`XMLformatting ${XMLfile}`);
+			execSync(`daps-xmlformat -i ${XMLfile}`);
+			vscode.window.showInformationMessage(`XMLformat succeeded. ${XMLfile}`);
+			return true;
+		} catch (err) {
+			vscode.window.showErrorMessage(`XMLformat failed: ${err}`);
+			return false;
+		}
+	});
+
 	/**
 	 * @description resolves root ID from context, config, or user input
 	 * @param {string} contextFileURI optional from context
@@ -125,42 +163,9 @@ function activate(context) {
 		console.log(`Count of root IDs: ${rootIds.length}`);
 		return rootIds;
 	}
-	let disposeXMLformat = vscode.commands.registerCommand('daps.XMLformat', (XMLfile) => XMLformat(XMLfile));
 	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
 }
 
-async function XMLformat() {
-	var XMLfile;
-	if (XMLfile = arguments[0]) { //check if XML file was passed as context
-		XMLfile = XMLfile.path;
-		console.log(`XMLfile from context: ${XMLfile}`);
-	} else if (XMLfile = vscode.window.activeTextEditor.document.fileName) { // try the currently open file
-		console.log(`XML file from active editor: ${XMLfile}`);
-		// save the file before format if option is set
-		const dapsConfig = vscode.workspace.getConfiguration('daps');
-		if (dapsConfig.get('saveBeforeXMLformat') == true) {
-			var activeDocument = vscode.window.activeTextEditor.document;
-			if (activeDocument.isDirty == true) {
-				console.log('The active document is dirty, saving');
-				try {
-					await activeDocument.save();
-				} catch (err) {
-					vscode.window.showErrorMessage(err);
-					return false;
-				}
-			}
-		}
-	}
-	try {
-		vscode.window.showInformationMessage(`XMLformatting ${XMLfile}`);
-		execSync(`daps-xmlformat -i ${XMLfile}`);
-		vscode.window.showInformationMessage(`XMLformat succeeded. ${XMLfile}`);
-		return true;
-	} catch (err) {
-		vscode.window.showErrorMessage(`XMLformat failed: ${err}`);
-		return false;
-	}
-}
 /**
  * @description builds HTML or PDF targets given DC file
  * @param {obj} DCfile URI from context command (optional)
