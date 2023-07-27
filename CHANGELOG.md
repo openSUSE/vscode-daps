@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.2.0
+- added option to auto-save XML file before running dpa scommand on it
+- fixed XML format, now works for dirty editors from contextuals
+- added direct building of XML file without DC file
+
 ## 0.1.0
 - added support for root IDs
 - added Explorer context validation
