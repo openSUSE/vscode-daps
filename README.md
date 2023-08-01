@@ -72,8 +72,6 @@ Command Palette. Press `CTRL` + `SHIFT` + `P`, start typing `daps` and when
 available, select the `DAPS: Build with DC file` command. Select the DC file
 from the populated list and, finally, choose whether to build `pdf` or `html`.
 
-<img src="./media/build-xml-DC-palette.gif" width="800px"/>
-
 TIP: After the build is finished, you can directly open the resulting document
 or copy its path to a clipboard.
 
