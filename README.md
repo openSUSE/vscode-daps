@@ -1,4 +1,3 @@
-
 # vscode-daps README
 
 ## Features
@@ -24,8 +23,8 @@ DAPS commands.
 
 ## Making it quicker with options
 
-If you work on a project and use the same DC file, target format, or root
-ID over and over, you can specify this information in the `.vscode/settings.json`
+If you work on a project and use the same DC file, target format, or root ID
+over and over, you can specify this information in the `.vscode/settings.json`
 file of your project. After you save the modified `.vscode/settings.json` file,
 you will not be asked by VSCode to specify the included options when running the
 commands described below.
@@ -34,8 +33,8 @@ commands described below.
 
 ## Formatting an XML document
 
-To format the currently opened active XML document, right-click its tab and select
-`DAPS`> `Format XML Document`.
+To format the currently opened active XML document, right-click its tab and
+select `DAPS`> `Format XML Document`.
 
 <img src="./media/format-xml-editor-tab.gif" width="800px"/>
 
@@ -54,9 +53,9 @@ the Explorer view and select `DAPS` > `Validate`.
 <img src="./media/daps-validate-explorer-context.gif" width="800px"/>
 
 Or, you can specify the DC file manually from a drop-down list. Verify that the
-Explorer shows a documentation project, then press `CTRL`+`SHIFT`+`P` to open the
-command palette. Start to type `daps` and select  `Validate`. Then select the
-desired DC file from the populated drop-down list.
+Explorer shows a documentation project, then press `CTRL`+`SHIFT`+`P` to open
+the command palette. Start to type `daps` and select  `Validate`. Then select
+the desired DC file from the populated drop-down list.
 
 <img src="./media/daps-validate-palette.gif" width="800px"/>
 
@@ -73,18 +72,17 @@ Command Palette. Press `CTRL` + `SHIFT` + `P`, start typing `daps` and when
 available, select the `DAPS: Build with DC file` command. Select the DC file
 from the populated list and, finally, choose whether to build `pdf` or `html`.
 
-<img src="./media/build-xml-DC-palette.gif" width="800px"/>
-
 TIP: After the build is finished, you can directly open the resulting document
 or copy its path to a clipboard.
 
 ## Building PDF and HTML versions by root ID
 
 Besides building a whole book, you can build only a part of it, for example, a
-chapter or a topic. To achieve this, you need to specify a top-level element root
-ID. Press `CTRL` + `SHIFT` + `P`, start typing `daps` and when available, select
-the `DAPS: Build with root ID`. Choose the DC file from the populated list, then
-the root ID to build. Finally, choose whether to build `pdf` or `html`.
+chapter or a topic. To achieve this, you need to specify a top-level element
+root ID. Press `CTRL` + `SHIFT` + `P`, start typing `daps` and when available,
+select the `DAPS: Build with root ID`. Choose the DC file from the populated
+list, then the root ID to build. Finally, choose whether to build `pdf` or
+`html`.
 
 <img src="./media/build-root-id-palette.gif" width="800px"/>
 
@@ -92,8 +90,17 @@ IMPORTANT: Populating the list of root IDs can take a few seconds.
 
 Alternatively, you can select the root ID with the mouse in your active editor
 and right-click the selection. Then select `DAPS` > `Build with root ID`. Select
-the DC file from the populated list and, finally, choose whether to build `pdf` or
-`html`.
+the DC file from the populated list and, finally, choose whether to build `pdf`
+or `html`.
 
 <img src="./media/build-root-id-selection.gif" width="800px"/>
+
+## Building PDF and HTML versions of an XML file
+
+To build the currently active XML document, right-click its editor tab and
+select `DAPS` > `Build XML file`. Finally, choose whether to build `pdf` or
+`html`.
+
+To build *any* XML file, right-click its name in the explorer view and select
+`DAPS` > `Build XML file`. Finally, choose whether to build `pdf` or `html`.
 
