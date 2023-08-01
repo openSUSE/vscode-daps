@@ -45,16 +45,21 @@
       ],
       "editor/title/context": [
         {
-          "submenu": "daps.editor.title.context",
-          "when": "resourceExtname == .xml"
+          "submenu": "daps.editor.title.context"
         }
       ],
       "daps.editor.title.context": [
         {
-          "command": "daps.XMLformat"
+          "command": "daps.XMLformat",
+          "when": "resourceExtname == .xml"
         },
         {
-          "command": "daps.buildXMLfile"
+          "command": "daps.buildXMLfile",
+          "when": "resourceExtname == .xml"
+        },
+        {
+          "command": "daps.buildDCfile",
+          "when": "resourceFilename =~ /DC-*/"
         }
       ],
       "explorer/context": [
