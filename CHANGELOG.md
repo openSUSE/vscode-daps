@@ -1,5 +1,6 @@
 # Change Log
-
+## 0.2.1
+- --single build option only for HTML targets, not PDF
 ## 0.2.0
 - added option to auto-save XML file before running dpa scommand on it
 - fixed XML format, now works for dirty editors from contextuals
