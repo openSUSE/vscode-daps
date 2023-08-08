@@ -34,7 +34,12 @@ function activate(context) {
 		}
 		var buildTarget = await getBuildTarget();
 		if (buildTarget) {
-			var dapsCmd = `daps -m ${XMLfile} ${buildTarget} --single --norefcheck`;
+			var dapsCmd = `daps -m ${XMLfile} ${buildTarget} --norefcheck`;
+			// add --single option for HTML builds
+			if (buildTarget == 'html') {
+				console.log('Adding --single option for HTML target');
+				dapsCmd += ' --single';
+			}
 			try {
 				vscode.window.showInformationMessage(`Running ${dapsCmd}`);
 				await autoSave(XMLfile);
