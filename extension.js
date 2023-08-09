@@ -123,6 +123,26 @@ function activate(context) {
 		}
 	});
 	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
+	/**
+	 * @description assembles daps command based on given parameters
+	 * @param {Array} given parameters
+	 * @returns {String} daps command that can be executed
+	 */
+	function getDapsCmd(params) {
+		// get daps configuration hash
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		var dapsCmd = null;
+		dapsCmd = dapsConfig.get('dapsRoot');
+		if (DCfile = params['DCfile']) {
+			dapsCmd += ` -d ${DCfile}`;
+		}
+
+		if (cmd = params['cmd']) {
+			dapsCmd += ` ${cmd}`;
+		}
+		console.log(`dapsCmd: ${dapsCmd}`);
+		return dapsCmd;
+	}
 
 	/**
 	 * @description resolves root ID from context, config, or user input
@@ -183,16 +203,16 @@ function activate(context) {
 			}
 		}
 	}
-	/**
+/**
  * @description validates documentation identified by DC file
- * @param {obj} DCfile URI from context command (optional)
+ * @param {string} DCfile URI from context command (optional)
  * @returns true or false depending on how validation happened
  */
-	async function validate() {
-		var DCfile = await getDCfile(arguments[0]);
+	async function validate(DCfile) {
+		var DCfile = await getDCfile(DCfile);
 		if (DCfile) {
 			// assemble daps command
-			const dapsCmd = `daps -d ${DCfile} validate`;
+			const dapsCmd = getDapsCmd({DCfile: DCfile, cmd: 'validate'});
 			try {
 				vscode.window.showInformationMessage(`Running ${dapsCmd}`);
 				// change working directory to current workspace
@@ -208,8 +228,6 @@ function activate(context) {
 		return false;
 	}
 }
-
-
 
 /**
  * @description builds HTML or PDF targets given DC file

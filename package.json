@@ -145,16 +145,25 @@
           "description": "Specify if the active editor will be automatically saved before running file-specific command.",
           "type": "boolean",
           "default": true
+        },
+        "daps.styleRoot": {
+          "description": "Specify the root directory of stylesheets to use.",
+          "type": "string",
+          "default": "/usr/share/xml/docbook/stylesheet/suse2022-ns",
+          "daps.dapsRoot": {
+            "description": "Specify the root directory of daps checkout.",
+            "type": "string",
+            "default": "/usr"
+          }
         }
+      },
+      "configurationDefaults": {
+        "xml.format.enabled": false
       }
     },
-    "configurationDefaults": {
-      "xml.format.enabled": false
+    "scripts": {
+      "lint": "eslint .",
+      "pretest": "npm run lint",
+      "test": "node ./test/runTest.js"
     }
-  },
-  "scripts": {
-    "lint": "eslint .",
-    "pretest": "npm run lint",
-    "test": "node ./test/runTest.js"
   }
-}
