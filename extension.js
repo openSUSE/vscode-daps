@@ -110,10 +110,12 @@ function activate(context) {
 		}
 
 		try {
-			vscode.window.showInformationMessage(`XMLformatting ${XMLfile}`);
+			// vscode.window.showInformationMessage(`XMLformatting ${XMLfile}`);
 			await autoSave(XMLfile);
-			execSync(`daps-xmlformat -i ${XMLfile}`);
-			vscode.window.showInformationMessage(`XMLformat succeeded. ${XMLfile}`);
+			const dapsXMLformatCmd = `daps-xmlformat -i ${XMLfile}`;
+			console.log(`XML format cmd: ${dapsXMLformatCmd}`);
+			execSync(dapsXMLformatCmd);
+			// vscode.window.showInformationMessage(`XMLformat succeeded. ${XMLfile}`);
 			return true;
 		} catch (err) {
 			vscode.window.showErrorMessage(`XMLformat failed: ${err}`);

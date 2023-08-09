@@ -1,4 +1,7 @@
 # Change Log
+
+## 0.2.2
+- removed status messages for XML formatting
 ## 0.2.1
 - --single build option only for HTML targets, not PDF
 ## 0.2.0
