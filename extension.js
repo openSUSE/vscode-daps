@@ -17,8 +17,80 @@ function activate(context) {
 	console.log('Congratulations, your extension "daps" is now active!');
 	var extensionPath = context.extensionPath;
 	console.log(`Extension path: ${extensionPath}`)
-	let disposeValidate = vscode.commands.registerCommand('daps.validate', (DCfile) => validate(DCfile));
-	let disposeBuildDC = vscode.commands.registerCommand('daps.buildDCfile', (DCfile) => buildDCfile(DCfile));
+	/**
+	 * @description validates documentation identified by DC file
+	 * @param {string} DCfile URI from context command (optional)
+	 * @returns true or false depending on how validation happened
+	 */
+	let disposeValidate = vscode.commands.registerCommand('daps.validate', async function validate(contextDCfile) {
+		var DCfile = await getDCfile(contextDCfile);
+		if (DCfile) {
+			// assemble daps command
+			const dapsCmd = getDapsCmd({ DCfile: DCfile, cmd: 'validate' });
+			try {
+				vscode.window.showInformationMessage(`Running ${dapsCmd}`);
+				// change working directory to current workspace
+				process.chdir(workspaceFolderUri.path);
+				console.log(`cwd is ${workspaceFolderUri.path}`);
+				execSync(dapsCmd);
+				vscode.window.showInformationMessage('Validation succeeded.');
+				return true;
+			} catch (err) {
+				vscode.window.showErrorMessage(`Validation failed: ${err}`);
+			}
+		}
+		return false;
+	});
+	/**
+	 * @description builds HTML or PDF targets given DC file
+	 * @param {obj} DCfile URI from context command (optional)
+	 * @returns true or false depending on how the build happened
+	 */
+	let disposeBuildDC = vscode.commands.registerCommand('daps.buildDCfile', async function buildDCfile(contextDCfile) {
+		var buildTarget;
+		var DCfile = await getDCfile(contextDCfile);
+		// try if buildTarget is included in settings or get it from user
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		if (buildTarget = dapsConfig.get('buildTarget')) {
+			console.log(`buildTarget from config: ${buildTarget}`);
+		} else {
+			buildTarget = await vscode.window.showQuickPick(buildTargets);
+			console.log(`buildTarget form picker: ${buildTarget}`);
+		}
+
+		// assemble daps command
+		if (DCfile && buildTarget) {
+			var params = {
+				DCfile: DCfile,
+				buildTarget: buildTarget,
+			}
+			var dapsCmd = getDapsCmd(params);
+			try {
+				vscode.window.showInformationMessage(`Running ${dapsCmd}`);
+				// change working directory to current workspace
+				process.chdir(workspaceFolderUri.path);
+				console.log(`cwd is ${workspaceFolderUri.path}`);
+				let cmdOutput = execSync(dapsCmd);
+				let targetBuild = cmdOutput.toString().trim();
+				if (buildTarget == 'html') {
+					targetBuild = targetBuild + 'index.html';
+				}
+				console.log('target build: ' + targetBuild);
+				vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
+					console.log(selected);
+					if (selected === 'Open document') {
+						exec('xdg-open ' + targetBuild);
+					} else if (selected === 'Copy link') {
+						vscode.env.clipboard.writeText(targetBuild);
+					}
+				});
+				return true;
+			} catch (err) {
+				vscode.window.showErrorMessage(`Build failed: ${err}`);
+			}
+		}
+		return false;
+	});
 	let disposeBuildXMLfile = vscode.commands.registerCommand('daps.buildXMLfile', async function buildXMLfile(contextFileURI) {
 		// decide on input XML file - take active editor if file not specified from context
 		var XMLfile;
@@ -34,12 +106,16 @@ function activate(context) {
 		}
 		var buildTarget = await getBuildTarget();
 		if (buildTarget) {
-			var dapsCmd = `daps -m ${XMLfile} ${buildTarget} --norefcheck`;
+			var params = {
+				XMLfile: XMLfile,
+				buildTarget: buildTarget,
+				options: ['--norefcheck']
+			}
 			// add --single option for HTML builds
 			if (buildTarget == 'html') {
-				console.log('Adding --single option for HTML target');
-				dapsCmd += ' --single';
+				params['options'].push('--single');
 			}
+			var dapsCmd = getDapsCmd(params);
 			try {
 				vscode.window.showInformationMessage(`Running ${dapsCmd}`);
 				await autoSave(XMLfile);
@@ -69,7 +145,12 @@ function activate(context) {
 		var rootId = await getRootId(contextFileURI, DCfile);
 		// assemble daps command
 		if (DCfile && rootId && buildTarget) {
-			var dapsCmd = `daps -d ${DCfile} ${buildTarget} --rootid ${rootId}`;
+			var params = {
+				DCfile: DCfile,
+				buildTarget: buildTarget,
+				rootId: rootId
+			}
+			var dapsCmd = getDapsCmd(params);
 			try {
 				vscode.window.showInformationMessage('Running ' + dapsCmd);
 				// change working directory to current workspace
@@ -123,6 +204,41 @@ function activate(context) {
 		}
 	});
 	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
+	/**
+	 * @description assembles daps command based on given parameters
+	 * @param {Array} given parameters
+	 * @returns {String} daps command that can be executed
+	 */
+	function getDapsCmd(params) {
+		// get daps configuration hash
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		var dapsCmd = [];
+		dapsCmd.push(dapsConfig.get('dapsExecutable'));
+		if (dapsConfig.get('dapsRoot')) {
+			dapsCmd.push('--dapsroot ' + dapsConfig.get('dapsRoot'));
+		}
+		if (dapsConfig.get('styleRoot')) {
+			dapsCmd.push('--styleroot ' + dapsConfig.get('styleRoot'));
+		}
+		if (params['DCfile']) {
+			dapsCmd.push('-d ' + params['DCfile']);
+		} else if (params['XMLfile']) {
+			dapsCmd.push('-m ' + params['XMLfile']);
+		}
+		if (params['cmd']) {
+			dapsCmd.push(params['cmd']);
+		} else if (params['buildTarget']) {
+			dapsCmd.push(params['buildTarget']);
+		}
+		if (params['rootId']) {
+			dapsCmd.push('--rootid ' + params['rootId']);
+		}
+		if (params['options']) {
+			dapsCmd.push(params['options'].join(' '));
+		}
+		console.log(`dapsCmd: ${dapsCmd.join(' ')}`);
+		return dapsCmd.join(' ');
+	}
 
 	/**
 	 * @description resolves root ID from context, config, or user input
@@ -183,79 +299,6 @@ function activate(context) {
 			}
 		}
 	}
-	/**
- * @description validates documentation identified by DC file
- * @param {obj} DCfile URI from context command (optional)
- * @returns true or false depending on how validation happened
- */
-	async function validate() {
-		var DCfile = await getDCfile(arguments[0]);
-		if (DCfile) {
-			// assemble daps command
-			const dapsCmd = `daps -d ${DCfile} validate`;
-			try {
-				vscode.window.showInformationMessage(`Running ${dapsCmd}`);
-				// change working directory to current workspace
-				process.chdir(workspaceFolderUri.path);
-				console.log(`cwd is ${workspaceFolderUri.path}`);
-				execSync(dapsCmd);
-				vscode.window.showInformationMessage('Validation succeeded.');
-				return true;
-			} catch (err) {
-				vscode.window.showErrorMessage(`Validation failed: ${err}`);
-			}
-		}
-		return false;
-	}
-}
-
-
-
-/**
- * @description builds HTML or PDF targets given DC file
- * @param {obj} DCfile URI from context command (optional)
- * @returns true or false depending on how the build happened
- */
-async function buildDCfile() {
-	var buildTarget;
-	var DCfile = await getDCfile(arguments[0]);
-	// try if buildTarget is included in settings or get it from user
-	const dapsConfig = vscode.workspace.getConfiguration('daps');
-	if (buildTarget = dapsConfig.get('buildTarget')) {
-		console.log(`buildTarget from config: ${buildTarget}`);
-	} else {
-		buildTarget = await vscode.window.showQuickPick(buildTargets);
-		console.log(`buildTarget form picker: ${buildTarget}`);
-	}
-
-	// assemble daps command
-	if (DCfile && buildTarget) {
-		var dapsCmd = `daps -d ${DCfile} ${buildTarget}`;
-		try {
-			vscode.window.showInformationMessage(`Running ${dapsCmd}`);
-			// change working directory to current workspace
-			process.chdir(workspaceFolderUri.path);
-			console.log(`cwd is ${workspaceFolderUri.path}`);
-			let cmdOutput = execSync(dapsCmd);
-			let targetBuild = cmdOutput.toString().trim();
-			if (buildTarget == 'html') {
-				targetBuild = targetBuild + 'index.html';
-			}
-			console.log('target build: ' + targetBuild);
-			vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
-				console.log(selected);
-				if (selected === 'Open document') {
-					exec('xdg-open ' + targetBuild);
-				} else if (selected === 'Copy link') {
-					vscode.env.clipboard.writeText(targetBuild);
-				}
-			});
-			return true;
-		} catch (err) {
-			vscode.window.showErrorMessage(`Build failed: ${err}`);
-		}
-	}
-	return false;
 }
 
 /**
@@ -310,7 +353,6 @@ async function getBuildTarget() {
 	}
 	return buildTarget;
 }
-
 
 // This method is called when your extension is deactivated
 function deactivate() { }

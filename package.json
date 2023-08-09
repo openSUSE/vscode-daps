@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "icon": "icon.png",
@@ -145,6 +145,21 @@
           "description": "Specify if the active editor will be automatically saved before running file-specific command.",
           "type": "boolean",
           "default": true
+        },
+        "daps.dapsExecutable": {
+          "description": "Specify theabsolute path to `daps` executable.",
+          "type": "string",
+          "default": "/usr/bin/daps"
+        },
+        "daps.styleRoot": {
+          "description": "Specify the root directory of stylesheets to use.",
+          "type": "string",
+          "default": null
+        },
+        "daps.dapsRoot": {
+          "description": "Specify the root directory of daps checkout.",
+          "type": "string",
+          "default": null
         }
       }
     },

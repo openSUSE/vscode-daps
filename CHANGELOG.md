@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.3.0
+- added support for --styleroot
+- added support for --dapsroot
+- added dapsExecutable option
+- 
 ## 0.2.2
 - removed status messages for XML formatting
 ## 0.2.1
