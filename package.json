@@ -146,24 +146,30 @@
           "type": "boolean",
           "default": true
         },
+        "daps.dapsExecutable": {
+          "description": "Specify theabsolute path to `daps` executable.",
+          "type": "string",
+          "default": "/usr/bin/daps"
+        },
         "daps.styleRoot": {
           "description": "Specify the root directory of stylesheets to use.",
           "type": "string",
-          "default": "/usr/share/xml/docbook/stylesheet/suse2022-ns",
-          "daps.dapsRoot": {
-            "description": "Specify the root directory of daps checkout.",
-            "type": "string",
-            "default": "/usr"
-          }
+          "default": null
+        },
+        "daps.dapsRoot": {
+          "description": "Specify the root directory of daps checkout.",
+          "type": "string",
+          "default": null
         }
-      },
-      "configurationDefaults": {
-        "xml.format.enabled": false
       }
     },
-    "scripts": {
-      "lint": "eslint .",
-      "pretest": "npm run lint",
-      "test": "node ./test/runTest.js"
+    "configurationDefaults": {
+      "xml.format.enabled": false
     }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "node ./test/runTest.js"
   }
+}
