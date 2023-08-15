@@ -60,6 +60,10 @@
         {
           "command": "daps.buildDCfile",
           "when": "resourceFilename =~ /DC-*/"
+        },
+        {
+          "command": "daps.docPreview",
+          "when": "resourceExtname == .xml"
         }
       ],
       "explorer/context": [
@@ -119,6 +123,12 @@
       {
         "command": "daps.XMLformat",
         "title": "Format XML file",
+        "category": "DAPS",
+        "enablement": "resourceExtname == .xml"
+      },
+      {
+        "command": "daps.docPreview",
+        "title": "Preview document",
         "category": "DAPS",
         "enablement": "resourceExtname == .xml"
       }
