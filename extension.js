@@ -16,7 +16,42 @@ const buildTargets = ['pdf', 'html'];
 function activate(context) {
 	console.log('Congratulations, your extension "daps" is now active!');
 	var extensionPath = context.extensionPath;
-	console.log(`Extension path: ${extensionPath}`)
+	console.log(`Extension path: ${extensionPath}`);
+
+	let disposePreview = vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
+		//find if the 'document preview' extension is enabled
+		let docPreviewExtension = vscode.extensions.getExtension('garlicbreadcleric.document-preview');
+		if (docPreviewExtension) {
+			console.log(`Extension ${docPreviewExtension.id} active!`);
+			// get img src path from config
+			const dapsConfig = vscode.workspace.getConfiguration('daps');
+			const dapsImgSrc = dapsConfig.get('docPreviewImgPath');
+			console.log(`dapsImgSrc: ${dapsImgSrc}`);
+			// set the preview option to custom xsltproc cmd
+			const docPreviewConfig = vscode.workspace.getConfiguration('documentPreview');
+			let docPreviewConfigHash = [
+				{
+					"name": "DAPS XML",
+					"fileTypes": [
+						"xml"
+					],
+					"command": `tee ../build/tee.xml >/dev/null && xsltproc --stringparam img.src.path ${dapsImgSrc} ${extensionPath}/xslt/doc-preview.xsl ../build/tee.xml`
+				}
+			];
+			console.log(`Path to tee file: ${workspaceFolderUri.path}/build/tee.xml`);
+			try {
+				docPreviewConfig.update('converters', docPreviewConfigHash, true);
+			} catch (err) {
+				vscode.window.showErrorMessage(err);
+			}
+
+			// run the preview command
+			vscode.commands.executeCommand('documentPreview.openDocumentPreview');
+		} else {
+			vscode.window.showErrorMessage("For previews, install and enable the 'Document preview' extension");
+		}
+	});
+
 	/**
 	 * @description validates documentation identified by DC file
 	 * @param {string} DCfile URI from context command (optional)
@@ -203,7 +238,7 @@ function activate(context) {
 			return false;
 		}
 	});
-	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
+	context.subscriptions.push(disposePreview, disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
 	/**
 	 * @description assembles daps command based on given parameters
 	 * @param {Array} given parameters

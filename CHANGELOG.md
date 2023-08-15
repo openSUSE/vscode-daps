@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.4.0
+- added support for document privew
 ## 0.3.0
 - added support for --styleroot
 - added support for --dapsroot

@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "icon": "icon.png",
@@ -16,6 +16,9 @@
     "workspaceContains:**/DC-*"
   ],
   "main": "./extension.js",
+  "extensionDependencies": [
+    "garlicbreadcleric.document-preview"
+  ],
   "contributes": {
     "submenus": [
       {
@@ -60,6 +63,10 @@
         {
           "command": "daps.buildDCfile",
           "when": "resourceFilename =~ /DC-*/"
+        },
+        {
+          "command": "daps.docPreview",
+          "when": "resourceExtname == .xml"
         }
       ],
       "explorer/context": [
@@ -121,11 +128,22 @@
         "title": "Format XML file",
         "category": "DAPS",
         "enablement": "resourceExtname == .xml"
+      },
+      {
+        "command": "daps.docPreview",
+        "title": "Preview document",
+        "category": "DAPS",
+        "enablement": "resourceExtname == .xml"
       }
     ],
     "configuration": {
       "title": "DAPS",
       "properties": {
+        "daps.docPreviewImgPath": {
+          "description": "Path to images relative to the document.",
+          "type": "string",
+          "default": "../images/"
+        },
         "daps.buildRootId": {
           "description": "Set the root ID of an XML element to build. If not specified, the user is asked to enter it.",
           "type": "string",
