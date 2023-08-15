@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.4.1
+- disabled static images
 ## 0.4.0
 - added support for document privew
 ## 0.3.0
