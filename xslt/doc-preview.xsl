@@ -13,5 +13,5 @@
   <xsl:param name="docbook.css.source"></xsl:param>
   <xsl:param name="chapter.autolabel" select="1"></xsl:param>
   <xsl:param name="section.autolabel" select="1"></xsl:param>
-
+  <xsl:param name="callout.graphics" select="0"></xsl:param>
 </xsl:stylesheet>
