@@ -23,6 +23,10 @@ function activate(context) {
 		let docPreviewExtension = vscode.extensions.getExtension('garlicbreadcleric.document-preview');
 		if (docPreviewExtension) {
 			console.log(`Extension ${docPreviewExtension.id} active!`);
+			// get img src path from config
+			const dapsConfig = vscode.workspace.getConfiguration('daps');
+			const dapsImgSrc = dapsConfig.get('docPreviewImgPath');
+			console.log(`dapsImgSrc: ${dapsImgSrc}`);
 			// set the preview option to custom xsltproc cmd
 			const docPreviewConfig = vscode.workspace.getConfiguration('documentPreview');
 			let docPreviewConfigHash = [
@@ -31,11 +35,10 @@ function activate(context) {
 					"fileTypes": [
 						"xml"
 					],
-					"command": `tee ../build/tee.xml >/dev/null && xsltproc ${extensionPath}/xslt/doc-preview.xsl ../build/tee.xml`
+					"command": `tee ../build/tee.xml >/dev/null && xsltproc --stringparam img.src.path ${dapsImgSrc} ${extensionPath}/xslt/doc-preview.xsl ../build/tee.xml`
 				}
 			];
 			console.log(`Path to tee file: ${workspaceFolderUri.path}/build/tee.xml`);
-			fs.rmSync(`${workspaceFolderUri.path}/build/tee.xml`);
 			try {
 				docPreviewConfig.update('converters', docPreviewConfigHash, true);
 			} catch (err) {

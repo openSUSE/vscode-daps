@@ -10,7 +10,8 @@
   <xsl:import href="http://docbook.sourceforge.net/release/xsl-ns/current/xhtml5/docbook.xsl"/>
 
   <!-- add here your parameters, for example: -->
-  <xsl:param name="img.src.path">../images</xsl:param>
   <xsl:param name="docbook.css.source"></xsl:param>
+  <xsl:param name="chapter.autolabel" select="1"></xsl:param>
+  <xsl:param name="section.autolabel" select="1"></xsl:param>
 
 </xsl:stylesheet>
