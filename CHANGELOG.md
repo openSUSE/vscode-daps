@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.4.2
+- fixed document preview for non-modular repos
 ## 0.4.1
 - disabled static images
 ## 0.4.0

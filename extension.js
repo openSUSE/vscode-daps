@@ -35,10 +35,10 @@ function activate(context) {
 					"fileTypes": [
 						"xml"
 					],
-					"command": `tee ../build/tee.xml >/dev/null && xsltproc --stringparam img.src.path ${dapsImgSrc} ${extensionPath}/xslt/doc-preview.xsl ../build/tee.xml`
+					//"command": `tee ../build/tee.xml >/dev/null && xsltproc --stringparam img.src.path ${dapsImgSrc} ${extensionPath}/xslt/doc-preview.xsl ../build/tee.xml`
+					"command": `tee .tee.tmp.xml >/dev/null && xsltproc --stringparam img.src.path ${dapsImgSrc} ${extensionPath}/xslt/doc-preview.xsl .tee.tmp.xml && rm .tee.tmp.xml`
 				}
 			];
-			console.log(`Path to tee file: ${workspaceFolderUri.path}/build/tee.xml`);
 			try {
 				docPreviewConfig.update('converters', docPreviewConfigHash, true);
 			} catch (err) {
