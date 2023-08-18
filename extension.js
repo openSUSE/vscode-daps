@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
 const fs = require('fs');
+const path = require('path');
 const { exec } = require('child_process');
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
@@ -35,8 +36,7 @@ function activate(context) {
 					"fileTypes": [
 						"xml"
 					],
-					//"command": `tee ../build/tee.xml >/dev/null && xsltproc --stringparam img.src.path ${dapsImgSrc} ${extensionPath}/xslt/doc-preview.xsl ../build/tee.xml`
-					"command": `tee .tee.tmp.xml >/dev/null && xsltproc --stringparam img.src.path ${dapsImgSrc} ${extensionPath}/xslt/doc-preview.xsl .tee.tmp.xml && rm .tee.tmp.xml`
+					"command": `xsltproc --stringparam img.src.path ${dapsImgSrc} ${extensionPath}/xslt/doc-preview.xsl -`
 				}
 			];
 			try {
@@ -44,7 +44,10 @@ function activate(context) {
 			} catch (err) {
 				vscode.window.showErrorMessage(err);
 			}
-
+			// resolve the file's directory and cd there
+			let docPreviewDir = path.dirname(getActiveFile(contextFileURI));
+			console.log(`XML file dirname: ${docPreviewDir}`);
+			process.chdir(docPreviewDir);
 			// run the preview command
 			vscode.commands.executeCommand('documentPreview.openDocumentPreview');
 		} else {
@@ -273,6 +276,25 @@ function activate(context) {
 		}
 		console.log(`dapsCmd: ${dapsCmd.join(' ')}`);
 		return dapsCmd.join(' ');
+	}
+	/**
+	 * @description Resolves active file name from either context argument or active editor
+	 * @param {URI} contextFileURI 
+	 * @returns {string} Path to the active file
+	 */
+	function getActiveFile(contextFileURI) {
+		var XMLfile;
+		if (contextFileURI) { //check if XML file was passed as context
+			XMLfile = contextFileURI.path;
+			console.log(`XMLfile from context: ${XMLfile}`);
+		} else if (vscode.window.activeTextEditor) { // try the currently open file
+			XMLfile = vscode.window.activeTextEditor.document.fileName;
+			console.log(`XML file from active editor: ${XMLfile}`);
+		} else {
+			console.error('No XML file specified or active');
+			return false;
+		}
+		return XMLfile;
 	}
 
 	/**

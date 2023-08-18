@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.4.3
+- made document preview work for ANY repo, no tmp file needed
 ## 0.4.2
 - fixed document preview for non-modular repos
 ## 0.4.1
