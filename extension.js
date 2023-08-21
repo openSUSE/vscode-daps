@@ -4,6 +4,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+var terminal = vscode.window.createTerminal('DAPS');
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
@@ -70,7 +71,9 @@ function activate(context) {
 				// change working directory to current workspace
 				process.chdir(workspaceFolderUri.path);
 				console.log(`cwd is ${workspaceFolderUri.path}`);
-				execSync(dapsCmd);
+				terminal.sendText(dapsCmd);
+				terminal.show(true);
+				// execSync(dapsCmd);
 				vscode.window.showInformationMessage('Validation succeeded.');
 				return true;
 			} catch (err) {
