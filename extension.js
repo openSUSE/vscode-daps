@@ -67,13 +67,13 @@ function activate(context) {
 			// assemble daps command
 			const dapsCmd = getDapsCmd({ DCfile: DCfile, cmd: 'validate' });
 			const dapsConfig = vscode.workspace.getConfiguration('daps');
+			// change working directory to current workspace
+			process.chdir(workspaceFolderUri.path);
+			console.log(`cwd is ${workspaceFolderUri.path}`);
 			// decide whether to run terminal
 			try {
 				if (dapsConfig.get('runTerminal')) {
 					console.log('Running command in terminal');
-					// change working directory to current workspace
-					process.chdir(workspaceFolderUri.path);
-					console.log(`cwd is ${workspaceFolderUri.path}`);
 					terminal.sendText(dapsCmd);
 					terminal.show(true);
 				} else {
@@ -279,7 +279,7 @@ function activate(context) {
 		if (dapsConfig.get('verbosityLevel') && dapsConfig.get('runTerminal')) {
 			dapsCmd.push('-v' + dapsConfig.get('verbosityLevel'));
 		}
-		if (dapsConfig.get('styleRoot')) {
+		if (dapsConfig.get('styleRoot') && params['cmd'] != 'validate') {
 			dapsCmd.push('--styleroot ' + dapsConfig.get('styleRoot'));
 		}
 		if (params['DCfile']) {
