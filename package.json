@@ -139,6 +139,11 @@
     "configuration": {
       "title": "DAPS",
       "properties": {
+        "daps.runTerminal": {
+          "description": "Specify if daps commands will be run in a terminal window.",
+          "type": "boolean",
+          "default": true
+        },
         "daps.docPreviewImgPath": {
           "description": "Path to images relative to the document.",
           "type": "string",
