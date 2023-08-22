@@ -66,15 +66,21 @@ function activate(context) {
 		if (DCfile) {
 			// assemble daps command
 			const dapsCmd = getDapsCmd({ DCfile: DCfile, cmd: 'validate' });
+			const dapsConfig = vscode.workspace.getConfiguration('daps');
+			// decide whether to run terminal
 			try {
-				vscode.window.showInformationMessage(`Running ${dapsCmd}`);
-				// change working directory to current workspace
-				process.chdir(workspaceFolderUri.path);
-				console.log(`cwd is ${workspaceFolderUri.path}`);
-				terminal.sendText(dapsCmd);
-				terminal.show(true);
-				// execSync(dapsCmd);
-				vscode.window.showInformationMessage('Validation succeeded.');
+				if (dapsConfig.get('runTerminal')) {
+					console.log('Running command in terminal');
+					// change working directory to current workspace
+					process.chdir(workspaceFolderUri.path);
+					console.log(`cwd is ${workspaceFolderUri.path}`);
+					terminal.sendText(dapsCmd);
+					terminal.show(true);
+				} else {
+					vscode.window.showInformationMessage(`Running ${dapsCmd}`);
+					execSync(dapsCmd);
+					vscode.window.showInformationMessage('Validation succeeded.');
+				}
 				return true;
 			} catch (err) {
 				vscode.window.showErrorMessage(`Validation failed: ${err}`);
@@ -106,25 +112,33 @@ function activate(context) {
 				buildTarget: buildTarget,
 			}
 			var dapsCmd = getDapsCmd(params);
+			const dapsConfig = vscode.workspace.getConfiguration('daps');
 			try {
-				vscode.window.showInformationMessage(`Running ${dapsCmd}`);
 				// change working directory to current workspace
 				process.chdir(workspaceFolderUri.path);
 				console.log(`cwd is ${workspaceFolderUri.path}`);
-				let cmdOutput = execSync(dapsCmd);
-				let targetBuild = cmdOutput.toString().trim();
-				if (buildTarget == 'html') {
-					targetBuild = targetBuild + 'index.html';
-				}
-				console.log('target build: ' + targetBuild);
-				vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
-					console.log(selected);
-					if (selected === 'Open document') {
-						exec('xdg-open ' + targetBuild);
-					} else if (selected === 'Copy link') {
-						vscode.env.clipboard.writeText(targetBuild);
+				if (dapsConfig.get('runTerminal')) {
+					console.log('Running command in terminal');
+					terminal.sendText(dapsCmd);
+					terminal.show(true);
+				} else {
+					vscode.window.showInformationMessage(`Running ${dapsCmd}`);
+					let cmdOutput = execSync(dapsCmd);
+					let targetBuild = cmdOutput.toString().trim();
+					if (buildTarget == 'html') {
+						targetBuild = targetBuild + 'index.html';
 					}
-				});
+					console.log('target build: ' + targetBuild);
+					vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
+						console.log(selected);
+						if (selected === 'Open document') {
+							exec('xdg-open ' + targetBuild);
+						} else if (selected === 'Copy link') {
+							vscode.env.clipboard.writeText(targetBuild);
+						}
+					});
+					vscode.window.showInformationMessage('Validation succeeded.');
+				}
 				return true;
 			} catch (err) {
 				vscode.window.showErrorMessage(`Build failed: ${err}`);
@@ -134,17 +148,7 @@ function activate(context) {
 	});
 	let disposeBuildXMLfile = vscode.commands.registerCommand('daps.buildXMLfile', async function buildXMLfile(contextFileURI) {
 		// decide on input XML file - take active editor if file not specified from context
-		var XMLfile;
-		if (contextFileURI) {
-			XMLfile = contextFileURI.path
-			console.log(`XML file from context: ${XMLfile}`);
-		} else if (vscode.window.activeTextEditor) {
-			XMLfile = vscode.window.activeTextEditor.document.fileName
-			console.log(`XML file from active editor: ${XMLfile}`);
-		} else {
-			console.error('No active nor contextual XML file specified');
-			return false;
-		}
+		var XMLfile = getActiveFile(contextFileURI);
 		var buildTarget = await getBuildTarget();
 		if (buildTarget) {
 			var params = {
@@ -157,23 +161,30 @@ function activate(context) {
 				params['options'].push('--single');
 			}
 			var dapsCmd = getDapsCmd(params);
+			const dapsConfig = vscode.workspace.getConfiguration('daps');
 			try {
-				vscode.window.showInformationMessage(`Running ${dapsCmd}`);
 				await autoSave(XMLfile);
-				let cmdOutput = execSync(dapsCmd);
-				let targetBuild = cmdOutput.toString().trim();
-				if (buildTarget == 'html') {
-					targetBuild = targetBuild + 'index.html';
-				}
-				console.log('target build: ' + targetBuild);
-				vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
-					console.log(selected);
-					if (selected === 'Open document') {
-						exec('xdg-open ' + targetBuild);
-					} else if (selected === 'Copy link') {
-						vscode.env.clipboard.writeText(targetBuild);
+				if (dapsConfig.get('runTerminal')) {
+					console.log('Running command in terminal');
+					terminal.sendText(dapsCmd);
+					terminal.show(true);
+				} else {
+					vscode.window.showInformationMessage(`Running ${dapsCmd}`);
+					let cmdOutput = execSync(dapsCmd);
+					let targetBuild = cmdOutput.toString().trim();
+					if (buildTarget == 'html') {
+						targetBuild = targetBuild + 'index.html';
 					}
-				});
+					console.log('target build: ' + targetBuild);
+					vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
+						console.log(selected);
+						if (selected === 'Open document') {
+							exec('xdg-open ' + targetBuild);
+						} else if (selected === 'Copy link') {
+							vscode.env.clipboard.writeText(targetBuild);
+						}
+					});
+				}
 				return true;
 			} catch (err) {
 				vscode.window.showErrorMessage(`Build failed: ${err}`);
@@ -186,31 +197,38 @@ function activate(context) {
 		var rootId = await getRootId(contextFileURI, DCfile);
 		// assemble daps command
 		if (DCfile && rootId && buildTarget) {
-			var params = {
+			const params = {
 				DCfile: DCfile,
 				buildTarget: buildTarget,
 				rootId: rootId
 			}
-			var dapsCmd = getDapsCmd(params);
+			const dapsCmd = getDapsCmd(params);
+			const dapsConfig = vscode.workspace.getConfiguration('daps');
 			try {
-				vscode.window.showInformationMessage('Running ' + dapsCmd);
 				// change working directory to current workspace
 				process.chdir(workspaceFolderUri.path);
 				console.log(`cwd is ${workspaceFolderUri.path}`);
-				let cmdOutput = execSync(dapsCmd);
-				let targetBuild = cmdOutput.toString().trim();
-				if (buildTarget == 'html') {
-					targetBuild = targetBuild + 'index.html';
-				}
-				console.log('target build: ' + targetBuild);
-				vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
-					console.log(selected);
-					if (selected === 'Open document') {
-						exec('xdg-open ' + targetBuild);
-					} else if (selected === 'Copy link') {
-						vscode.env.clipboard.writeText(targetBuild);
+				if (dapsConfig.get('runTerminal')) {
+					console.log('Running command in terminal');
+					terminal.sendText(dapsCmd);
+					terminal.show(true);
+				} else {
+					vscode.window.showInformationMessage(`Running ${dapsCmd}`);
+					let cmdOutput = execSync(dapsCmd);
+					let targetBuild = cmdOutput.toString().trim();
+					if (buildTarget == 'html') {
+						targetBuild = targetBuild + 'index.html';
 					}
-				});
+					console.log('target build: ' + targetBuild);
+					vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
+						console.log(selected);
+						if (selected === 'Open document') {
+							exec('xdg-open ' + targetBuild);
+						} else if (selected === 'Copy link') {
+							vscode.env.clipboard.writeText(targetBuild);
+						}
+					});
+				}
 				return true;
 			} catch (err) {
 				vscode.window.showErrorMessage(`Build failed: ${err}`);
