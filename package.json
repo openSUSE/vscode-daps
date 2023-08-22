@@ -139,6 +139,29 @@
     "configuration": {
       "title": "DAPS",
       "properties": {
+        "daps.verbosityLevel": {
+          "description": "How much debugging information DAPS prints when running commands.",
+          "type": "number",
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "enumDescriptions": [
+            "print 1 line of results",
+            "print intermediate results",
+            "print all files created",
+            "print all commands - very verbose"
+          ],
+          "enumItemLabels": [
+            "Silent",
+            "Intermadiate",
+            "Wordy",
+            "Insane"
+          ],
+          "default": 0
+        },
         "daps.runTerminal": {
           "description": "Specify if daps commands will be run in a terminal window.",
           "type": "boolean",
@@ -170,7 +193,7 @@
           "default": true
         },
         "daps.dapsExecutable": {
-          "description": "Specify theabsolute path to `daps` executable.",
+          "description": "Specify the absolute path to `daps` executable.",
           "type": "string",
           "default": "/usr/bin/daps"
         },

@@ -276,6 +276,9 @@ function activate(context) {
 		if (dapsConfig.get('dapsRoot')) {
 			dapsCmd.push('--dapsroot ' + dapsConfig.get('dapsRoot'));
 		}
+		if (dapsConfig.get('verbosityLevel') && dapsConfig.get('runTerminal')) {
+			dapsCmd.push('-v' + dapsConfig.get('verbosityLevel'));
+		}
 		if (dapsConfig.get('styleRoot') && params['cmd'] != 'validate') {
 			dapsCmd.push('--styleroot ' + dapsConfig.get('styleRoot'));
 		}
