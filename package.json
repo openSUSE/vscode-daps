@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "icon": "icon.png",

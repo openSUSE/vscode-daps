@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.4.4
+- removed --styleroot option from the `daps validate` command
+- added `daps.runTerminal` option to show `daps` cmd output
+- added `daps.verbosityLevel` option to adjust debug info in terminal
 ## 0.4.3
 - made document preview work for ANY repo, no tmp file needed
 ## 0.4.2
