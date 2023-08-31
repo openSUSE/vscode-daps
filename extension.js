@@ -20,6 +20,27 @@ function activate(context) {
 	var extensionPath = context.extensionPath;
 	console.log(`Extension path: ${extensionPath}`);
 
+	let entityCompletionProvider = vscode.languages.registerCompletionItemProvider('xml', {
+
+		provideCompletionItems(document, position, token, context) {
+			let entities = [
+				'&systemd;',
+				'&suse;',
+				'&productname;'
+			];
+			let result = [];
+			entities.forEach(entity => {
+				let completionItem = new vscode.CompletionItem(entity, vscode.CompletionItemKind.Property);
+				completionItem.insertText = new vscode.SnippetString(entity); // You can customize the snippet
+				console.log('type of completionItem: ' + typeof(completionItem));
+				result.push(completionItem);
+			});
+			return result;
+		}
+	},
+		//'&'
+	);
+
 	let disposePreview = vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
 		//find if the 'document preview' extension is enabled
 		let docPreviewExtension = vscode.extensions.getExtension('garlicbreadcleric.document-preview');
@@ -262,7 +283,7 @@ function activate(context) {
 			return false;
 		}
 	});
-	context.subscriptions.push(disposePreview, disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
+	context.subscriptions.push(entityCompletionProvider, disposePreview, disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
 	/**
 	 * @description assembles daps command based on given parameters
 	 * @param {Array} given parameters
