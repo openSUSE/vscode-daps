@@ -22,7 +22,7 @@ function activate(context) {
 
 	let entityCompletionProvider = vscode.languages.registerCompletionItemProvider('xml', {
 
-		provideCompletionItems(document, position, token, context) {
+		provideCompletionItems(document, position) {
 			let entities = [
 				'&systemd;',
 				'&suse;',
@@ -30,16 +30,13 @@ function activate(context) {
 			];
 			let result = [];
 			entities.forEach(entity => {
-				let completionItem = new vscode.CompletionItem(entity, vscode.CompletionItemKind.Property);
-				completionItem.insertText = new vscode.SnippetString(entity); // You can customize the snippet
-				console.log('type of completionItem: ' + typeof(completionItem));
+				let completionItem = new vscode.CompletionItem(entity);
+				completionItem.insertText = new vscode.SnippetString(entity);
 				result.push(completionItem);
 			});
 			return result;
 		}
-	},
-		//'&'
-	);
+	}, '&');
 
 	let disposePreview = vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
 		//find if the 'document preview' extension is enabled
