@@ -22,16 +22,20 @@ function activate(context) {
 
 	let entityCompletionProvider = vscode.languages.registerCompletionItemProvider('xml', {
 
-		provideCompletionItems(document, position) {
-			let entities = [
-				'&systemd;',
-				'&suse;',
-				'&productname;'
-			];
+		provideCompletionItems(document, position, token, context) {
+			console.log(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
+			// get array of entity files
+			let entityFiles = getXMLentityFiles(document.fileName);
+			//extract entites from entity files
+			let entities = getXMLentites(entityFiles);
 			let result = [];
 			entities.forEach(entity => {
 				let completionItem = new vscode.CompletionItem(entity);
-				completionItem.insertText = new vscode.SnippetString(entity);
+				completionItem.kind = vscode.CompletionItemKind.Keyword;
+				// dont double && when triggered with &
+				if (context.triggerKind == 1) {
+					completionItem.insertText = new vscode.SnippetString(entity.substring(1,));
+				}
 				result.push(completionItem);
 			});
 			return result;
@@ -451,6 +455,43 @@ async function getBuildTarget() {
 		console.log(`buildTarget form picker: ${buildTarget}`);
 	}
 	return buildTarget;
+}
+
+function getXMLentityFiles(XMLfile) {
+	// decide where getentityname.py is located
+	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	var getEntScript = null;
+	if (dapsConfig.get('dapsRoot')) {
+		getEntScript = `${dapsConfig.get('dapsRoot')}/libexec/getentityname.py`;
+	} else {
+		getEntScript = '/usr/share/daps/libexec/getentityname.py';
+	}
+	console.log(`get-ent script: ${getEntScript}`);
+	var getEntFilesCmd = `${getEntScript} ${XMLfile}`;
+	console.log(`get-ent cmd: ${getEntFilesCmd}`);
+	var result = execSync(getEntFilesCmd).toString().trim().split(' ');
+	console.log(`num of entity files: ${result.length}`);
+	return result;
+}
+
+function getXMLentites(entityFiles) {
+	// extract XML entities from files to a list
+	var entList = [];
+	entityFiles.forEach(entFile => {
+		entList = entList.concat(fs.readFileSync(entFile, 'utf8').split('\n').filter(line => {
+			// return line.startsWith('<!ENTITY');
+			return line.match(/^<!ENTITY [^%]/);
+		}));
+	});
+	console.log(`size of entList: ${entList.length}`);
+	// leave only entity names in the entity array
+
+	var result = entList.map(processEntLine);
+	function processEntLine(line) {
+		return `&${line.split(" ")[1]};`;
+	}
+	return result;
+
 }
 
 // This method is called when your extension is deactivated
