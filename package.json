@@ -139,6 +139,11 @@
     "configuration": {
       "title": "DAPS",
       "properties": {
+        "daps.excludeXMLentityFiles": {
+          "description": "Exclude specified entity files from parsing.",
+          "type": "array",
+          "default": null
+        },
         "daps.autocompleteXMLentities": {
           "description": "Import XML entities from external files.",
           "type": "boolean",

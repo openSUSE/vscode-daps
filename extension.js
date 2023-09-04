@@ -473,6 +473,18 @@ function getXMLentityFiles(XMLfile) {
 	console.log(`get-ent cmd: ${getEntFilesCmd}`);
 	var result = execSync(getEntFilesCmd).toString().trim().split(' ');
 	console.log(`num of entity files: ${result.length}`);
+	// exclude entities included in 'excludeXMLentityFiles' option
+	var excludedEntityFiles = dapsConfig.get('excludeXMLentityFiles');
+	console.log(`num of excluded ent files: ${excludedEntityFiles.length}`);
+	for (var i = 0; i < result.length; i++) {
+		for (var j = 0; j < excludedEntityFiles.length; j++) {
+			if (result[i].endsWith(excludedEntityFiles[j])) {
+				console.log(`excluding ent file: ${excludedEntityFiles[j]}`)
+				result.splice(i, 1);
+				break;
+			}
+		}
+	}
 	return result;
 }
 
