@@ -139,6 +139,11 @@
     "configuration": {
       "title": "DAPS",
       "properties": {
+        "daps.autocompleteXMLentities": {
+          "description": "Import XML entities from external files.",
+          "type": "boolean",
+          "default": true
+        },
         "daps.verbosityLevel": {
           "description": "How much debugging information DAPS prints when running commands.",
           "type": "number",

@@ -20,27 +20,30 @@ function activate(context) {
 	var extensionPath = context.extensionPath;
 	console.log(`Extension path: ${extensionPath}`);
 
-	let entityCompletionProvider = vscode.languages.registerCompletionItemProvider('xml', {
-
-		provideCompletionItems(document, position, token, context) {
-			console.log(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
-			// get array of entity files
-			let entityFiles = getXMLentityFiles(document.fileName);
-			//extract entites from entity files
-			let entities = getXMLentites(entityFiles);
-			let result = [];
-			entities.forEach(entity => {
-				let completionItem = new vscode.CompletionItem(entity);
-				completionItem.kind = vscode.CompletionItemKind.Keyword;
-				// dont double && when triggered with &
-				if (context.triggerKind == 1) {
-					completionItem.insertText = new vscode.SnippetString(entity.substring(1,));
-				}
-				result.push(completionItem);
-			});
-			return result;
-		}
-	}, '&');
+	// enable autocomplete XML entities from external files
+	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	if (dapsConfig.get('autocompleteXMLentities')) {
+		context.subscriptions.push(vscode.languages.registerCompletionItemProvider('xml', {
+			provideCompletionItems(document, position, token, context) {
+				console.log(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
+				// get array of entity files
+				let entityFiles = getXMLentityFiles(document.fileName);
+				//extract entites from entity files
+				let entities = getXMLentites(entityFiles);
+				let result = [];
+				entities.forEach(entity => {
+					let completionItem = new vscode.CompletionItem(entity);
+					completionItem.kind = vscode.CompletionItemKind.Keyword;
+					// dont double && when triggered with &
+					if (context.triggerKind == 1) {
+						completionItem.insertText = new vscode.SnippetString(entity.substring(1,));
+					}
+					result.push(completionItem);
+				});
+				return result;
+			}
+		}, '&'));
+	}
 
 	let disposePreview = vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
 		//find if the 'document preview' extension is enabled
@@ -159,7 +162,6 @@ function activate(context) {
 							vscode.env.clipboard.writeText(targetBuild);
 						}
 					});
-					vscode.window.showInformationMessage('Validation succeeded.');
 				}
 				return true;
 			} catch (err) {
@@ -284,7 +286,7 @@ function activate(context) {
 			return false;
 		}
 	});
-	context.subscriptions.push(entityCompletionProvider, disposePreview, disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
+	context.subscriptions.push(disposePreview, disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
 	/**
 	 * @description assembles daps command based on given parameters
 	 * @param {Array} given parameters
