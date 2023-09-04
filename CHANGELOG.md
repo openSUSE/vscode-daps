@@ -1,7 +1,12 @@
 # Change Log
 
+## 0.5.0
+- auto-completion XML entites from external files
+- added `daps.autocompleteXMLentities` option to enable entity auto-completion
+- added `daps.excludeXMLentityFiles` option to exclude specific entity files
+  from autocompletion
 ## 0.4.4
-- removed --styleroot option from the `daps validate` command
+- removed `--styleroot`` option from the `daps validate` command
 - added `daps.runTerminal` option to show `daps` cmd output
 - added `daps.verbosityLevel` option to adjust debug info in terminal
 ## 0.4.3
