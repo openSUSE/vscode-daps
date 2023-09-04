@@ -20,6 +20,31 @@ function activate(context) {
 	var extensionPath = context.extensionPath;
 	console.log(`Extension path: ${extensionPath}`);
 
+	// enable autocomplete XML entities from external files
+	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	if (dapsConfig.get('autocompleteXMLentities')) {
+		context.subscriptions.push(vscode.languages.registerCompletionItemProvider('xml', {
+			provideCompletionItems(document, position, token, context) {
+				console.log(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
+				// get array of entity files
+				let entityFiles = getXMLentityFiles(document.fileName);
+				//extract entites from entity files
+				let entities = getXMLentites(entityFiles);
+				let result = [];
+				entities.forEach(entity => {
+					let completionItem = new vscode.CompletionItem(entity);
+					completionItem.kind = vscode.CompletionItemKind.Keyword;
+					// dont double && when triggered with &
+					if (context.triggerKind == 1) {
+						completionItem.insertText = new vscode.SnippetString(entity.substring(1,));
+					}
+					result.push(completionItem);
+				});
+				return result;
+			}
+		}, '&'));
+	}
+
 	let disposePreview = vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
 		//find if the 'document preview' extension is enabled
 		let docPreviewExtension = vscode.extensions.getExtension('garlicbreadcleric.document-preview');
@@ -137,7 +162,6 @@ function activate(context) {
 							vscode.env.clipboard.writeText(targetBuild);
 						}
 					});
-					vscode.window.showInformationMessage('Validation succeeded.');
 				}
 				return true;
 			} catch (err) {
@@ -433,6 +457,55 @@ async function getBuildTarget() {
 		console.log(`buildTarget form picker: ${buildTarget}`);
 	}
 	return buildTarget;
+}
+
+function getXMLentityFiles(XMLfile) {
+	// decide where getentityname.py is located
+	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	var getEntScript = null;
+	if (dapsConfig.get('dapsRoot')) {
+		getEntScript = `${dapsConfig.get('dapsRoot')}/libexec/getentityname.py`;
+	} else {
+		getEntScript = '/usr/share/daps/libexec/getentityname.py';
+	}
+	console.log(`get-ent script: ${getEntScript}`);
+	var getEntFilesCmd = `${getEntScript} ${XMLfile}`;
+	console.log(`get-ent cmd: ${getEntFilesCmd}`);
+	var result = execSync(getEntFilesCmd).toString().trim().split(' ');
+	console.log(`num of entity files: ${result.length}`);
+	// exclude entities included in 'excludeXMLentityFiles' option
+	var excludedEntityFiles = dapsConfig.get('excludeXMLentityFiles');
+	console.log(`num of excluded ent files: ${excludedEntityFiles.length}`);
+	for (var i = 0; i < result.length; i++) {
+		for (var j = 0; j < excludedEntityFiles.length; j++) {
+			if (result[i].endsWith(excludedEntityFiles[j])) {
+				console.log(`excluding ent file: ${excludedEntityFiles[j]}`)
+				result.splice(i, 1);
+				break;
+			}
+		}
+	}
+	return result;
+}
+
+function getXMLentites(entityFiles) {
+	// extract XML entities from files to a list
+	var entList = [];
+	entityFiles.forEach(entFile => {
+		entList = entList.concat(fs.readFileSync(entFile, 'utf8').split('\n').filter(line => {
+			// return line.startsWith('<!ENTITY');
+			return line.match(/^<!ENTITY [^%]/);
+		}));
+	});
+	console.log(`size of entList: ${entList.length}`);
+	// leave only entity names in the entity array
+
+	var result = entList.map(processEntLine);
+	function processEntLine(line) {
+		return `&${line.split(" ")[1]};`;
+	}
+	return result;
+
 }
 
 // This method is called when your extension is deactivated
