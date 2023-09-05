@@ -33,10 +33,14 @@ function activate(context) {
 				let result = [];
 				entities.forEach(entity => {
 					let completionItem = new vscode.CompletionItem(entity);
+					completionItem.label = `&${entity}`;
 					completionItem.kind = vscode.CompletionItemKind.Keyword;
+					completionItem.filterText = entity.substring(-1);
 					// dont double && when triggered with &
-					if (context.triggerKind == 1) {
-						completionItem.insertText = new vscode.SnippetString(entity.substring(1,));
+					if (context.triggerKind == 0) {
+						completionItem.insertText = new vscode.SnippetString(`&${entity}`);
+					} else {
+						completionItem.insertText = new vscode.SnippetString(entity);
 					}
 					result.push(completionItem);
 				});
@@ -502,7 +506,7 @@ function getXMLentites(entityFiles) {
 
 	var result = entList.map(processEntLine);
 	function processEntLine(line) {
-		return `&${line.split(" ")[1]};`;
+		return `${line.split(" ")[1]};`;
 	}
 	return result;
 

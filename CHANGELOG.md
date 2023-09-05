@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.5.1
+- improved XML entity autocompletion filtering by typing
 ## 0.5.0
 - auto-completion XML entites from external files
 - added `daps.autocompleteXMLentities` option to enable entity auto-completion
