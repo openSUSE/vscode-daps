@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.5.2
+- fixed XML entity autocompletion with empty exclude option
 ## 0.5.1
 - improved XML entity autocompletion filtering by typing
 ## 0.5.0
