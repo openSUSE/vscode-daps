@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.6.0
+- added CodeLens capability to DocBook assembly files
 ## 0.5.2
 - fixed XML entity autocompletion with empty exclude option
 ## 0.5.1

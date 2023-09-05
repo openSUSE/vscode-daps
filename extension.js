@@ -20,7 +20,66 @@ function activate(context) {
 	var extensionPath = context.extensionPath;
 	console.log(`Extension path: ${extensionPath}`);
 
-	// enable autocomplete XML entities from external files
+	/**
+	 * command for opening editor, optionally in a split window
+	 */
+	context.subscriptions.push(vscode.commands.registerCommand('daps.openFile', async (file) => {
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		const viewColumn = vscode.ViewColumn.Beside;
+		try {
+			if (dapsConfig.get('openFileSplit')) {
+				await vscode.workspace.openTextDocument(file).then((document) => {
+					vscode.window.showTextDocument(document, { viewColumn });
+				});
+			} else {
+				await vscode.workspace.openTextDocument(file).then((document) => {
+					vscode.window.showTextDocument(document, { undefined });
+				});
+			}
+		} catch (err) {
+			vscode.window.showErrorMessage(`Error opening file: ${err.message}`);
+		}
+	}));
+	/**
+	 * enable codelens for DocBook assembly files
+	 */
+
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/*.asm.xml' }, {
+		provideCodeLenses(document) {
+			const codeLenses = [];
+			const pattern = /resourceref=["'](.+)["']/;
+			for (let lineNumber = 0; lineNumber < document.lineCount; lineNumber++) {
+				const line = document.lineAt(lineNumber);
+				const matches = line.text.match(pattern);
+				if (matches) {
+					const capturedID = matches[1];
+					// in this file, find a file name corresponding to the matched XML ID
+					const docText = document.getText();
+					const filePattern = new RegExp(`resource xml:id=["']${capturedID}["'] href=["'](.+)["']`, "g");
+					// Create a CodeLens for each match
+					const range = new vscode.Range(lineNumber, 0, lineNumber, line.text.length);
+					let fileMatches;
+					let hrefValue;
+					while ((fileMatches = filePattern.exec(docText))) {
+						hrefValue = fileMatches[1];
+						const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath
+						const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
+						const codeLens = new vscode.CodeLens(range, {
+							title: `Points to a file "${path.basename(hrefValue)}"`,
+							command: 'daps.openFile',
+							arguments: [`${directoryPath}/${hrefValue}`]
+						});
+						codeLenses.push(codeLens);
+					}
+				}
+			}
+			return codeLenses;
+		}
+	}));
+
+	/**
+	 * enable autocomplete XML entities from external files
+	 */
 	const dapsConfig = vscode.workspace.getConfiguration('daps');
 	if (dapsConfig.get('autocompleteXMLentities')) {
 		context.subscriptions.push(vscode.languages.registerCompletionItemProvider('xml', {
@@ -49,6 +108,9 @@ function activate(context) {
 		}, '&'));
 	}
 
+	/**
+	 * enables document HTML preview usinf the 'Document Preview' extension
+	 */
 	let disposePreview = vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
 		//find if the 'document preview' extension is enabled
 		let docPreviewExtension = vscode.extensions.getExtension('garlicbreadcleric.document-preview');
@@ -72,7 +134,7 @@ function activate(context) {
 			try {
 				docPreviewConfig.update('converters', docPreviewConfigHash, true);
 			} catch (err) {
-				vscode.window.showErrorMessage(err);
+				vscode.window.showErrorMessage(err.message);
 			}
 			// resolve the file's directory and cd there
 			let docPreviewDir = path.dirname(getActiveFile(contextFileURI));
@@ -169,11 +231,15 @@ function activate(context) {
 				}
 				return true;
 			} catch (err) {
-				vscode.window.showErrorMessage(`Build failed: ${err}`);
+				vscode.window.showErrorMessage(`Build failed: ${err}.message`);
 			}
 		}
 		return false;
 	});
+
+	/**
+	 * command to build single XML file
+	 */
 	let disposeBuildXMLfile = vscode.commands.registerCommand('daps.buildXMLfile', async function buildXMLfile(contextFileURI) {
 		// decide on input XML file - take active editor if file not specified from context
 		var XMLfile = getActiveFile(contextFileURI);
@@ -215,7 +281,7 @@ function activate(context) {
 				}
 				return true;
 			} catch (err) {
-				vscode.window.showErrorMessage(`Build failed: ${err}`);
+				vscode.window.showErrorMessage(`Build failed: ${err.message}`);
 			}
 		}
 	});
@@ -259,7 +325,7 @@ function activate(context) {
 				}
 				return true;
 			} catch (err) {
-				vscode.window.showErrorMessage(`Build failed: ${err}`);
+				vscode.window.showErrorMessage(`Build failed: ${err.message}`);
 			}
 		}
 		return false;
@@ -286,7 +352,7 @@ function activate(context) {
 			// vscode.window.showInformationMessage(`XMLformat succeeded. ${XMLfile}`);
 			return true;
 		} catch (err) {
-			vscode.window.showErrorMessage(`XMLformat failed: ${err}`);
+			vscode.window.showErrorMessage(`XMLformat failed: ${err.message}`);
 			return false;
 		}
 	});
@@ -401,7 +467,7 @@ function activate(context) {
 						console.log(`document ${XMLfile} saved`);
 						return true;
 					} catch (err) {
-						vscode.window.showErrorMessage(err);
+						vscode.window.showErrorMessage(err.message);
 						return false;
 					}
 				}

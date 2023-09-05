@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -11,7 +11,7 @@
   },
   "icon": "icon.png",
   "engines": {
-    "vscode": "^1.79.0"
+    "vscode": "^1.75.0"
   },
   "categories": [
     "Linters"
@@ -107,6 +107,11 @@
     ],
     "commands": [
       {
+        "command": "daps.openFile",
+        "title": "Opens file in editor",
+        "category": "DAPS"
+      },
+      {
         "command": "daps.validate",
         "title": "Validate",
         "category": "DAPS"
@@ -143,6 +148,11 @@
     "configuration": {
       "title": "DAPS",
       "properties": {
+        "daps.openFileSplit": {
+          "description": "Whether open a new file from CodeLens in a new tab or split window.",
+          "type": "boolean",
+          "default": false
+        },
         "daps.excludeXMLentityFiles": {
           "description": "Exclude specified entity files from parsing.",
           "type": "array",
