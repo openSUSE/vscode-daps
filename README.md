@@ -104,7 +104,7 @@ select `DAPS` > `Build XML file`. Finally, choose whether to build `pdf` or
 To build *any* XML file, right-click its name in the explorer view and select
 `DAPS` > `Build XML file`. Finally, choose whether to build `pdf` or `html`.
 
-## Document previee
+## Document preview
 
 To preview a DocBook XML file, right-click its editor tab ans select `DAPS` >
 `Preview Document`. A new tab opens to the right of the active source editor and it
