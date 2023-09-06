@@ -111,41 +111,29 @@ function activate(context) {
 	/**
 	 * enables document HTML preview usinf the 'Document Preview' extension
 	 */
-	let disposePreview = vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
-		//find if the 'document preview' extension is enabled
-		let docPreviewExtension = vscode.extensions.getExtension('garlicbreadcleric.document-preview');
-		if (docPreviewExtension) {
-			console.log(`Extension ${docPreviewExtension.id} active!`);
-			// get img src path from config
-			const dapsConfig = vscode.workspace.getConfiguration('daps');
-			const dapsImgSrc = dapsConfig.get('docPreviewImgPath');
-			console.log(`dapsImgSrc: ${dapsImgSrc}`);
-			// set the preview option to custom xsltproc cmd
-			const docPreviewConfig = vscode.workspace.getConfiguration('documentPreview');
-			let docPreviewConfigHash = [
-				{
-					"name": "DAPS XML",
-					"fileTypes": [
-						"xml"
-					],
-					"command": `xsltproc --stringparam img.src.path ${dapsImgSrc} ${extensionPath}/xslt/doc-preview.xsl -`
-				}
-			];
-			try {
-				docPreviewConfig.update('converters', docPreviewConfigHash, true);
-			} catch (err) {
-				vscode.window.showErrorMessage(err.message);
-			}
-			// resolve the file's directory and cd there
-			let docPreviewDir = path.dirname(getActiveFile(contextFileURI));
-			console.log(`XML file dirname: ${docPreviewDir}`);
-			process.chdir(docPreviewDir);
-			// run the preview command
-			vscode.commands.executeCommand('documentPreview.openDocumentPreview');
-		} else {
-			vscode.window.showErrorMessage("For previews, install and enable the 'Document preview' extension");
-		}
-	});
+	context.subscriptions.push(vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
+		// create a new webView
+		const previewPanel = vscode.window.createWebviewPanel(
+			'htmlPreview', // Identifies the type of the webview
+			'HTML Preview', // Title displayed in the panel
+			vscode.ViewColumn.Two, // Editor column to show the webview panel
+			{}
+		);
+		// get img src path from config
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		const dapsImgSrc = dapsConfig.get('docPreviewImgPath');
+		console.log(`dapsImgSrc: ${dapsImgSrc}`);
+		// resolve the file's directory and cd there
+		let srcXMLfile = getActiveFile(contextFileURI);
+		console.log(`Source XML file: ${srcXMLfile}`);
+		// compile transform command
+		let transformCmd = `xsltproc --stringparam img.src.path ${dapsImgSrc} ${extensionPath}/xslt/doc-preview.xsl ${srcXMLfile}`;
+		console.log(`xsltproc cmd: ${transformCmd}`);
+		// get its stdout into a variable
+		let htmlContent = execSync(transformCmd).toString();
+		previewPanel.webview.html = htmlContent;
+
+	}));
 
 	/**
 	 * @description validates documentation identified by DC file
@@ -356,7 +344,7 @@ function activate(context) {
 			return false;
 		}
 	});
-	context.subscriptions.push(disposePreview, disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
+	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
 	/**
 	 * @description assembles daps command based on given parameters
 	 * @param {Array} given parameters
