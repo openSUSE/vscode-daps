@@ -131,6 +131,10 @@ function activate(context) {
 		console.log(`xsltproc cmd: ${transformCmd}`);
 		// get its stdout into a variable
 		let htmlContent = execSync(transformCmd).toString();
+		// resolve the file's directory and cd there
+		let docPreviewDir = path.dirname(getActiveFile(contextFileURI));
+		
+		console.log(`XML file dirname: ${docPreviewDir}`);
 		previewPanel.webview.html = htmlContent;
 
 	}));
