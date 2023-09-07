@@ -4,7 +4,6 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-//const { env } = require('process');
 var terminal = vscode.window.createTerminal('DAPS');
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
@@ -129,16 +128,11 @@ function activate(context) {
 		// what is the document i want to preview?
 		let srcXMLfile = getActiveFile(contextFileURI);
 		console.log(`Source XML file: ${srcXMLfile}`);
-		// get the content of the (dirty) active XML doc
-		let srcXMLfileContent = fs.readFileSync(srcXMLfile, 'utf-8');
-		console.log(`srcXMLfileContent: ${srcXMLfileContent}`);
 		// compile transform command
-		let transformCmd = `xsltproc --stringparam img.src.path ${docPreviewImgPath} ${extensionPath}/xslt/doc-preview.xsl -`;
+		let transformCmd = `xsltproc --stringparam img.src.path ${docPreviewImgPath} ${extensionPath}/xslt/doc-preview.xsl ${srcXMLfile}`;
 		console.log(`xsltproc cmd: ${transformCmd}`);
 		// get its stdout into a variable
-		//let htmlContent = execSync(transformCmd, { input: srcXMLfileContent, encoding: 'utf-8', stdio: 'pipe' }).toString();
-		let htmlContent = execSync(`echo "${srcXMLfileContent.replace(/"/g, '\\"')}" | ${transformCmd}`).toString();
-		console.log(`htmlContent: ${htmlContent}`);
+		let htmlContent = execSync(transformCmd).toString();
 		// resolve the file's directory and cd there
 		previewPanel.webview.html = htmlContent;
 		previewPanel.onDidDispose(() => {
@@ -146,13 +140,12 @@ function activate(context) {
 			previewPanel = undefined;
 		});
 	}));
-	vscode.workspace.onDidChangeTextDocument(event => {
-		const document = event.document;
+	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
 		console.log(`onChange document: ${document.uri.path}`);
 		if (document.uri.path == getActiveFile() && previewPanel) {
 			vscode.commands.executeCommand('daps.docPreview');
 		}
-	});
+	}));
 
 
 	/**
