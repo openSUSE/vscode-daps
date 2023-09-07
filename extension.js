@@ -4,7 +4,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-const { env } = require('process');
+//const { env } = require('process');
 var terminal = vscode.window.createTerminal('DAPS');
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
@@ -44,7 +44,6 @@ function activate(context) {
 	/**
 	 * enable codelens for DocBook assembly files
 	 */
-
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/*.asm.xml' }, {
 		provideCodeLenses(document) {
 			const codeLenses = [];
@@ -112,7 +111,6 @@ function activate(context) {
 	/**
 	 * enables document HTML preview + handler to update it when src doc chanegs
 	 */
-
 	let previewPanel = undefined;
 	context.subscriptions.push(vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
 		// get img src path from config
@@ -120,7 +118,7 @@ function activate(context) {
 		// path to images
 		let docPreviewImgPath = dapsConfig.get('docPreviewImgPath');
 		// create a new webView if it does not exist yet
-		if (previewPanel === undefined || previewPanel['_disposables'].length === 0) {
+		if (previewPanel === undefined) {
 			previewPanel = vscode.window.createWebviewPanel(
 				'htmlPreview', // Identifies the type of the webview
 				'HTML Preview', // Title displayed in the panel
@@ -128,27 +126,33 @@ function activate(context) {
 				{}
 			);
 		}
-		// resolve the file's directory and cd there
+		// what is the document i want to preview?
 		let srcXMLfile = getActiveFile(contextFileURI);
 		console.log(`Source XML file: ${srcXMLfile}`);
+		// get the content of the (dirty) active XML doc
+		let srcXMLfileContent = fs.readFileSync(srcXMLfile, 'utf-8');
+		console.log(`srcXMLfileContent: ${srcXMLfileContent}`);
 		// compile transform command
-		let transformCmd = `xsltproc --stringparam img.src.path ${docPreviewImgPath} ${extensionPath}/xslt/doc-preview.xsl ${srcXMLfile}`;
+		let transformCmd = `xsltproc --stringparam img.src.path ${docPreviewImgPath} ${extensionPath}/xslt/doc-preview.xsl -`;
 		console.log(`xsltproc cmd: ${transformCmd}`);
 		// get its stdout into a variable
-		let htmlContent = execSync(transformCmd).toString();
+		//let htmlContent = execSync(transformCmd, { input: srcXMLfileContent, encoding: 'utf-8', stdio: 'pipe' }).toString();
+		let htmlContent = execSync(`echo "${srcXMLfileContent.replace(/"/g, '\\"')}" | ${transformCmd}`).toString();
+		console.log(`htmlContent: ${htmlContent}`);
 		// resolve the file's directory and cd there
 		previewPanel.webview.html = htmlContent;
 		previewPanel.onDidDispose(() => {
 			// The panel has been disposed of, so reset the global reference
 			previewPanel = undefined;
 		});
-		vscode.workspace.onDidChangeTextDocument(event => {
-			const document = event.document;
-			if (document.uri.path === getActiveFile(contextFileURI)) {
-				
-			}
-		});
 	}));
+	vscode.workspace.onDidChangeTextDocument(event => {
+		const document = event.document;
+		console.log(`onChange document: ${document.uri.path}`);
+		if (document.uri.path == getActiveFile() && previewPanel) {
+			vscode.commands.executeCommand('daps.docPreview');
+		}
+	});
 
 
 	/**
