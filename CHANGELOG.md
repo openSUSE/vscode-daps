@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.6.1
+- introduced own WebView HTML preview
+- dependency on 'Document Preview' extension is no more
 ## 0.6.0
 - added CodeLens capability to DocBook assembly files
 ## 0.5.2
