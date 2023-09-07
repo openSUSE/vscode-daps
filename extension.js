@@ -43,7 +43,6 @@ function activate(context) {
 	/**
 	 * enable codelens for DocBook assembly files
 	 */
-
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/*.asm.xml' }, {
 		provideCodeLenses(document) {
 			const codeLenses = [];
@@ -109,43 +108,45 @@ function activate(context) {
 	}
 
 	/**
-	 * enables document HTML preview usinf the 'Document Preview' extension
+	 * enables document HTML preview + handler to update it when src doc chanegs
 	 */
-	let disposePreview = vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
-		//find if the 'document preview' extension is enabled
-		let docPreviewExtension = vscode.extensions.getExtension('garlicbreadcleric.document-preview');
-		if (docPreviewExtension) {
-			console.log(`Extension ${docPreviewExtension.id} active!`);
-			// get img src path from config
-			const dapsConfig = vscode.workspace.getConfiguration('daps');
-			const dapsImgSrc = dapsConfig.get('docPreviewImgPath');
-			console.log(`dapsImgSrc: ${dapsImgSrc}`);
-			// set the preview option to custom xsltproc cmd
-			const docPreviewConfig = vscode.workspace.getConfiguration('documentPreview');
-			let docPreviewConfigHash = [
-				{
-					"name": "DAPS XML",
-					"fileTypes": [
-						"xml"
-					],
-					"command": `xsltproc --stringparam img.src.path ${dapsImgSrc} ${extensionPath}/xslt/doc-preview.xsl -`
-				}
-			];
-			try {
-				docPreviewConfig.update('converters', docPreviewConfigHash, true);
-			} catch (err) {
-				vscode.window.showErrorMessage(err.message);
-			}
-			// resolve the file's directory and cd there
-			let docPreviewDir = path.dirname(getActiveFile(contextFileURI));
-			console.log(`XML file dirname: ${docPreviewDir}`);
-			process.chdir(docPreviewDir);
-			// run the preview command
-			vscode.commands.executeCommand('documentPreview.openDocumentPreview');
-		} else {
-			vscode.window.showErrorMessage("For previews, install and enable the 'Document preview' extension");
+	let previewPanel = undefined;
+	context.subscriptions.push(vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
+		// get img src path from config
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		// path to images
+		let docPreviewImgPath = dapsConfig.get('docPreviewImgPath');
+		// create a new webView if it does not exist yet
+		if (previewPanel === undefined) {
+			previewPanel = vscode.window.createWebviewPanel(
+				'htmlPreview', // Identifies the type of the webview
+				'HTML Preview', // Title displayed in the panel
+				vscode.ViewColumn.Two, // Editor column to show the webview panel
+				{}
+			);
 		}
-	});
+		// what is the document i want to preview?
+		let srcXMLfile = getActiveFile(contextFileURI);
+		console.log(`Source XML file: ${srcXMLfile}`);
+		// compile transform command
+		let transformCmd = `xsltproc --stringparam img.src.path ${docPreviewImgPath} ${extensionPath}/xslt/doc-preview.xsl ${srcXMLfile}`;
+		console.log(`xsltproc cmd: ${transformCmd}`);
+		// get its stdout into a variable
+		let htmlContent = execSync(transformCmd).toString();
+		// resolve the file's directory and cd there
+		previewPanel.webview.html = htmlContent;
+		previewPanel.onDidDispose(() => {
+			// The panel has been disposed of, so reset the global reference
+			previewPanel = undefined;
+		});
+	}));
+	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
+		console.log(`onChange document: ${document.uri.path}`);
+		if (document.uri.path == getActiveFile() && previewPanel) {
+			vscode.commands.executeCommand('daps.docPreview');
+		}
+	}));
+
 
 	/**
 	 * @description validates documentation identified by DC file
@@ -356,7 +357,7 @@ function activate(context) {
 			return false;
 		}
 	});
-	context.subscriptions.push(disposePreview, disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
+	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
 	/**
 	 * @description assembles daps command based on given parameters
 	 * @param {Array} given parameters

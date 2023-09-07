@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -20,9 +20,6 @@
     "workspaceContains:**/DC-*"
   ],
   "main": "./extension.js",
-  "extensionDependencies": [
-    "garlicbreadcleric.document-preview"
-  ],
   "contributes": {
     "submenus": [
       {
