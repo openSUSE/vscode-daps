@@ -1,13 +1,61 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
+
+
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+const xpath = require('xpath');
+const { DOMParser } = require('xmldom');
 var terminal = vscode.window.createTerminal('DAPS');
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
+
+/**
+ * class that creates data for DOcBook structure TreeView
+ */
+class docStructureTreeDataProvider {
+	constructor() {
+		this._onDidChangeTreeData = new vscode.EventEmitter();
+		this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+	}
+
+	refresh() {
+		this._onDidChangeTreeData.fire();
+	}
+
+	getTreeItem(element) {
+		return element;
+	}
+
+	getChildren(element) {
+		var sections = [];
+		var xpathQuery = null;
+		const filePath = getActiveFile();
+		var docContent = fs.readFileSync(filePath, 'utf-8');
+		console.log(`length of docContent: ${docContent.length}`);
+		if (!element) {
+			xpathQuery = '/*/db:section/db:title/text()';
+		} else {
+			console.log(`element iD: ${element.id}`);
+			xpathQuery = `//db:section[db:title/text() = '${element.label}']/db:section/db:title/text()`;
+			console.log(`xpath query: ${xpathQuery}`);
+		}
+		const result = queryXML(docContent, xpathQuery);
+		console.log(`xpathQuery result length: ${result.length}`);
+		for (let i = 0; i < result.length; i++) {
+			sections.push({
+				label: result[i].data,
+				collapsibleState: vscode.TreeItemCollapsibleState.None,
+				id: result[i].data
+			});
+		}
+
+		return sections;
+	}
+}
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -20,6 +68,14 @@ function activate(context) {
 	var extensionPath = context.extensionPath;
 	console.log(`Extension path: ${extensionPath}`);
 
+	/**
+	 * create treeview for DocBook structure
+	 */
+	const treeDataProvider = new docStructureTreeDataProvider;
+	context.subscriptions.push(vscode.window.registerTreeDataProvider('docbookFileStructure', treeDataProvider))
+	vscode.commands.registerCommand('docStructureTreeView.refresh', () => {
+		treeDataProvider.refresh();
+	})
 	/**
 	 * command for opening editor, optionally in a split window
 	 */
@@ -182,7 +238,7 @@ function activate(context) {
 	});
 	/**
 	 * @description builds HTML or PDF targets given DC file
-	 * @param {obj} DCfile URI from context command (optional)
+	 * @param {object} DCfile URI from context command (optional)
 	 * @returns true or false depending on how the build happened
 	 */
 	let disposeBuildDC = vscode.commands.registerCommand('daps.buildDCfile', async function buildDCfile(contextDCfile) {
@@ -396,25 +452,6 @@ function activate(context) {
 		console.log(`dapsCmd: ${dapsCmd.join(' ')}`);
 		return dapsCmd.join(' ');
 	}
-	/**
-	 * @description Resolves active file name from either context argument or active editor
-	 * @param {URI} contextFileURI 
-	 * @returns {string} Path to the active file
-	 */
-	function getActiveFile(contextFileURI) {
-		var XMLfile;
-		if (contextFileURI) { //check if XML file was passed as context
-			XMLfile = contextFileURI.path;
-			console.log(`XMLfile from context: ${XMLfile}`);
-		} else if (vscode.window.activeTextEditor) { // try the currently open file
-			XMLfile = vscode.window.activeTextEditor.document.fileName;
-			console.log(`XML file from active editor: ${XMLfile}`);
-		} else {
-			console.error('No XML file specified or active');
-			return false;
-		}
-		return XMLfile;
-	}
 
 	/**
 	 * @description resolves root ID from context, config, or user input
@@ -578,7 +615,33 @@ function getXMLentites(entityFiles) {
 		return `${line.split(" ")[1]};`;
 	}
 	return result;
+}
 
+/**
+	 * @description Resolves active file name from either context argument or active editor
+	 * @param {URI} contextFileURI 
+	 * @returns {string} Path to the active file
+	 */
+function getActiveFile(contextFileURI) {
+	var XMLfile;
+	if (contextFileURI) { //check if XML file was passed as context
+		XMLfile = contextFileURI.path;
+		console.log(`XMLfile from context: ${XMLfile}`);
+	} else if (vscode.window.activeTextEditor) { // try the currently open file
+		XMLfile = vscode.window.activeTextEditor.document.fileName;
+		console.log(`XML file from active editor: ${XMLfile}`);
+	} else {
+		console.error('No XML file specified or active');
+		return false;
+	}
+	return XMLfile;
+}
+
+// runs XPath XML queries
+function queryXML(xmlString, xpathQuery) {
+	const doc = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true }).parseFromString(xmlString);
+	const select = xpath.useNamespaces({ db: 'http://docbook.org/ns/docbook' });
+	return select(xpathQuery, doc);
 }
 
 // This method is called when your extension is deactivated
@@ -588,3 +651,4 @@ module.exports = {
 	activate,
 	deactivate
 }
+
