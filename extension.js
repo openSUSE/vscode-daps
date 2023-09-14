@@ -31,20 +31,23 @@ class docStructureTreeDataProvider {
 	}
 
 	getChildren(element) {
-		var sections = [];
-		var xpathQuery = null;
+		// get XML file content
 		const filePath = getActiveFile();
 		var docContent = fs.readFileSync(filePath, 'utf-8');
 		console.log(`length of docContent: ${docContent.length}`);
-		if (!element) {
-			xpathQuery = '/*/db:section/db:title/text()';
-		} else {
-			console.log(`element iD: ${element.id}`);
-			xpathQuery = `//db:section[db:title/text() = '${element.label}']/db:section/db:title/text()`;
-			console.log(`xpath query: ${xpathQuery}`);
-		}
-		const result = queryXML(docContent, xpathQuery);
-		console.log(`xpathQuery result length: ${result.length}`);
+		// configure parser
+		//xpath.useNamespaces({ db: 'http://docbook.org/ns/docbook' });
+		const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
+		const xmlDoc = parser.parseFromString(docContent, 'text/xml');
+		const sectionElements = xmlDoc.getElementsByTagName('section');
+		for (let i = 0; i < sectionElements.length; i++) {
+			const sectionElement = sectionElements[i];
+			console.dir(sectionElement);
+			console.log(`parent node: ${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}`);
+			console.log(`section name: ${sectionElement.getElementsByTagName('title')[0].textContent}`)
+				;		}
+
+		/* console.log(`xpathQuery result length: ${result.length}`);
 		for (let i = 0; i < result.length; i++) {
 			sections.push({
 				label: result[i].data,
@@ -53,7 +56,7 @@ class docStructureTreeDataProvider {
 			});
 		}
 
-		return sections;
+		return sections; */
 	}
 }
 
@@ -637,11 +640,24 @@ function getActiveFile(contextFileURI) {
 	return XMLfile;
 }
 
-// runs XPath XML queries
-function queryXML(xmlString, xpathQuery) {
-	const doc = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true }).parseFromString(xmlString);
-	const select = xpath.useNamespaces({ db: 'http://docbook.org/ns/docbook' });
-	return select(xpathQuery, doc);
+// Function to get line numbers of nodes and their parent node
+function getLineNumbersAndParent(node) {
+	const startLine = node.startContainer.lineNumber - 1; // Line numbers start at 1
+	const endLine = node.endContainer.lineNumber - 1;
+
+	const lineNumbers = [];
+	for (let i = startLine; i <= endLine; i++) {
+		lineNumbers.push(i + 1); // Add 1 to convert back to 1-based line numbers
+	}
+
+	// Get parent node information
+	const parent = node.parentNode;
+	const parentName = parent.nodeName;
+
+	return {
+		lineNumbers,
+		parentName,
+	};
 }
 
 // This method is called when your extension is deactivated
