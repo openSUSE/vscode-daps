@@ -6,8 +6,9 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-const xpath = require('xpath');
+// configure parser
 const { DOMParser } = require('xmldom');
+const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
 var terminal = vscode.window.createTerminal('DAPS');
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
@@ -33,30 +34,43 @@ class docStructureTreeDataProvider {
 	getChildren(element) {
 		// get XML file content
 		const filePath = getActiveFile();
+		if (!filePath) {
+			return false;
+		}
 		var docContent = fs.readFileSync(filePath, 'utf-8');
-		console.log(`length of docContent: ${docContent.length}`);
-		// configure parser
-		//xpath.useNamespaces({ db: 'http://docbook.org/ns/docbook' });
-		const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
 		const xmlDoc = parser.parseFromString(docContent, 'text/xml');
 		const sectionElements = xmlDoc.getElementsByTagName('section');
+		var result = [];
 		for (let i = 0; i < sectionElements.length; i++) {
 			const sectionElement = sectionElements[i];
-			console.dir(sectionElement);
-			console.log(`parent node: ${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}`);
-			console.log(`section name: ${sectionElement.getElementsByTagName('title')[0].textContent}`)
-				;		}
-
-		/* console.log(`xpathQuery result length: ${result.length}`);
-		for (let i = 0; i < result.length; i++) {
-			sections.push({
-				label: result[i].data,
-				collapsibleState: vscode.TreeItemCollapsibleState.None,
-				id: result[i].data
-			});
+			if (((!element && !sectionElement.parentNode.nodeName.startsWith('section')))
+				|| (element && (`${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}` == element.id))) {
+				// does element have 'section' kids?
+				var collapsibleState;
+				for (let j = 0; j < sectionElement.childNodes.length; j++) {
+					if (sectionElement.childNodes[j].nodeName == 'section') {
+						console.log('has section kids');
+						collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
+						break;
+					} else {
+						collapsibleState = vscode.TreeItemCollapsibleState.None;
+					}
+				}
+				result.push({
+					label: `s: ${sectionElement.getElementsByTagName('title')[0].textContent}`,
+					iconPath: vscode.ThemeIcon.Folder,
+					collapsibleState: collapsibleState,
+					id: `${sectionElement.nodeName}_${sectionElement.lineNumber}`,
+					parentId: `${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}`,
+					command: {
+						title: 'Activate related line',
+						command: 'daps.focusLineInActiveEditor',
+						arguments: [sectionElement.lineNumber.toString()]
+					}
+				});
+			}
 		}
-
-		return sections; */
+		return result;
 	}
 }
 
@@ -70,7 +84,16 @@ function activate(context) {
 	console.log('Congratulations, your extension "daps" is now active!');
 	var extensionPath = context.extensionPath;
 	console.log(`Extension path: ${extensionPath}`);
-
+	// cmd for focusing a line in active editor
+	vscode.commands.registerCommand('daps.focusLineInActiveEditor', (lineNumber) => {
+		const activeTextEditor = vscode.window.activeTextEditor;
+		if (activeTextEditor) {
+			// Create a Range object for the desired line
+			const lineRange = activeTextEditor.document.lineAt(lineNumber - 1).range;
+			// Reveal the line in the editor
+			activeTextEditor.revealRange(lineRange, vscode.TextEditorRevealType.InCenter);
+		}
+	})
 	/**
 	 * create treeview for DocBook structure
 	 */
@@ -98,6 +121,12 @@ function activate(context) {
 		} catch (err) {
 			vscode.window.showErrorMessage(`Error opening file: ${err.message}`);
 		}
+	}));
+	context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors(() => {
+		vscode.commands.executeCommand('docStructureTreeView.refresh');
+	}));
+	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => {
+		vscode.commands.executeCommand('docStructureTreeView.refresh');
 	}));
 	/**
 	 * enable codelens for DocBook assembly files
@@ -638,26 +667,6 @@ function getActiveFile(contextFileURI) {
 		return false;
 	}
 	return XMLfile;
-}
-
-// Function to get line numbers of nodes and their parent node
-function getLineNumbersAndParent(node) {
-	const startLine = node.startContainer.lineNumber - 1; // Line numbers start at 1
-	const endLine = node.endContainer.lineNumber - 1;
-
-	const lineNumbers = [];
-	for (let i = startLine; i <= endLine; i++) {
-		lineNumbers.push(i + 1); // Add 1 to convert back to 1-based line numbers
-	}
-
-	// Get parent node information
-	const parent = node.parentNode;
-	const parentName = parent.nodeName;
-
-	return {
-		lineNumbers,
-		parentName,
-	};
 }
 
 // This method is called when your extension is deactivated
