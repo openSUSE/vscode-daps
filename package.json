@@ -21,6 +21,15 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "docbookFileStructure",
+          "name": "Document Structure",
+          "when": "resourceExtname == .xml"
+        }
+      ]
+    },
     "submenus": [
       {
         "id": "daps.editor.context",

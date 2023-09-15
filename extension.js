@@ -1,13 +1,78 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
+
+
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+// configure parser
+const { DOMParser } = require('xmldom');
+const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
 var terminal = vscode.window.createTerminal('DAPS');
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
+
+/**
+ * class that creates data for DOcBook structure TreeView
+ */
+class docStructureTreeDataProvider {
+	constructor() {
+		this._onDidChangeTreeData = new vscode.EventEmitter();
+		this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+	}
+
+	refresh() {
+		this._onDidChangeTreeData.fire();
+	}
+
+	getTreeItem(element) {
+		return element;
+	}
+
+	getChildren(element) {
+		// get XML file content
+		const filePath = getActiveFile();
+		if (!filePath) {
+			return false;
+		}
+		var docContent = fs.readFileSync(filePath, 'utf-8');
+		const xmlDoc = parser.parseFromString(docContent, 'text/xml');
+		const sectionElements = xmlDoc.getElementsByTagName('section');
+		var result = [];
+		for (let i = 0; i < sectionElements.length; i++) {
+			const sectionElement = sectionElements[i];
+			if (((!element && !sectionElement.parentNode.nodeName.startsWith('section')))
+				|| (element && (`${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}` == element.id))) {
+				// does element have 'section' kids?
+				var collapsibleState;
+				for (let j = 0; j < sectionElement.childNodes.length; j++) {
+					if (sectionElement.childNodes[j].nodeName == 'section') {
+						console.log('has section kids');
+						collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
+						break;
+					} else {
+						collapsibleState = vscode.TreeItemCollapsibleState.None;
+					}
+				}
+				result.push({
+					label: `s: ${sectionElement.getElementsByTagName('title')[0].textContent}`,
+					iconPath: vscode.ThemeIcon.Folder,
+					collapsibleState: collapsibleState,
+					id: `${sectionElement.nodeName}_${sectionElement.lineNumber}`,
+					parentId: `${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}`,
+					command: {
+						title: 'Activate related line',
+						command: 'daps.focusLineInActiveEditor',
+						arguments: [sectionElement.lineNumber.toString()]
+					}
+				});
+			}
+		}
+		return result;
+	}
+}
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -19,7 +84,24 @@ function activate(context) {
 	console.log('Congratulations, your extension "daps" is now active!');
 	var extensionPath = context.extensionPath;
 	console.log(`Extension path: ${extensionPath}`);
-
+	// cmd for focusing a line in active editor
+	vscode.commands.registerCommand('daps.focusLineInActiveEditor', (lineNumber) => {
+		const activeTextEditor = vscode.window.activeTextEditor;
+		if (activeTextEditor) {
+			// Create a Range object for the desired line
+			const lineRange = activeTextEditor.document.lineAt(lineNumber - 1).range;
+			// Reveal the line in the editor
+			activeTextEditor.revealRange(lineRange, vscode.TextEditorRevealType.InCenter);
+		}
+	})
+	/**
+	 * create treeview for DocBook structure
+	 */
+	const treeDataProvider = new docStructureTreeDataProvider;
+	context.subscriptions.push(vscode.window.registerTreeDataProvider('docbookFileStructure', treeDataProvider))
+	vscode.commands.registerCommand('docStructureTreeView.refresh', () => {
+		treeDataProvider.refresh();
+	})
 	/**
 	 * command for opening editor, optionally in a split window
 	 */
@@ -39,6 +121,12 @@ function activate(context) {
 		} catch (err) {
 			vscode.window.showErrorMessage(`Error opening file: ${err.message}`);
 		}
+	}));
+	context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors(() => {
+		vscode.commands.executeCommand('docStructureTreeView.refresh');
+	}));
+	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => {
+		vscode.commands.executeCommand('docStructureTreeView.refresh');
 	}));
 	/**
 	 * enable codelens for DocBook assembly files
@@ -182,7 +270,7 @@ function activate(context) {
 	});
 	/**
 	 * @description builds HTML or PDF targets given DC file
-	 * @param {obj} DCfile URI from context command (optional)
+	 * @param {object} DCfile URI from context command (optional)
 	 * @returns true or false depending on how the build happened
 	 */
 	let disposeBuildDC = vscode.commands.registerCommand('daps.buildDCfile', async function buildDCfile(contextDCfile) {
@@ -396,25 +484,6 @@ function activate(context) {
 		console.log(`dapsCmd: ${dapsCmd.join(' ')}`);
 		return dapsCmd.join(' ');
 	}
-	/**
-	 * @description Resolves active file name from either context argument or active editor
-	 * @param {URI} contextFileURI 
-	 * @returns {string} Path to the active file
-	 */
-	function getActiveFile(contextFileURI) {
-		var XMLfile;
-		if (contextFileURI) { //check if XML file was passed as context
-			XMLfile = contextFileURI.path;
-			console.log(`XMLfile from context: ${XMLfile}`);
-		} else if (vscode.window.activeTextEditor) { // try the currently open file
-			XMLfile = vscode.window.activeTextEditor.document.fileName;
-			console.log(`XML file from active editor: ${XMLfile}`);
-		} else {
-			console.error('No XML file specified or active');
-			return false;
-		}
-		return XMLfile;
-	}
 
 	/**
 	 * @description resolves root ID from context, config, or user input
@@ -578,7 +647,26 @@ function getXMLentites(entityFiles) {
 		return `${line.split(" ")[1]};`;
 	}
 	return result;
+}
 
+/**
+	 * @description Resolves active file name from either context argument or active editor
+	 * @param {URI} contextFileURI 
+	 * @returns {string} Path to the active file
+	 */
+function getActiveFile(contextFileURI) {
+	var XMLfile;
+	if (contextFileURI) { //check if XML file was passed as context
+		XMLfile = contextFileURI.path;
+		console.log(`XMLfile from context: ${XMLfile}`);
+	} else if (vscode.window.activeTextEditor) { // try the currently open file
+		XMLfile = vscode.window.activeTextEditor.document.fileName;
+		console.log(`XML file from active editor: ${XMLfile}`);
+	} else {
+		console.error('No XML file specified or active');
+		return false;
+	}
+	return XMLfile;
 }
 
 // This method is called when your extension is deactivated
@@ -588,3 +676,4 @@ module.exports = {
 	activate,
 	deactivate
 }
+
