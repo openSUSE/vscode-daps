@@ -154,6 +154,11 @@
     "configuration": {
       "title": "DAPS",
       "properties": {
+        "daps.onClickedStructureItemMoveCursor": {
+          "description": "Whether to show the specific line only or move the cursor there as well.",
+          "type": "boolean",
+          "default": true
+        },
         "daps.openFileSplit": {
           "description": "Whether open a new file from CodeLens in a new tab or split window.",
           "type": "boolean",

@@ -8,6 +8,7 @@ const path = require('path');
 const { exec } = require('child_process');
 // configure parser
 const { DOMParser } = require('xmldom');
+//const { match } = require('assert');
 const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
 var terminal = vscode.window.createTerminal('DAPS');
 const execSync = require('child_process').execSync;
@@ -35,20 +36,23 @@ class docStructureTreeDataProvider {
 		// get XML file content
 		const filePath = getActiveFile();
 		if (!filePath) {
-			return false;
+			return emptyDocStructure('No DocBook XML editor opened');
 		}
 		var docContent = fs.readFileSync(filePath, 'utf-8');
 		const xmlDoc = parser.parseFromString(docContent, 'text/xml');
 		const sectionElements = xmlDoc.getElementsByTagName('section');
+		if (sectionElements.length == 0) {
+			return emptyDocStructure('The current document has no structure')
+		}
 		var result = [];
 		for (let i = 0; i < sectionElements.length; i++) {
 			const sectionElement = sectionElements[i];
-			if (((!element && !sectionElement.parentNode.nodeName.startsWith('section')))
+			if (((!element && !sectionElement.parentNode.nodeName.startsWith('sect')))
 				|| (element && (`${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}` == element.id))) {
 				// does element have 'section' kids?
 				var collapsibleState;
 				for (let j = 0; j < sectionElement.childNodes.length; j++) {
-					if (sectionElement.childNodes[j].nodeName == 'section') {
+					if (sectionElement.childNodes[j].nodeName.startsWith('sect')) {
 						console.log('has section kids');
 						collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
 						break;
@@ -57,8 +61,8 @@ class docStructureTreeDataProvider {
 					}
 				}
 				result.push({
-					label: `s: ${sectionElement.getElementsByTagName('title')[0].textContent}`,
-					iconPath: vscode.ThemeIcon.Folder,
+					label: `(${sectionElement.nodeName.substring(0, 1)}) "${sectionElement.getElementsByTagName('title')[0].textContent}"`,
+					// iconPath: vscode.ThemeIcon.Folder,
 					collapsibleState: collapsibleState,
 					id: `${sectionElement.nodeName}_${sectionElement.lineNumber}`,
 					parentId: `${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}`,
@@ -85,13 +89,34 @@ function activate(context) {
 	var extensionPath = context.extensionPath;
 	console.log(`Extension path: ${extensionPath}`);
 	// cmd for focusing a line in active editor
-	vscode.commands.registerCommand('daps.focusLineInActiveEditor', (lineNumber) => {
+	vscode.commands.registerCommand('daps.focusLineInActiveEditor', async (lineNumber) => {
 		const activeTextEditor = vscode.window.activeTextEditor;
 		if (activeTextEditor) {
-			// Create a Range object for the desired line
-			const lineRange = activeTextEditor.document.lineAt(lineNumber - 1).range;
-			// Reveal the line in the editor
-			activeTextEditor.revealRange(lineRange, vscode.TextEditorRevealType.InCenter);
+			const dapsConfig = vscode.workspace.getConfiguration('daps');
+
+			if (dapsConfig.get('onClickedStructureItemMoveCursor')) {
+				// Ensure the lineNumber is within valid bounds
+				lineNumber = Math.max(0, Math.min(lineNumber, activeTextEditor.document.lineCount - 1));
+				// Create a Position object for the desired line
+				const position = new vscode.Position(lineNumber, 0);
+				// Move the cursor to the specified position
+				activeTextEditor.selection = new vscode.Selection(position, position);
+				// Reveal the position in the active editor
+				activeTextEditor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+				// Create a Uri for the active document
+				const documentUri = activeTextEditor.document.uri;
+				// Show the document and move the cursor to the specified position
+				await vscode.window.showTextDocument(documentUri, {
+					selection: new vscode.Range(lineNumber, 0, lineNumber, 0),
+					viewColumn: activeTextEditor.viewColumn
+				});
+			} else {
+				// Create a Range object for the desired line
+				const lineRange = activeTextEditor.document.lineAt(lineNumber - 1).range;
+				// Reveal the line in the editor
+				activeTextEditor.revealRange(lineRange, vscode.TextEditorRevealType.InCenter);
+			}
+
 		}
 	})
 	/**
@@ -133,11 +158,14 @@ function activate(context) {
 	 */
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/*.asm.xml' }, {
 		provideCodeLenses(document) {
+			console.log(`codelens document linecount: ${document.lineCount}`);
 			const codeLenses = [];
 			const pattern = /resourceref=["'](.+)["']/;
 			for (let lineNumber = 0; lineNumber < document.lineCount; lineNumber++) {
 				const line = document.lineAt(lineNumber);
+				console.dir(`codelens doc line: ${line.text}`);
 				const matches = line.text.match(pattern);
+				console.log(`no of codelens matches: ${matches.length}`);
 				if (matches) {
 					const capturedID = matches[1];
 					// in this file, find a file name corresponding to the matched XML ID
@@ -668,6 +696,15 @@ function getActiveFile(contextFileURI) {
 	}
 	return XMLfile;
 }
+
+// returns empty TreeItem with a specific message
+function emptyDocStructure(message) {
+	return [{
+		label: message,
+		collapsibleState: vscode.TreeItemCollapsibleState.None,
+	}]
+}
+
 
 // This method is called when your extension is deactivated
 function deactivate() { }
