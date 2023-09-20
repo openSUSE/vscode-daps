@@ -8,8 +8,10 @@ editor.
 
 ## Requirements
 
-This extension requires that you install DAPS on your system. Refer to
-(https://opensuse.github.io/daps/) for more details.
+This extension requires that you...
+* install DAPS on your system. Refer to (https://opensuse.github.io/daps/) for
+  more details.
+* install xmldom library by running `sudo npm install xmldom`
 
 ## Known Issues
 
@@ -109,3 +111,20 @@ To build *any* XML file, right-click its name in the explorer view and select
 To preview a DocBook XML file, right-click its editor tab ans select `DAPS` >
 `Preview Document`. A new tab opens to the right of the active source editor and it
 gets update on each source editor change.
+
+## Document structure
+
+You can view a document structure treeview inside the Explorer
+pane. Navigate to a related section by clicking its title in the
+structure.
+
+<img src="./media/doc-structure-treeview.png" width="480px"/>
+
+## CodeLens support
+
+With the DocBook assembly XML (`*.asm.xml`) open, you can navigate to referenced
+files directly from the assembly `<strucure/>`.
+
+<img src="./media/codelens-asm.png" width="800px"/>
+
+

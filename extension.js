@@ -6,6 +6,8 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+//const xpath = require('xpath');
+//const select = xpath.useNamespaces({ db: 'http://docbook.org/ns/docbook' });
 // configure parser
 const { DOMParser } = require('xmldom');
 //const { match } = require('assert');
@@ -140,7 +142,7 @@ function activate(context) {
 				});
 			} else {
 				await vscode.workspace.openTextDocument(file).then((document) => {
-					vscode.window.showTextDocument(document, { undefined });
+					vscode.window.showTextDocument(document, vscode.ViewColumn.Beside);
 				});
 			}
 		} catch (err) {
@@ -158,35 +160,36 @@ function activate(context) {
 	 */
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/*.asm.xml' }, {
 		provideCodeLenses(document) {
-			console.log(`codelens document linecount: ${document.lineCount}`);
+			// parse active editor's XML
+			const xmlDoc = parser.parseFromString(document.getText());
+			// get all <resource/> object
+			const resourceElements = xmlDoc.getElementsByTagName('resource');
+			// find 'xml:id' and 'href' attributes to each of them and store in hash
+			const resources = {};
+			for (let i = 0; i < resourceElements.length; i++) {
+				const resource = resourceElements[i];
+				const xmlId = resource.getAttribute('xml:id');
+				const href = resource.getAttribute('href');
+				resources[xmlId] = href;
+			}
+			// get all <module/> objects
+			const moduleElements = xmlDoc.getElementsByTagName('module');
+			console.log(`moduleElements length: ${moduleElements.length}`);
+			// collect their attributes and push them to the result array
 			const codeLenses = [];
-			const pattern = /resourceref=["'](.+)["']/;
-			for (let lineNumber = 0; lineNumber < document.lineCount; lineNumber++) {
-				const line = document.lineAt(lineNumber);
-				console.dir(`codelens doc line: ${line.text}`);
-				const matches = line.text.match(pattern);
-				console.log(`no of codelens matches: ${matches.length}`);
-				if (matches) {
-					const capturedID = matches[1];
-					// in this file, find a file name corresponding to the matched XML ID
-					const docText = document.getText();
-					const filePattern = new RegExp(`resource xml:id=["']${capturedID}["'] href=["'](.+)["']`, "g");
-					// Create a CodeLens for each match
-					const range = new vscode.Range(lineNumber, 0, lineNumber, line.text.length);
-					let fileMatches;
-					let hrefValue;
-					while ((fileMatches = filePattern.exec(docText))) {
-						hrefValue = fileMatches[1];
-						const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath
-						const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
-						const codeLens = new vscode.CodeLens(range, {
-							title: `Points to a file "${path.basename(hrefValue)}"`,
-							command: 'daps.openFile',
-							arguments: [`${directoryPath}/${hrefValue}`]
-						});
-						codeLenses.push(codeLens);
-					}
-				}
+			for (let i = 0; i < moduleElements.length; i++) {
+				const module = moduleElements[i];
+				const lineNumber = module.lineNumber - 1;
+				const resourceRef = module.getAttribute('resourceref');
+				const range = new vscode.Range(lineNumber, 0, lineNumber, 0);
+				const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath
+				const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
+				const codeLens = new vscode.CodeLens(range, {
+					title: `⇉ ${path.basename(resources[resourceRef])} ⇇`,
+					command: 'daps.openFile',
+					arguments: [`${directoryPath}/${resources[resourceRef]}`]
+				});
+				codeLenses.push(codeLens);
 			}
 			return codeLenses;
 		}
