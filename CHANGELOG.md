@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.6.2
+- added document structure treeview for <sections>
+- improved CodeLens for DocBook assemblies by parsing XML
 ## 0.6.1
 - introduced own WebView HTML preview
 - dependency on 'Document Preview' extension is no more

@@ -8,7 +8,6 @@ const path = require('path');
 const { exec } = require('child_process');
 //const xpath = require('xpath');
 //const select = xpath.useNamespaces({ db: 'http://docbook.org/ns/docbook' });
-
 // configure parser
 const { DOMParser } = require('xmldom');
 //const { match } = require('assert');
@@ -186,7 +185,7 @@ function activate(context) {
 				const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath
 				const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
 				const codeLens = new vscode.CodeLens(range, {
-					title: `Points to a file "${path.basename(resources[resourceRef])}"`,
+					title: `⇉ ${path.basename(resources[resourceRef])} ⇇`,
 					command: 'daps.openFile',
 					arguments: [`${directoryPath}/${resources[resourceRef]}`]
 				});
