@@ -16,7 +16,6 @@ var terminal = vscode.window.createTerminal('DAPS');
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
-const structureElements = ['section', 'sect1', 'sect2', 'sect3', 'sect4', 'procedure', 'example'];
 const dapsConfigGlobal = vscode.workspace.getConfiguration('daps');
 
 /**
@@ -44,6 +43,8 @@ class docStructureTreeDataProvider {
 		}
 		var docContent = fs.readFileSync(filePath, 'utf-8');
 		const xmlDoc = parser.parseFromString(docContent, 'text/xml');
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		const structureElements = dapsConfig.get('structureElements');
 		var sectionElements = getElementsWithAllowedTagNames(xmlDoc, structureElements);
 		console.log(`sectionElements length: ${sectionElements.length}`);
 		if (sectionElements.length == 0) {
