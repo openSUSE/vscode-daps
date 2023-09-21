@@ -11,7 +11,6 @@ editor.
 This extension requires that you...
 * install DAPS on your system. Refer to (https://opensuse.github.io/daps/) for
   more details.
-* install xmldom library by running `sudo npm install xmldom`
 
 ## Known Issues
 

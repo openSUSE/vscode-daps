@@ -16,6 +16,7 @@ var terminal = vscode.window.createTerminal('DAPS');
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
+const structureElements = ['section', 'sect1', 'sect2', 'sect3', 'sect4', 'procedure', 'example'];
 
 /**
  * class that creates data for DOcBook structure TreeView
@@ -42,19 +43,22 @@ class docStructureTreeDataProvider {
 		}
 		var docContent = fs.readFileSync(filePath, 'utf-8');
 		const xmlDoc = parser.parseFromString(docContent, 'text/xml');
-		const sectionElements = xmlDoc.getElementsByTagName('section');
+		var sectionElements = getElementsWithAllowedTagNames(xmlDoc, structureElements);
+		console.log(`sectionElements length: ${sectionElements.length}`);
 		if (sectionElements.length == 0) {
 			return emptyDocStructure('The current document has no structure')
 		}
 		var result = [];
 		for (let i = 0; i < sectionElements.length; i++) {
 			const sectionElement = sectionElements[i];
-			if (((!element && !sectionElement.parentNode.nodeName.startsWith('sect')))
+			// if no treeview item was clicked and the iterated sectionElement's parent is not structural
+			if (((!element && !structureElements.includes(sectionElement.parentNode.nodeName)))
+				// or treeview item is clicked and the iterated sectionElement is a kid of the clicked item
 				|| (element && (`${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}` == element.id))) {
 				// does element have 'section' kids?
 				var collapsibleState;
 				for (let j = 0; j < sectionElement.childNodes.length; j++) {
-					if (sectionElement.childNodes[j].nodeName.startsWith('sect')) {
+					if (structureElements.includes(sectionElement.childNodes[j].nodeName)) {
 						console.log('has section kids');
 						collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
 						break;
@@ -708,6 +712,25 @@ function emptyDocStructure(message) {
 	}]
 }
 
+// Function to get elements with tag names from the structureElements array
+function getElementsWithAllowedTagNames(rootElement, allowedTagNames) {
+	const result = [];
+
+	// Get all elements in the document
+	const allElements = rootElement.getElementsByTagName('*');
+
+	for (let i = 0; i < allElements.length; i++) {
+		const element = allElements[i];
+		const tagName = element.tagName.toLowerCase();
+
+		// Check if the tag name is in the allowedTagNames array
+		if (allowedTagNames.includes(tagName)) {
+			result.push(element);
+		}
+	}
+
+	return result;
+}
 
 // This method is called when your extension is deactivated
 function deactivate() { }
