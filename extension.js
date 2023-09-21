@@ -17,6 +17,7 @@ const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
 const structureElements = ['section', 'sect1', 'sect2', 'sect3', 'sect4', 'procedure', 'example'];
+const dapsConfigGlobal = vscode.workspace.getConfiguration('daps');
 
 /**
  * class that creates data for DOcBook structure TreeView
@@ -169,7 +170,7 @@ function activate(context) {
 	/**
 	 * enable codelens for DocBook assembly files
 	 */
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/*.asm.xml' }, {
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: dapsConfigGlobal.get('dbAssemblyPattern') }, {
 		provideCodeLenses(document) {
 			// parse active editor's XML
 			const xmlDoc = parser.parseFromString(document.getText());
