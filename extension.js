@@ -66,8 +66,15 @@ class docStructureTreeDataProvider {
 						collapsibleState = vscode.TreeItemCollapsibleState.None;
 					}
 				}
+				// does the element have a title?
+				var label = null;
+				if (sectionElement.getElementsByTagName('title')[0]) {
+					label = `(${sectionElement.nodeName.substring(0, 1)}) "${sectionElement.getElementsByTagName('title')[0].textContent}"`;
+				} else {
+					label = `(${sectionElement.nodeName.substring(0, 1)}) "*** MISSING TITLE ***"`;
+				}
 				result.push({
-					label: `(${sectionElement.nodeName.substring(0, 1)}) "${sectionElement.getElementsByTagName('title')[0].textContent}"`,
+					label: label,
 					// iconPath: vscode.ThemeIcon.Folder,
 					collapsibleState: collapsibleState,
 					id: `${sectionElement.nodeName}_${sectionElement.lineNumber}`,

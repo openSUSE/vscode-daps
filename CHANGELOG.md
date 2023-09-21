@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.7.1
+- fixed document structure treeview for elements with missing <title/>
 ## 0.7.0
 - document structure treeview works on multiple tags
 - fixed CodeLens for all DocBook XML assembly files
