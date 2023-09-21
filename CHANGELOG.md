@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.7.0
+- document structure treeview works on multiple tags
+- fixed CodeLens for all DocBook XML assembly files
+- xmldom library now bundled with the extension
 ## 0.6.2
 - added document structure treeview for <sections>
 - improved CodeLens for DocBook assemblies by parsing XML
