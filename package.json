@@ -251,6 +251,16 @@
           "description": "Specify the root directory of daps checkout.",
           "type": "string",
           "default": null
+        },
+        "daps.XMLformatExecutable": {
+          "description": "Specify the path to `xmlformat` executable.",
+          "type": "string",
+          "default": "daps-xmlformat"
+        },
+        "daps.XMLformatConfigFile": {
+          "description": "Specify the path to `xmlformat` configuration file",
+          "type": "string",
+          "default": null
         }
       }
     },

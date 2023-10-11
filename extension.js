@@ -12,11 +12,22 @@ const { exec } = require('child_process');
 const { DOMParser } = require('xmldom');
 //const { match } = require('assert');
 const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
-var terminal = vscode.window.createTerminal('DAPS');
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
 const dapsConfigGlobal = vscode.workspace.getConfiguration('daps');
+
+// create or re-use DAPS terminal
+var terminal = null;
+for (let i = 0; i < vscode.window.terminals.length; i++) {
+	if (vscode.window.terminals[i].name == 'DAPS') {
+		terminal = vscode.window.terminals[i];
+		break;
+	}
+}
+if (terminal == null) {
+	terminal = vscode.window.createTerminal('DAPS');
+}
 
 /**
  * class that creates data for DOcBook structure TreeView
@@ -477,9 +488,14 @@ function activate(context) {
 		}
 
 		try {
+			var dapsXMLformatCmd = null;
 			// vscode.window.showInformationMessage(`XMLformatting ${XMLfile}`);
 			await autoSave(XMLfile);
-			const dapsXMLformatCmd = `daps-xmlformat -i ${XMLfile}`;
+			const dapsConfig = vscode.workspace.getConfiguration('daps');
+			dapsXMLformatCmd = `${dapsConfig.get('XMLformatExecutable')} -i ${XMLfile}`;
+			if (dapsConfig.get('XMLformatConfigFile')) {
+				dapsXMLformatCmd += ` -f ${dapsConfig.get('XMLformatConfigFile')}`
+			}
 			console.log(`XML format cmd: ${dapsXMLformatCmd}`);
 			execSync(dapsXMLformatCmd);
 			// vscode.window.showInformationMessage(`XMLformat succeeded. ${XMLfile}`);
