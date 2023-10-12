@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.7.6
+- included `node_modules` directory when building package
 ## 0.7.5
 - fixed call for non-obsolete domxml that failed extension activation
 ## 0.7.3
