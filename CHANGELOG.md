@@ -1,6 +1,6 @@
 # Change Log
 
-## 0.7.4
+## 0.7.5
 - fixed call for non-obsolete domxml that failed extension activation
 ## 0.7.3
 - small tweaks for cmd registration
