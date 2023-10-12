@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.7.2
+- fixed paths of executables and config files to work across distributions
 ## 0.7.1
 - fixed document structure treeview for elements with missing <title/>
 ## 0.7.0
