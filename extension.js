@@ -1,7 +1,3 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-
-
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
@@ -9,7 +5,7 @@ const { exec } = require('child_process');
 //const xpath = require('xpath');
 //const select = xpath.useNamespaces({ db: 'http://docbook.org/ns/docbook' });
 // configure parser
-const { DOMParser } = require('xmldom');
+const { DOMParser } = require('@xmldom/xmldom');
 //const { match } = require('assert');
 const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
 const execSync = require('child_process').execSync;
@@ -296,7 +292,7 @@ function activate(context) {
 	 * @param {string} DCfile URI from context command (optional)
 	 * @returns true or false depending on how validation happened
 	 */
-	let disposeValidate = vscode.commands.registerCommand('daps.validate', async function validate(contextDCfile) {
+	context.subscriptions.push(vscode.commands.registerCommand('daps.validate', async function validate(contextDCfile) {
 		var DCfile = await getDCfile(contextDCfile);
 		if (DCfile) {
 			// assemble daps command
@@ -322,13 +318,13 @@ function activate(context) {
 			}
 		}
 		return false;
-	});
+	}));
 	/**
 	 * @description builds HTML or PDF targets given DC file
 	 * @param {object} DCfile URI from context command (optional)
 	 * @returns true or false depending on how the build happened
 	 */
-	let disposeBuildDC = vscode.commands.registerCommand('daps.buildDCfile', async function buildDCfile(contextDCfile) {
+	context.subscriptions.push(vscode.commands.registerCommand('daps.buildDCfile', async function buildDCfile(contextDCfile) {
 		var buildTarget;
 		var DCfile = await getDCfile(contextDCfile);
 		// try if buildTarget is included in settings or get it from user
@@ -379,12 +375,12 @@ function activate(context) {
 			}
 		}
 		return false;
-	});
+	}));
 
 	/**
 	 * command to build single XML file
 	 */
-	let disposeBuildXMLfile = vscode.commands.registerCommand('daps.buildXMLfile', async function buildXMLfile(contextFileURI) {
+	context.subscriptions.push(vscode.commands.registerCommand('daps.buildXMLfile', async function buildXMLfile(contextFileURI) {
 		// decide on input XML file - take active editor if file not specified from context
 		var XMLfile = getActiveFile(contextFileURI);
 		var buildTarget = await getBuildTarget();
@@ -428,8 +424,8 @@ function activate(context) {
 				vscode.window.showErrorMessage(`Build failed: ${err.message}`);
 			}
 		}
-	});
-	let disposeBuildRootId = vscode.commands.registerCommand('daps.buildRootId', async function buildRootId(contextFileURI) {
+	}));
+	context.subscriptions.push(vscode.commands.registerCommand('daps.buildRootId', async function buildRootId(contextFileURI) {
 		var buildTarget = await getBuildTarget();
 		var DCfile = await getDCfile();
 		var rootId = await getRootId(contextFileURI, DCfile);
@@ -473,7 +469,7 @@ function activate(context) {
 			}
 		}
 		return false;
-	});
+	}));
 	context.subscriptions.push(vscode.commands.registerCommand('daps.XMLformat', async function XMLformat(contextFileURI) {
 		var XMLfile;
 		if (contextFileURI) { //check if XML file was passed as context
@@ -505,7 +501,7 @@ function activate(context) {
 			return false;
 		}
 	}));
-	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeBuildXMLfile);
+
 	/**
 	 * @description assembles daps command based on given parameters
 	 * @param {Array} given parameters
@@ -522,7 +518,7 @@ function activate(context) {
 		if (dapsConfig.get('verbosityLevel') && dapsConfig.get('runTerminal')) {
 			dapsCmd.push('-v' + dapsConfig.get('verbosityLevel'));
 		}
-		if (dapsConfig.get('styleRoot') && params['cmd'] != 'validate') {
+		if (dapsConfig.get('styleRoot')) {
 			dapsCmd.push('--styleroot ' + dapsConfig.get('styleRoot'));
 		}
 		if (params['DCfile']) {

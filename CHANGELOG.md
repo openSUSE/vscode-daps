@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.7.4
+- fixed call for non-obsolete domxml that failed extension activation
+## 0.7.3
+- small tweaks for cmd registration
 ## 0.7.2
 - fixed paths of executables and config files to work across distributions
 ## 0.7.1
