@@ -474,7 +474,7 @@ function activate(context) {
 		}
 		return false;
 	});
-	let disposeXMLformat = vscode.commands.registerCommand('daps.XMLformat', async function XMLformat(contextFileURI) {
+	context.subscriptions.push(vscode.commands.registerCommand('daps.XMLformat', async function XMLformat(contextFileURI) {
 		var XMLfile;
 		if (contextFileURI) { //check if XML file was passed as context
 			XMLfile = contextFileURI.path;
@@ -504,8 +504,8 @@ function activate(context) {
 			vscode.window.showErrorMessage(`XMLformat failed: ${err.message}`);
 			return false;
 		}
-	});
-	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeXMLformat, disposeBuildXMLfile);
+	}));
+	context.subscriptions.push(disposeValidate, disposeBuildDC, disposeBuildRootId, disposeBuildXMLfile);
 	/**
 	 * @description assembles daps command based on given parameters
 	 * @param {Array} given parameters

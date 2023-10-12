@@ -157,7 +157,15 @@
         "daps.structureElements": {
           "description": "Which elements should be counted into doc structure treeview.",
           "type": "array",
-          "default": ["section", "sect1", "sect2", "sect3", "sect4", "procedure", "example"]
+          "default": [
+            "section",
+            "sect1",
+            "sect2",
+            "sect3",
+            "sect4",
+            "procedure",
+            "example"
+          ]
         },
         "daps.dbAssemblyPattern": {
           "description": "VSCode glob pattern to identify DocBook assembly files.",

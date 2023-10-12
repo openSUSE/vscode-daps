@@ -3,13 +3,13 @@
 ## 0.7.2
 - fixed paths of executables and config files to work across distributions
 ## 0.7.1
-- fixed document structure treeview for elements with missing <title/>
+- fixed document structure treeview for elements with missing title
 ## 0.7.0
 - document structure treeview works on multiple tags
 - fixed CodeLens for all DocBook XML assembly files
 - xmldom library now bundled with the extension
 ## 0.6.2
-- added document structure treeview for <sections>
+- added document structure treeview for sections
 - improved CodeLens for DocBook assemblies by parsing XML
 ## 0.6.1
 - introduced own WebView HTML preview
