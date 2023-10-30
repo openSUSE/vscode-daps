@@ -12,6 +12,8 @@ const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
 const dapsConfigGlobal = vscode.workspace.getConfiguration('daps');
+// create an output channel for debug messages and show it
+const dbgChannel = vscode.window.createOutputChannel('Daps Debug');
 
 // create or re-use DAPS terminal
 var terminal = null;
@@ -31,7 +33,7 @@ if (terminal == null) {
 class docStructureTreeDataProvider {
 	constructor() {
 		this._onDidChangeTreeData = new vscode.EventEmitter();
-		this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+		//this.onDidChangeTreeData = this._onDidChangeTreeData.event;
 	}
 
 	refresh() {
@@ -53,7 +55,7 @@ class docStructureTreeDataProvider {
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		const structureElements = dapsConfig.get('structureElements');
 		var sectionElements = getElementsWithAllowedTagNames(xmlDoc, structureElements);
-		console.log(`sectionElements length: ${sectionElements.length}`);
+		dbg(`sectionElements length: ${sectionElements.length}`);
 		if (sectionElements.length == 0) {
 			return emptyDocStructure('The current document has no structure')
 		}
@@ -68,7 +70,6 @@ class docStructureTreeDataProvider {
 				var collapsibleState;
 				for (let j = 0; j < sectionElement.childNodes.length; j++) {
 					if (structureElements.includes(sectionElement.childNodes[j].nodeName)) {
-						console.log('has section kids');
 						collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
 						break;
 					} else {
@@ -107,9 +108,10 @@ class docStructureTreeDataProvider {
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-	console.log('Congratulations, your extension "daps" is now active!');
+	dbg('Congratulations, your extension "daps" is now active!');
+	dbg('Debug channel opened');
 	var extensionPath = context.extensionPath;
-	console.log(`Extension path: ${extensionPath}`);
+	dbg(`Extension path: ${extensionPath}`);
 	// cmd for focusing a line in active editor
 	vscode.commands.registerCommand('daps.focusLineInActiveEditor', async (lineNumber) => {
 		const activeTextEditor = vscode.window.activeTextEditor;
@@ -194,7 +196,7 @@ function activate(context) {
 			}
 			// get all <module/> objects
 			const moduleElements = xmlDoc.getElementsByTagName('module');
-			console.log(`moduleElements length: ${moduleElements.length}`);
+			dbg(`moduleElements length: ${moduleElements.length}`);
 			// collect their attributes and push them to the result array
 			const codeLenses = [];
 			for (let i = 0; i < moduleElements.length; i++) {
@@ -220,13 +222,17 @@ function activate(context) {
 	 */
 	const dapsConfig = vscode.workspace.getConfiguration('daps');
 	if (dapsConfig.get('autocompleteXMLentities')) {
+		dbg(`autocompleteXMLentities: ${dapsConfig.get('autocompleteXMLentities')}`)
 		context.subscriptions.push(vscode.languages.registerCompletionItemProvider('xml', {
 			provideCompletionItems(document, position, token, context) {
-				console.log(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
+				dbg(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
+				dbg(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
 				// get array of entity files
 				let entityFiles = getXMLentityFiles(document.fileName);
+				dbg(`Number of entity files: ${entityFiles.length}`);
 				//extract entites from entity files
 				let entities = getXMLentites(entityFiles);
+				dbg(`Number of entities: ${entities.length}`);
 				let result = [];
 				entities.forEach(entity => {
 					let completionItem = new vscode.CompletionItem(entity);
@@ -241,6 +247,7 @@ function activate(context) {
 					}
 					result.push(completionItem);
 				});
+				dbg(`Number of results: ${result.length}`);
 				return result;
 			}
 		}, '&'));
@@ -266,10 +273,10 @@ function activate(context) {
 		}
 		// what is the document i want to preview?
 		let srcXMLfile = getActiveFile(contextFileURI);
-		console.log(`Source XML file: ${srcXMLfile}`);
+		dbg(`Source XML file: ${srcXMLfile}`);
 		// compile transform command
 		let transformCmd = `xsltproc --stringparam img.src.path ${docPreviewImgPath} ${extensionPath}/xslt/doc-preview.xsl ${srcXMLfile}`;
-		console.log(`xsltproc cmd: ${transformCmd}`);
+		dbg(`xsltproc cmd: ${transformCmd}`);
 		// get its stdout into a variable
 		let htmlContent = execSync(transformCmd).toString();
 		// resolve the file's directory and cd there
@@ -280,7 +287,7 @@ function activate(context) {
 		});
 	}));
 	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
-		console.log(`onChange document: ${document.uri.path}`);
+		dbg(`onChange document: ${document.uri.path}`);
 		if (document.uri.path == getActiveFile() && previewPanel) {
 			vscode.commands.executeCommand('daps.docPreview');
 		}
@@ -300,11 +307,11 @@ function activate(context) {
 			const dapsConfig = vscode.workspace.getConfiguration('daps');
 			// change working directory to current workspace
 			process.chdir(workspaceFolderUri.path);
-			console.log(`cwd is ${workspaceFolderUri.path}`);
+			dbg(`cwd is ${workspaceFolderUri.path}`);
 			// decide whether to run terminal
 			try {
 				if (dapsConfig.get('runTerminal')) {
-					console.log('Running command in terminal');
+					dbg('Running command in terminal');
 					terminal.sendText(dapsCmd);
 					terminal.show(true);
 				} else {
@@ -330,10 +337,10 @@ function activate(context) {
 		// try if buildTarget is included in settings or get it from user
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		if (buildTarget = dapsConfig.get('buildTarget')) {
-			console.log(`buildTarget from config: ${buildTarget}`);
+			dbg(`buildTarget from config: ${buildTarget}`);
 		} else {
 			buildTarget = await vscode.window.showQuickPick(buildTargets);
-			console.log(`buildTarget form picker: ${buildTarget}`);
+			dbg(`buildTarget form picker: ${buildTarget}`);
 		}
 
 		// assemble daps command
@@ -347,9 +354,9 @@ function activate(context) {
 			try {
 				// change working directory to current workspace
 				process.chdir(workspaceFolderUri.path);
-				console.log(`cwd is ${workspaceFolderUri.path}`);
+				dbg(`cwd is ${workspaceFolderUri.path}`);
 				if (dapsConfig.get('runTerminal')) {
-					console.log('Running command in terminal');
+					dbg('Running command in terminal');
 					terminal.sendText(dapsCmd);
 					terminal.show(true);
 				} else {
@@ -359,9 +366,9 @@ function activate(context) {
 					if (buildTarget == 'html') {
 						targetBuild = targetBuild + 'index.html';
 					}
-					console.log('target build: ' + targetBuild);
+					dbg('target build: ' + targetBuild);
 					vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
-						console.log(selected);
+						dbg(selected);
 						if (selected === 'Open document') {
 							exec('xdg-open ' + targetBuild);
 						} else if (selected === 'Copy link') {
@@ -399,7 +406,7 @@ function activate(context) {
 			try {
 				await autoSave(XMLfile);
 				if (dapsConfig.get('runTerminal')) {
-					console.log('Running command in terminal');
+					dbg('Running command in terminal');
 					terminal.sendText(dapsCmd);
 					terminal.show(true);
 				} else {
@@ -409,9 +416,9 @@ function activate(context) {
 					if (buildTarget == 'html') {
 						targetBuild = targetBuild + 'index.html';
 					}
-					console.log('target build: ' + targetBuild);
+					dbg('target build: ' + targetBuild);
 					vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
-						console.log(selected);
+						dbg(selected);
 						if (selected === 'Open document') {
 							exec('xdg-open ' + targetBuild);
 						} else if (selected === 'Copy link') {
@@ -441,9 +448,9 @@ function activate(context) {
 			try {
 				// change working directory to current workspace
 				process.chdir(workspaceFolderUri.path);
-				console.log(`cwd is ${workspaceFolderUri.path}`);
+				dbg(`cwd is ${workspaceFolderUri.path}`);
 				if (dapsConfig.get('runTerminal')) {
-					console.log('Running command in terminal');
+					dbg('Running command in terminal');
 					terminal.sendText(dapsCmd);
 					terminal.show(true);
 				} else {
@@ -453,9 +460,9 @@ function activate(context) {
 					if (buildTarget == 'html') {
 						targetBuild = targetBuild + 'index.html';
 					}
-					console.log('target build: ' + targetBuild);
+					dbg('target build: ' + targetBuild);
 					vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
-						console.log(selected);
+						dbg(selected);
 						if (selected === 'Open document') {
 							exec('xdg-open ' + targetBuild);
 						} else if (selected === 'Copy link') {
@@ -474,10 +481,10 @@ function activate(context) {
 		var XMLfile;
 		if (contextFileURI) { //check if XML file was passed as context
 			XMLfile = contextFileURI.path;
-			console.log(`XMLfile from context: ${XMLfile}`);
+			dbg(`XMLfile from context: ${XMLfile}`);
 		} else if (vscode.window.activeTextEditor) { // try the currently open file
 			XMLfile = vscode.window.activeTextEditor.document.fileName;
-			console.log(`XML file from active editor: ${XMLfile}`);
+			dbg(`XML file from active editor: ${XMLfile}`);
 		} else {
 			console.error('No XML file specified or active');
 			return false;
@@ -492,7 +499,7 @@ function activate(context) {
 			if (dapsConfig.get('XMLformatConfigFile')) {
 				dapsXMLformatCmd += ` -f ${dapsConfig.get('XMLformatConfigFile')}`
 			}
-			console.log(`XML format cmd: ${dapsXMLformatCmd}`);
+			dbg(`XML format cmd: ${dapsXMLformatCmd}`);
 			execSync(dapsXMLformatCmd);
 			// vscode.window.showInformationMessage(`XMLformat succeeded. ${XMLfile}`);
 			return true;
@@ -537,7 +544,7 @@ function activate(context) {
 		if (params['options']) {
 			dapsCmd.push(params['options'].join(' '));
 		}
-		console.log(`dapsCmd: ${dapsCmd.join(' ')}`);
+		dbg(`dapsCmd: ${dapsCmd.join(' ')}`);
 		return dapsCmd.join(' ');
 	}
 
@@ -557,22 +564,22 @@ function activate(context) {
 				const selectionRange = new vscode.Range(selection.start.line, selection.start.character, selection.end.line, selection.end.character);
 				rootId = editor.document.getText(selectionRange);
 			}
-			console.log(`rootId from context: ${rootId}`);
+			dbg(`rootId from context: ${rootId}`);
 		} else if (rootId = dapsConfig.get('buildRootId')) { // try if rootId is included in settings.json
-			console.log(`rootId from config: ${rootId}`);
+			dbg(`rootId from config: ${rootId}`);
 		} else { // get rootId from picker
 			rootId = await vscode.window.showQuickPick(getRootIds(DCfile));
-			console.log(`rootId form picker: ${rootId}`);
+			dbg(`rootId form picker: ${rootId}`);
 		}
 		return rootId;
 	}
 	function getRootIds(DCfile) {
 		process.chdir(workspaceFolderUri.path);
-		console.log(`cwd is ${workspaceFolderUri.path}`);
+		dbg(`cwd is ${workspaceFolderUri.path}`);
 		var rootIdsCmd = `sh -c "cat \`daps -d ${DCfile} bigfile | tail -n1\` | xsltproc ${extensionPath}/xslt/get-ids-from-structure.xsl - | cut -d# -f2"`;
-		console.log(`root IDs cmd: ${rootIdsCmd}`);
+		dbg(`root IDs cmd: ${rootIdsCmd}`);
 		var rootIds = execSync(rootIdsCmd).toString().trim().split('\n');
-		console.log(`Count of root IDs: ${rootIds.length}`);
+		dbg(`Count of root IDs: ${rootIds.length}`);
 		return rootIds;
 	}
 	/**
@@ -585,12 +592,12 @@ function activate(context) {
 		if (dapsConfig.get('autoSave') == true) {
 			//var document = vscode.Uri.parse(XMLfile);
 			const textDocuments = vscode.workspace.textDocuments;
-			console.log(`Number of text documents: ${textDocuments.length}`);
+			dbg(`Number of text documents: ${textDocuments.length}`);
 			for (let i = 0; i < textDocuments.length; i++) {
 				if (XMLfile == textDocuments[i].fileName && textDocuments[i].isDirty) {
 					try {
 						await textDocuments[i].save();
-						console.log(`document ${XMLfile} saved`);
+						dbg(`document ${XMLfile} saved`);
 						return true;
 					} catch (err) {
 						vscode.window.showErrorMessage(err.message);
@@ -602,17 +609,30 @@ function activate(context) {
 	}
 }
 
+//debugging
+function dbg(msg) {
+	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	if (dapsConfig.get('enableDbg') == 'output') {
+		dbgChannel.appendLine(`dbg: ${msg}`);
+	} else if (dapsConfig.get('enableDbg') == 'console') {
+		console.log(`dbg: ${msg}`);
+	} else if (dapsConfig.get('enableDbg') == 'both') {
+		dbgChannel.appendLine(`dbg: ${msg}`);
+		console.log(`dbg: ${msg}`);
+	}
+}
+
 /**
  * @description compiles list of DC files in gicen directory
  * @param {obj} URI of a folder to get DC files from
  * @returns {array} of DC files from the current directory
  */
 function getDCfiles(folderUri) {
-	console.log(`folder: ${folderUri.path}`);
+	dbg(`folder: ${folderUri.path}`);
 	var allFiles = fs.readdirSync(folderUri.path);
-	console.log(`no of all files: ${allFiles.length}`)
+	dbg(`no of all files: ${allFiles.length}`)
 	var DCfiles = allFiles.filter(it => it.startsWith('DC-'));
-	console.log(`no of DC files: ${DCfiles.length}`);
+	dbg(`no of DC files: ${DCfiles.length}`);
 	return DCfiles;
 }
 
@@ -627,12 +647,12 @@ async function getDCfile() {
 	if (DCfile = arguments[0]) { // check if DCfile URI was passed as argument
 		// if yes, use only the base name from the full URI
 		DCfile = DCfile.path.split('/').pop();
-		console.log(`DCfile from context: ${DCfile}`);
+		dbg(`DCfile from context: ${DCfile}`);
 	} else if (DCfile = dapsConfig.get('DCfile')) { // try if DC file is included in settings.json
-		console.log(`DC file from config: ${DCfile}`);
+		dbg(`DC file from config: ${DCfile}`);
 	} else { // get DC file from picker
 		DCfile = await vscode.window.showQuickPick(getDCfiles(workspaceFolderUri));
-		console.log(`DC file form picker: ${DCfile}`);
+		dbg(`DC file form picker: ${DCfile}`);
 	}
 	return DCfile;
 }
@@ -647,10 +667,10 @@ async function getBuildTarget() {
 	const dapsConfig = vscode.workspace.getConfiguration('daps');
 	var buildTarget;
 	if (buildTarget = dapsConfig.get('buildTarget')) {
-		console.log(`buildTarget from config: ${buildTarget}`);
+		dbg(`buildTarget from config: ${buildTarget}`);
 	} else {
 		buildTarget = await vscode.window.showQuickPick(buildTargets);
-		console.log(`buildTarget form picker: ${buildTarget}`);
+		dbg(`buildTarget form picker: ${buildTarget}`);
 	}
 	return buildTarget;
 }
@@ -664,25 +684,25 @@ function getXMLentityFiles(XMLfile) {
 	} else {
 		getEntScript = '/usr/share/daps/libexec/getentityname.py';
 	}
-	console.log(`get-ent script: ${getEntScript}`);
+	dbg(`get-ent script: ${getEntScript}`);
 	var getEntFilesCmd = `${getEntScript} ${XMLfile}`;
-	console.log(`get-ent cmd: ${getEntFilesCmd}`);
+	dbg(`get-ent cmd: ${getEntFilesCmd}`);
 	var result = execSync(getEntFilesCmd).toString().trim().split(' ');
-	console.log(`num of entity files: ${result.length}`);
+	dbg(`num of entity files: ${result.length}`);
 	// exclude entities included in 'excludeXMLentityFiles' option
 	var excludedEntityFiles = dapsConfig.get('excludeXMLentityFiles');
 	if (excludedEntityFiles) {
 		for (var i = 0; i < result.length; i++) {
 			for (var j = 0; j < excludedEntityFiles.length; j++) {
 				if (result[i].endsWith(excludedEntityFiles[j])) {
-					console.log(`excluding ent file: ${excludedEntityFiles[j]}`)
+					dbg(`excluding ent file: ${excludedEntityFiles[j]}`)
 					result.splice(i, 1);
 					break;
 				}
 			}
 		}
 	}
-	console.log(`entity files: ${result}`);
+	dbg(`entity files: ${result}`);
 	return result;
 }
 
@@ -695,7 +715,7 @@ function getXMLentites(entityFiles) {
 			return line.match(/^<!ENTITY [^%]/);
 		}));
 	});
-	console.log(`size of entList: ${entList.length}`);
+	dbg(`size of entList: ${entList.length}`);
 	// leave only entity names in the entity array
 
 	var result = entList.map(processEntLine);
@@ -714,10 +734,10 @@ function getActiveFile(contextFileURI) {
 	var XMLfile;
 	if (contextFileURI) { //check if XML file was passed as context
 		XMLfile = contextFileURI.path;
-		console.log(`XMLfile from context: ${XMLfile}`);
+		dbg(`XMLfile from context: ${XMLfile}`);
 	} else if (vscode.window.activeTextEditor) { // try the currently open file
 		XMLfile = vscode.window.activeTextEditor.document.fileName;
-		console.log(`XML file from active editor: ${XMLfile}`);
+		dbg(`XML file from active editor: ${XMLfile}`);
 	} else {
 		console.error('No XML file specified or active');
 		return false;

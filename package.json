@@ -155,6 +155,12 @@
     "configuration": {
       "title": "DAPS",
       "properties": {
+        "daps.enableDbg": {
+          "description": "Enable login in a dedicated output channel.",
+          "type": "string",
+          "enum": ["output", "console", "both"],
+          "default": "console"
+        },
         "daps.structureElements": {
           "description": "Which elements should be counted into doc structure treeview.",
           "type": "array",
