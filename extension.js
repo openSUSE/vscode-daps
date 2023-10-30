@@ -33,7 +33,7 @@ if (terminal == null) {
 class docStructureTreeDataProvider {
 	constructor() {
 		this._onDidChangeTreeData = new vscode.EventEmitter();
-		//this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+		this.onDidChangeTreeData = this._onDidChangeTreeData.event;
 	}
 
 	refresh() {
@@ -174,7 +174,7 @@ function activate(context) {
 	context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors(() => {
 		vscode.commands.executeCommand('docStructureTreeView.refresh');
 	}));
-	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => {
+	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
 		vscode.commands.executeCommand('docStructureTreeView.refresh');
 	}));
 	/**
