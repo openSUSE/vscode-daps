@@ -159,6 +159,11 @@
           "description": "Enable login in a dedicated output channel.",
           "type": "string",
           "enum": ["output", "console", "both"],
+          "enumDescriptions": [
+            "Outputs debugging messages to the client's 'Daps Debug' channel.",
+            "Outputs debugging messages to the 'Debug Console' in the debugging environment.",
+            "Outputs debugging messages to both client's channel and debug console."
+          ],
           "default": "console"
         },
         "daps.structureElements": {
