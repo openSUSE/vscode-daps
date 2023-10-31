@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.7.8
+- fixed event for trigerring doc structure treeview refresh
 ## 0.7.7
 - introduced `daps.enableDbg` option to choose between console and output
   channel messages
