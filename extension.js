@@ -12,7 +12,6 @@ const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
 const dapsConfigGlobal = vscode.workspace.getConfiguration('daps');
-// create an output channel for debug messages and show it
 const dbgChannel = vscode.window.createOutputChannel('Daps Debug');
 
 // create or re-use DAPS terminal
@@ -171,8 +170,10 @@ function activate(context) {
 			vscode.window.showErrorMessage(`Error opening file: ${err.message}`);
 		}
 	}));
-	context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors(() => {
-		vscode.commands.executeCommand('docStructureTreeView.refresh');
+	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((activeEditor) => {
+			if (activeEditor && activeEditor.document.languageId === 'xml') {
+				vscode.commands.executeCommand('docStructureTreeView.refresh');
+			}
 	}));
 	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
 		vscode.commands.executeCommand('docStructureTreeView.refresh');
