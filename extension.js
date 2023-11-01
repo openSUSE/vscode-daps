@@ -2,8 +2,6 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-//const xpath = require('xpath');
-//const select = xpath.useNamespaces({ db: 'http://docbook.org/ns/docbook' });
 // configure parser
 const { DOMParser } = require('@xmldom/xmldom');
 //const { match } = require('assert');
@@ -171,9 +169,9 @@ function activate(context) {
 		}
 	}));
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((activeEditor) => {
-			if (activeEditor && activeEditor.document.languageId === 'xml') {
-				vscode.commands.executeCommand('docStructureTreeView.refresh');
-			}
+		if (activeEditor && activeEditor.document.languageId === 'xml') {
+			vscode.commands.executeCommand('docStructureTreeView.refresh');
+		}
 	}));
 	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
 		vscode.commands.executeCommand('docStructureTreeView.refresh');

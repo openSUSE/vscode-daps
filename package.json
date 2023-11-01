@@ -78,6 +78,10 @@
         {
           "command": "daps.docPreview",
           "when": "resourceExtname == .xml"
+        },
+        {
+          "command": "daps.validate",
+          "when": "resourceFilename =~ /DC-*/"
         }
       ],
       "explorer/context": [
