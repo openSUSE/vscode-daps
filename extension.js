@@ -205,12 +205,14 @@ function activate(context) {
 				const range = new vscode.Range(lineNumber, 0, lineNumber, 0);
 				const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath
 				const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
-				const codeLens = new vscode.CodeLens(range, {
-					title: `⇉ ${path.basename(resources[resourceRef])} ⇇`,
-					command: 'daps.openFile',
-					arguments: [`${directoryPath}/${resources[resourceRef]}`]
-				});
-				codeLenses.push(codeLens);
+				if (resourceRef) {
+					const codeLens = new vscode.CodeLens(range, {
+						title: `⇉ ${path.basename(resources[resourceRef])} ⇇`,
+						command: 'daps.openFile',
+						arguments: [`${directoryPath}/${resources[resourceRef]}`]
+					});
+					codeLenses.push(codeLens);
+				}
 			}
 			return codeLenses;
 		}

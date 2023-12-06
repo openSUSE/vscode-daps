@@ -18,7 +18,7 @@
   ],
   "activationEvents": [
     "workspaceContains: **/DC-*",
-    "onLanguage: xml"
+    "onLanguage"
   ],
   "main": "./extension.js",
   "contributes": {
