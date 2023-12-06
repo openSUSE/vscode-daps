@@ -10,7 +10,7 @@ const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
 const dapsConfigGlobal = vscode.workspace.getConfiguration('daps');
-const dbgChannel = vscode.window.createOutputChannel('Daps Debug');
+const dbgChannel = vscode.window.createOutputChannel('DAPS');
 
 // create or re-use DAPS terminal
 var terminal = null;
