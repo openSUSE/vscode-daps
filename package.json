@@ -17,7 +17,7 @@
     "Linters"
   ],
   "activationEvents": [
-    "workspaceContains: **/DC-*",
+    "workspaceContains: **/DC-*"
   ],
   "main": "./extension.js",
   "contributes": {
