@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.7.9",
+  "version": "0.7.10",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -17,7 +17,8 @@
     "Linters"
   ],
   "activationEvents": [
-    "workspaceContains: **/DC-*"
+    "workspaceContains: **/DC-*",
+    "onStartupFinished"
   ],
   "main": "./extension.js",
   "contributes": {

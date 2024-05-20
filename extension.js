@@ -139,7 +139,12 @@ function activate(context) {
 			}
 
 		}
-	})
+	});
+	// register the peek definition command
+	context.subscriptions.push(vscode.commands.registerCommand('daps.peekFile', async (filePath, range) => {
+		const uri = vscode.Uri.file(filePath);
+		vscode.commands.executeCommand('editor.action.peekLocations', uri, range.start, [new vscode.Location(uri, range)], 'peek');
+	}));
 	/**
 	 * create treeview for DocBook structure
 	 */
@@ -201,17 +206,34 @@ function activate(context) {
 			for (let i = 0; i < moduleElements.length; i++) {
 				const module = moduleElements[i];
 				const lineNumber = module.lineNumber - 1;
+				dbg(`codelenses - lineNumber: ${lineNumber}`);
 				const resourceRef = module.getAttribute('resourceref');
-				const range = new vscode.Range(lineNumber, 0, lineNumber, 0);
+				dbg(`codelenses - resourceRef: ${resourceRef}`);
+				const activeRange = new vscode.Range(lineNumber, 0, lineNumber, 0);
 				const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath
 				const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
+				dbg(`codelenses - Path: ${directoryPath}/${resources[resourceRef]}`);
 				if (resourceRef) {
-					const codeLens = new vscode.CodeLens(range, {
-						title: `⇉ ${path.basename(resources[resourceRef])} ⇇`,
+					// create a codelens for opening the file as a peek
+					const activeUri = vscode.window.activeTextEditor.document.uri;
+					const peekRange = new vscode.Range(0, 0, 15, 0);
+					const peekUri = vscode.Uri.file(`${directoryPath}/${resources[resourceRef]}`);
+					const peekLocation = new vscode.Location(peekUri, peekRange);
+					dbg(`codelens:uri: ${activeUri}`);
+					const codeLensPeek = new vscode.CodeLens(activeRange, {
+						title: `Peek into ${path.basename(resources[resourceRef])} `,
+						command: "editor.action.peekLocations",
+						arguments: [activeUri, activeRange.start, [peekLocation]]
+					});
+					codeLenses.push(codeLensPeek);
+					// create codelens for opening the file in a tab
+					const codeLensOpen = new vscode.CodeLens(activeRange, {
+						title: "Open in a new tab",
 						command: 'daps.openFile',
 						arguments: [`${directoryPath}/${resources[resourceRef]}`]
 					});
-					codeLenses.push(codeLens);
+					codeLenses.push(codeLensOpen);
+
 				}
 			}
 			return codeLenses;

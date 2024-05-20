@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.7.10
+- introduced peek view for DocBook assemblies
+
 ## 0.7.9
 - fixed CodeLens for <module>'s with no resourceRef
 - changed dbgChannel name to DAPS
