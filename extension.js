@@ -156,7 +156,7 @@ function activate(context) {
 	/**
 	 * command for opening editor, optionally in a split window
 	 */
-	context.subscriptions.push(vscode.commands.registerCommand('daps.openFile', async (file) => {
+	vscode.commands.registerCommand('daps.openFile', async (file) => {
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		const viewColumn = vscode.ViewColumn.Beside;
 		try {
@@ -172,7 +172,7 @@ function activate(context) {
 		} catch (err) {
 			vscode.window.showErrorMessage(`Error opening file: ${err.message}`);
 		}
-	}));
+	});
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((activeEditor) => {
 		if (activeEditor && activeEditor.document.languageId === 'xml') {
 			vscode.commands.executeCommand('docStructureTreeView.refresh');
@@ -239,7 +239,104 @@ function activate(context) {
 			return codeLenses;
 		}
 	}));
+	/**
+	 * provide codelens for <xref/>'s targets
+	 */
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: "**/*.xml" }, {
+		provideCodeLenses(document) {
+			// parse active editor's XML
+			const xmlDoc = parser.parseFromString(document.getText());
+			// get all <xref/> objects
+			const xrefElements = xmlDoc.getElementsByTagName('xref');
+			dbg(`codelens:xref:xrefElements.length: ${xrefElements.length}`);
+			// iterate over discovered xrefs and find their xml:id's definition in all *.xml files
+			const codeLenses = [];
+			for (let i = 0; i < xrefElements.length; i++) {
+				const xrefLinkend = xrefElements[i].getAttribute('linkend');
+				dbg(`codelens:xref:xrefLinkend: ${xrefLinkend}`);
+				// search for all files that reference the xrefLinkends
+				dbg(workspaceFolderUri.fsPath);
+				const matchedReferers = searchInFiles(workspaceFolderUri.fsPath, `xml:id="${xrefLinkend}"`, /\.xml$/);
+				dbg(`codelens:xref:matchedReferers: ${matchedReferers.length}`);
+				const lineNumber = xrefElements[i].lineNumber - 1;
+				dbg(`codelens:xref:lineNumber: ${lineNumber}`);
+				const columnNumber = xrefElements[i].columnNumber;
+				dbg(`codelens:xref:columnNumber: ${columnNumber}`);
+				const activeRange = new vscode.Range(lineNumber, columnNumber, lineNumber, columnNumber);
+				// iterate over corresponding xml:id's definitions and create codelense
+				for (let j = 0; j < matchedReferers.length; j++) {
+					dbg(`codelens:xref:matchedReferer ${j}: ${matchedReferers[j].file}`);
+					// create a codelens for opening the file as a peek
+					const activeUri = vscode.window.activeTextEditor.document.uri;
+					dbg(`codelens:xref:peekLine: ${matchedReferers[j].line}`);
+					dbg(`codelens:xref:peekColumn: ${matchedReferers[j].column}`);
+					const peekRange = new vscode.Range(matchedReferers[j].line, matchedReferers[j].column, 15, 0);
+					const peekUri = vscode.Uri.file(matchedReferers[j].file);
+					dbg(`codelens:xref:peekUri: ${peekUri}`);
+					const peekLocation = new vscode.Location(peekUri, peekRange);
+					dbg(`codelens:xref:peekLocation: ${peekLocation.uri}`);
+					const codeLensPeek = new vscode.CodeLens(activeRange, {
+						title: `Peek into ${path.basename(matchedReferers[j].file)} `,
+						command: "editor.action.peekLocations",
+						arguments: [activeUri, activeRange.start, [peekLocation]]
+					});
+					codeLenses.push(codeLensPeek);
+					// create codelens for opening the file in a tab
+					const codeLensOpen = new vscode.CodeLens(activeRange, {
+						title: "Open in a new tab",
+						command: 'daps.openFile',
+						arguments: [`${matchedReferers[j].file}`]
+					});
+					codeLenses.push(codeLensOpen);
+					dbg(`codelens:xref:codeLenses.length: ${codeLenses.length}`);
 
+
+				}
+			}
+			return codeLenses;
+		}
+	}));
+	/**
+ * Search for a specific string in files matching a pattern within a directory.
+ * @param {string} dir - The directory to search within.
+ * @param {string} searchTerm - The string to search for.
+ * @param {RegExp} filePattern - The pattern to match files.
+ * @returns {Array} - An array of search results.
+ */
+	function searchInFiles(dir, searchTerm, filePattern) {
+		let results = [];
+		const files = fs.readdirSync(dir);
+
+		files.forEach(file => {
+			const filePath = path.join(dir, file);
+			const stats = fs.statSync(filePath);
+
+			if (stats.isDirectory()) {
+				// Skip directories that begin with a period
+				if (path.basename(filePath).startsWith('.')) {
+					return;
+				}
+				// Recursive call for subdirectories
+				results = results.concat(searchInFiles(filePath, searchTerm, filePattern));
+			} else if (filePattern.test(filePath)) {
+				const content = fs.readFileSync(filePath, 'utf8');
+				const lines = content.split('\n');
+				lines.forEach((line, lineNumber) => {
+					let columnNumber = line.indexOf(searchTerm);
+					while (columnNumber !== -1) {
+						results.push({
+							file: filePath,
+							line: lineNumber,
+							column: columnNumber,
+							match: line.trim()
+						});
+						columnNumber = line.indexOf(searchTerm, columnNumber + 1);
+					}
+				});
+			}
+		});
+		return results;
+	}
 	/**
 	 * enable autocomplete XML entities from external files
 	 */
