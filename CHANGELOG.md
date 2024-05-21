@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.7.11
+- introduced peek view for <xref/>'s
+
 ## 0.7.10
 - introduced peek view for DocBook assemblies
 
