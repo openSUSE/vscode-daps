@@ -263,7 +263,10 @@ function activate(context) {
 				dbg(`codelens:xref:lineNumber: ${lineNumber}`);
 				const columnNumber = xrefElements[i].columnNumber;
 				dbg(`codelens:xref:columnNumber: ${columnNumber}`);
-				const activeRange = new vscode.Range(lineNumber, columnNumber, lineNumber, columnNumber);
+				const activeRange = new vscode.Range(
+					new vscode.Position(lineNumber, columnNumber),
+					new vscode.Position(lineNumber, columnNumber)
+				);
 				// iterate over corresponding xml:id's definitions and create codelense
 				for (let j = 0; j < matchedReferers.length; j++) {
 					dbg(`codelens:xref:matchedReferer ${j}: ${matchedReferers[j].file}`);
