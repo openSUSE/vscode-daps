@@ -270,7 +270,10 @@ function activate(context) {
 					const activeUri = vscode.window.activeTextEditor.document.uri;
 					dbg(`codelens:xref:peekLine: ${matchedReferers[j].line}`);
 					dbg(`codelens:xref:peekColumn: ${matchedReferers[j].column}`);
-					const peekRange = new vscode.Range(matchedReferers[j].line, matchedReferers[j].column, 15, 0);
+					const peekRange = new vscode.Range(
+						new vscode.Position(matchedReferers[j].line, 0),
+						new vscode.Position(matchedReferers[j].line + 15, 0)
+					);
 					const peekUri = vscode.Uri.file(matchedReferers[j].file);
 					dbg(`codelens:xref:peekUri: ${peekUri}`);
 					const peekLocation = new vscode.Location(peekUri, peekRange);
