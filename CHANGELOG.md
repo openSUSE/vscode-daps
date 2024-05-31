@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.7.12
+- jumps to a specific line when peeking
 ## 0.7.11
 - introduced peek view for <xref/>'s
 
