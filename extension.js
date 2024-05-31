@@ -156,19 +156,20 @@ function activate(context) {
 	/**
 	 * command for opening editor, optionally in a split window
 	 */
-	vscode.commands.registerCommand('daps.openFile', async (file) => {
+	vscode.commands.registerCommand('daps.openFile', async (file, line) => {
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
-		const viewColumn = vscode.ViewColumn.Beside;
+		const viewMode = dapsConfig.get('openFileSplit') ? vscode.ViewColumn.Beside : { preview: false };
+
 		try {
-			if (dapsConfig.get('openFileSplit')) {
-				await vscode.workspace.openTextDocument(file).then((document) => {
-					vscode.window.showTextDocument(document, { viewColumn });
-				});
-			} else {
-				await vscode.workspace.openTextDocument(file).then((document) => {
-					vscode.window.showTextDocument(document, vscode.ViewColumn.Beside);
-				});
-			}
+			const document = await vscode.workspace.openTextDocument(file);
+			const editor = vscode.window.showTextDocument(document, viewMode);
+			// Ensure the line number is valid
+			const lineNumber = Math.max(0, Math.min(line, document.lineCount - 1));
+			// Reveal the line in the editor
+			const position = new vscode.Position(lineNumber, 0);
+			const range = new vscode.Range(position, position);
+			(await editor).revealRange(range, vscode.TextEditorRevealType.AtTop);
+			editor.selection = new vscode.Selection(position, position);
 		} catch (err) {
 			vscode.window.showErrorMessage(`Error opening file: ${err.message}`);
 		}
@@ -288,7 +289,7 @@ function activate(context) {
 					const codeLensOpen = new vscode.CodeLens(activeRange, {
 						title: "Open in a new tab",
 						command: 'daps.openFile',
-						arguments: [`${matchedReferers[j].file}`]
+						arguments: [`${matchedReferers[j].file}`, matchedReferers[j].line]
 					});
 					codeLenses.push(codeLensOpen);
 					dbg(`codelens:xref:codeLenses.length: ${codeLenses.length}`);
@@ -300,12 +301,12 @@ function activate(context) {
 		}
 	}));
 	/**
- * Search for a specific string in files matching a pattern within a directory.
- * @param {string} dir - The directory to search within.
- * @param {string} searchTerm - The string to search for.
- * @param {RegExp} filePattern - The pattern to match files.
- * @returns {Array} - An array of search results.
- */
+	* Search for a specific string in files matching a pattern within a directory.
+	* @param {string} dir - The directory to search within.
+	* @param {string} searchTerm - The string to search for.
+	* @param {RegExp} filePattern - The pattern to match files.
+	* @returns {Array} - An array of search results.
+	*/
 	function searchInFiles(dir, searchTerm, filePattern) {
 		let results = [];
 		const files = fs.readdirSync(dir);
