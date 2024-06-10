@@ -109,6 +109,7 @@ function activate(context) {
 	dbg('Debug channel opened');
 	var extensionPath = context.extensionPath;
 	dbg(`Extension path: ${extensionPath}`);
+	const dapsConfig = vscode.workspace.getConfiguration('daps');
 	// cmd for focusing a line in active editor
 	vscode.commands.registerCommand('daps.focusLineInActiveEditor', async (lineNumber) => {
 		const activeTextEditor = vscode.window.activeTextEditor;
@@ -243,66 +244,73 @@ function activate(context) {
 	/**
 	 * provide codelens for <xref/>'s targets
 	 */
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: "**/*.xml" }, {
-		provideCodeLenses(document) {
-			// parse active editor's XML
-			const xmlDoc = parser.parseFromString(document.getText());
-			// get all <xref/> objects
-			const xrefElements = xmlDoc.getElementsByTagName('xref');
-			dbg(`codelens:xref:xrefElements.length: ${xrefElements.length}`);
-			// iterate over discovered xrefs and find their xml:id's definition in all *.xml files
-			const codeLenses = [];
-			for (let i = 0; i < xrefElements.length; i++) {
-				const xrefLinkend = xrefElements[i].getAttribute('linkend');
-				dbg(`codelens:xref:xrefLinkend: ${xrefLinkend}`);
-				// search for all files that reference the xrefLinkends
-				dbg(workspaceFolderUri.fsPath);
-				const matchedReferers = searchInFiles(workspaceFolderUri.fsPath, `xml:id="${xrefLinkend}"`, /\.xml$/);
-				dbg(`codelens:xref:matchedReferers: ${matchedReferers.length}`);
-				const lineNumber = xrefElements[i].lineNumber - 1;
-				dbg(`codelens:xref:lineNumber: ${lineNumber}`);
-				const columnNumber = xrefElements[i].columnNumber;
-				dbg(`codelens:xref:columnNumber: ${columnNumber}`);
-				const activeRange = new vscode.Range(
-					new vscode.Position(lineNumber, columnNumber),
-					new vscode.Position(lineNumber, columnNumber)
-				);
-				// iterate over corresponding xml:id's definitions and create codelense
-				for (let j = 0; j < matchedReferers.length; j++) {
-					dbg(`codelens:xref:matchedReferer ${j}: ${matchedReferers[j].file}`);
-					// create a codelens for opening the file as a peek
-					const activeUri = vscode.window.activeTextEditor.document.uri;
-					dbg(`codelens:xref:peekLine: ${matchedReferers[j].line}`);
-					dbg(`codelens:xref:peekColumn: ${matchedReferers[j].column}`);
-					const peekRange = new vscode.Range(
-						new vscode.Position(matchedReferers[j].line, 0),
-						new vscode.Position(matchedReferers[j].line + 15, 0)
+	//check if xref codelens are enabled
+	if (dapsConfig.get('showXrefCodelens') != 'disabled') {
+		context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: "**/*.xml" }, {
+			provideCodeLenses(document) {
+				// parse active editor's XML
+				const xmlDoc = parser.parseFromString(document.getText());
+				// get all <xref/> objects
+				const xrefElements = xmlDoc.getElementsByTagName('xref');
+				dbg(`codelens:xref:xrefElements.length: ${xrefElements.length}`);
+				// iterate over discovered xrefs and find their xml:id's definition in all *.xml files
+				const codeLenses = [];
+				for (let i = 0; i < xrefElements.length; i++) {
+					const xrefLinkend = xrefElements[i].getAttribute('linkend');
+					dbg(`codelens:xref:xrefLinkend: ${xrefLinkend}`);
+					// search for all files that reference the xrefLinkends
+					dbg(workspaceFolderUri.fsPath);
+					const matchedReferers = searchInFiles(workspaceFolderUri.fsPath, `xml:id="${xrefLinkend}"`, /\.xml$/);
+					dbg(`codelens:xref:matchedReferers: ${matchedReferers.length}`);
+					const lineNumber = xrefElements[i].lineNumber - 1;
+					dbg(`codelens:xref:lineNumber: ${lineNumber}`);
+					const columnNumber = xrefElements[i].columnNumber;
+					dbg(`codelens:xref:columnNumber: ${columnNumber}`);
+					const activeRange = new vscode.Range(
+						new vscode.Position(lineNumber, columnNumber),
+						new vscode.Position(lineNumber, columnNumber)
 					);
-					const peekUri = vscode.Uri.file(matchedReferers[j].file);
-					dbg(`codelens:xref:peekUri: ${peekUri}`);
-					const peekLocation = new vscode.Location(peekUri, peekRange);
-					dbg(`codelens:xref:peekLocation: ${peekLocation.uri}`);
-					const codeLensPeek = new vscode.CodeLens(activeRange, {
-						title: `Peek into ${path.basename(matchedReferers[j].file)} `,
-						command: "editor.action.peekLocations",
-						arguments: [activeUri, activeRange.start, [peekLocation]]
-					});
-					codeLenses.push(codeLensPeek);
-					// create codelens for opening the file in a tab
-					const codeLensOpen = new vscode.CodeLens(activeRange, {
-						title: "Open in a new tab",
-						command: 'daps.openFile',
-						arguments: [`${matchedReferers[j].file}`, matchedReferers[j].line]
-					});
-					codeLenses.push(codeLensOpen);
-					dbg(`codelens:xref:codeLenses.length: ${codeLenses.length}`);
-
-
+					// iterate over corresponding xml:id's definitions and create codelense
+					for (let j = 0; j < matchedReferers.length; j++) {
+						dbg(`codelens:xref:matchedReferer ${j}: ${matchedReferers[j].file}`);
+						// create a codelens for opening the file as a peek
+						if (dapsConfig.get('showXrefCodelens') == 'peek'
+							|| dapsConfig.get('showXrefCodelens') == 'both') {
+							const activeUri = vscode.window.activeTextEditor.document.uri;
+							dbg(`codelens:xref:peekLine: ${matchedReferers[j].line}`);
+							dbg(`codelens:xref:peekColumn: ${matchedReferers[j].column}`);
+							const peekRange = new vscode.Range(
+								new vscode.Position(matchedReferers[j].line, 0),
+								new vscode.Position(matchedReferers[j].line + 15, 0)
+							);
+							const peekUri = vscode.Uri.file(matchedReferers[j].file);
+							dbg(`codelens:xref:peekUri: ${peekUri}`);
+							const peekLocation = new vscode.Location(peekUri, peekRange);
+							dbg(`codelens:xref:peekLocation: ${peekLocation.uri}`);
+							const codeLensPeek = new vscode.CodeLens(activeRange, {
+								title: `Peek into ${path.basename(matchedReferers[j].file)} `,
+								command: "editor.action.peekLocations",
+								arguments: [activeUri, activeRange.start, [peekLocation]]
+							});
+							codeLenses.push(codeLensPeek);
+						}
+						// create codelens for opening the file in a tab
+						if (dapsConfig.get('showXrefCodelens') == 'link'
+							|| dapsConfig.get('showXrefCodelens') == 'both') {
+							const codeLensOpen = new vscode.CodeLens(activeRange, {
+								title: "Open in a new tab",
+								command: 'daps.openFile',
+								arguments: [`${matchedReferers[j].file}`, matchedReferers[j].line]
+							});
+							codeLenses.push(codeLensOpen);
+						}
+						dbg(`codelens:xref:codeLenses.length: ${codeLenses.length}`);
+					}
 				}
+				return codeLenses;
 			}
-			return codeLenses;
-		}
-	}));
+		}));
+	}
 	/**
 	* Search for a specific string in files matching a pattern within a directory.
 	* @param {string} dir - The directory to search within.
@@ -347,7 +355,6 @@ function activate(context) {
 	/**
 	 * enable autocomplete XML entities from external files
 	 */
-	const dapsConfig = vscode.workspace.getConfiguration('daps');
 	if (dapsConfig.get('autocompleteXMLentities')) {
 		dbg(`autocompleteXMLentities: ${dapsConfig.get('autocompleteXMLentities')}`)
 		context.subscriptions.push(vscode.languages.registerCompletionItemProvider('xml', {
@@ -740,12 +747,12 @@ function activate(context) {
 function dbg(msg) {
 	const dapsConfig = vscode.workspace.getConfiguration('daps');
 	if (dapsConfig.get('enableDbg') == 'output') {
-		dbgChannel.appendLine(`dbg: ${msg}`);
+		dbgChannel.appendLine(`dbg:daps: ${msg}`);
 	} else if (dapsConfig.get('enableDbg') == 'console') {
-		console.log(`dbg: ${msg}`);
+		console.log(`dbg:daps ${msg}`);
 	} else if (dapsConfig.get('enableDbg') == 'both') {
-		dbgChannel.appendLine(`dbg: ${msg}`);
-		console.log(`dbg: ${msg}`);
+		dbgChannel.appendLine(`dbg:daps ${msg}`);
+		console.log(`dbg:daps ${msg}`);
 	}
 }
 
