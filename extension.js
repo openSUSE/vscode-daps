@@ -242,27 +242,59 @@ function activate(context) {
 		}
 	}));
 	/**
-	 * provide codelens for <xref/>'s targets
+	 * provide codelens for Asciidoc and XML xrefs
 	 */
 	//check if xref codelens are enabled
 	if (dapsConfig.get('showXrefCodelens') != 'disabled') {
-		context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: "**/*.xml" }, {
+		context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: "**/*.{xml,adoc}" }, {
 			provideCodeLenses(document) {
-				// parse active editor's XML
-				const xmlDoc = parser.parseFromString(document.getText());
-				// get all <xref/> objects
-				const xrefElements = xmlDoc.getElementsByTagName('xref');
+				const fileType = document.languageId;
+				dbg(`codelens:xref:languageId: ${fileType}`);
+				// parse active editor's text
+				let text;
+				let xrefElements = [];
+				if (fileType == "asciidoc") {
+					text = document.getText();
+					// define the regular expression to match the pattern <<section-id-string,optional title>>
+					const regex = /<<([^,>]+)(?:,([^>]*))?>>/g;
+					let match;
+					while ((match = regex.exec(text)) !== null) {
+						const sectionId = match[1];
+						dbg(`codelens:xref:sectionId: ${sectionId}`);
+						const optionalTitle = match[2] || null;
+						dbg(`codelens:xref:optionalTitle: ${optionalTitle}`);
+						const startPos = document.positionAt(match.index);
+						xrefElements.push({
+							lineNumber: startPos.line,
+							columnNumber: startPos.character,
+							match: sectionId,
+							title: optionalTitle
+						});
+					}
+				} else if (fileType == "xml") {
+					text = parser.parseFromString(document.getText());
+					xrefElements = text.getElementsByTagName('xref');
+				}
+
 				dbg(`codelens:xref:xrefElements.length: ${xrefElements.length}`);
 				// iterate over discovered xrefs and find their xml:id's definition in all *.xml files
 				const codeLenses = [];
 				for (let i = 0; i < xrefElements.length; i++) {
-					const xrefLinkend = xrefElements[i].getAttribute('linkend');
+					let xrefLinkend;
+					let matchedReferers;
+					if (fileType == "asciidoc") {
+						xrefLinkend = xrefElements[i].match;
+						matchedReferers = searchInFiles(workspaceFolderUri.fsPath, `\\[#(${xrefLinkend})(?:,([^\\]]*))?\\]`, /\.adoc$/);
+					} else if (fileType == "xml") {
+						xrefLinkend = xrefElements[i].getAttribute('linkend');
+						matchedReferers = searchInFiles(workspaceFolderUri.fsPath, `xml:id="${xrefLinkend}"`, /\.xml$/);
+					}
 					dbg(`codelens:xref:xrefLinkend: ${xrefLinkend}`);
-					// search for all files that reference the xrefLinkends
-					dbg(workspaceFolderUri.fsPath);
-					const matchedReferers = searchInFiles(workspaceFolderUri.fsPath, `xml:id="${xrefLinkend}"`, /\.xml$/);
 					dbg(`codelens:xref:matchedReferers: ${matchedReferers.length}`);
-					const lineNumber = xrefElements[i].lineNumber - 1;
+					let lineNumber = xrefElements[i].lineNumber;
+					if (fileType == "xml") {
+						lineNumber--;
+					}
 					dbg(`codelens:xref:lineNumber: ${lineNumber}`);
 					const columnNumber = xrefElements[i].columnNumber;
 					dbg(`codelens:xref:columnNumber: ${columnNumber}`);
@@ -336,7 +368,17 @@ function activate(context) {
 			} else if (filePattern.test(filePath)) {
 				const content = fs.readFileSync(filePath, 'utf8');
 				const lines = content.split('\n');
+				const regex = new RegExp(searchTerm, 'g');
 				lines.forEach((line, lineNumber) => {
+					while ((match = regex.exec(line)) !== null) {
+						results.push({
+							file: filePath,
+							line: lineNumber,
+							column: match.index,
+							match: match[1], // section-id
+						});
+					}
+					/*
 					let columnNumber = line.indexOf(searchTerm);
 					while (columnNumber !== -1) {
 						results.push({
@@ -346,7 +388,7 @@ function activate(context) {
 							match: line.trim()
 						});
 						columnNumber = line.indexOf(searchTerm, columnNumber + 1);
-					}
+					} */
 				});
 			}
 		});
