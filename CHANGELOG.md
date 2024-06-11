@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.7.14
+- xref codelens work for Asciidoc file as well
 ## 0.7.13
 - xref codelens are optional, disabled by default. See the
   `daps.showXrefCodelens` option
