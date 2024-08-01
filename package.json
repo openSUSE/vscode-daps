@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.7.14",
+  "version": "0.7.15",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -311,6 +311,16 @@
             "Link",
             "Both",
             "Disabled"
+          ]
+        },
+        "daps.xrefCodelensExcludeDirs": {
+          "description": "Directories to exclude when searching for xref targets",
+          "type": "array",
+          "default": [
+            "build",
+            "images",
+            "l10n",
+            "templates"
           ]
         }
       }

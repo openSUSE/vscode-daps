@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.7.15
+- introduced `daps.xrefCodelensExcludeDirs` option to list subdirectories that
+  should be excluded from searching for xref targets
 ## 0.7.14
 - xref codelens work for Asciidoc file as well
 ## 0.7.13

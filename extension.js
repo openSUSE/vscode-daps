@@ -248,6 +248,10 @@ function activate(context) {
 	if (dapsConfig.get('showXrefCodelens') != 'disabled') {
 		context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: "**/*.{xml,adoc}" }, {
 			provideCodeLenses(document) {
+				// get excludeDirs from config
+				const dapsConfig = vscode.workspace.getConfiguration('daps');
+				let excludeDirs = dapsConfig.get('xrefCodelensExcludeDirs');
+				dbg(`codelens:xrefCodelensExcludeDirs: ${excludeDirs}`);
 				const fileType = document.languageId;
 				dbg(`codelens:xref:languageId: ${fileType}`);
 				// parse active editor's text
@@ -284,10 +288,10 @@ function activate(context) {
 					let matchedReferers;
 					if (fileType == "asciidoc") {
 						xrefLinkend = xrefElements[i].match;
-						matchedReferers = searchInFiles(workspaceFolderUri.fsPath, `\\[#(${xrefLinkend})(?:,([^\\]]*))?\\]`, /\.adoc$/);
+						matchedReferers = searchInFiles(workspaceFolderUri.fsPath, excludeDirs, `\\[#(${xrefLinkend})(?:,([^\\]]*))?\\]`, /\.adoc$/);
 					} else if (fileType == "xml") {
 						xrefLinkend = xrefElements[i].getAttribute('linkend');
-						matchedReferers = searchInFiles(workspaceFolderUri.fsPath, `xml:id="${xrefLinkend}"`, /\.xml$/);
+						matchedReferers = searchInFiles(workspaceFolderUri.fsPath, excludeDirs, `xml:id="${xrefLinkend}"`, /\.xml$/);
 					}
 					dbg(`codelens:xref:xrefLinkend: ${xrefLinkend}`);
 					dbg(`codelens:xref:matchedReferers: ${matchedReferers.length}`);
@@ -345,17 +349,18 @@ function activate(context) {
 	}
 	/**
 	* Search for a specific string in files matching a pattern within a directory.
-	* @param {string} dir - The directory to search within.
+	* @param {string} rootDir - The directory to search within.
+		  * @param {array} excludeDirs - Array of directory names to exclude from searching.
 	* @param {string} searchTerm - The string to search for.
 	* @param {RegExp} filePattern - The pattern to match files.
 	* @returns {Array} - An array of search results.
 	*/
-	function searchInFiles(dir, searchTerm, filePattern) {
+	function searchInFiles(rootDir, excludeDirs, searchTerm, filePattern) {
 		let results = [];
-		const files = fs.readdirSync(dir);
+		const files = fs.readdirSync(rootDir);
 
 		files.forEach(file => {
-			const filePath = path.join(dir, file);
+			const filePath = path.join(rootDir, file);
 			const stats = fs.statSync(filePath);
 
 			if (stats.isDirectory()) {
@@ -363,8 +368,13 @@ function activate(context) {
 				if (path.basename(filePath).startsWith('.')) {
 					return;
 				}
+				// skip directories that are to be excluded
+				if (excludeDirs.includes(path.basename(filePath))) {
+					dbg(`codelens:xref skipping exclideDir: ${path.basename(filePath)}`);
+					return;
+				}
 				// Recursive call for subdirectories
-				results = results.concat(searchInFiles(filePath, searchTerm, filePattern));
+				results = results.concat(searchInFiles(filePath, excludeDirs, searchTerm, filePattern));
 			} else if (filePattern.test(filePath)) {
 				const content = fs.readFileSync(filePath, 'utf8');
 				const lines = content.split('\n');
@@ -378,17 +388,6 @@ function activate(context) {
 							match: match[1], // section-id
 						});
 					}
-					/*
-					let columnNumber = line.indexOf(searchTerm);
-					while (columnNumber !== -1) {
-						results.push({
-							file: filePath,
-							line: lineNumber,
-							column: columnNumber,
-							match: line.trim()
-						});
-						columnNumber = line.indexOf(searchTerm, columnNumber + 1);
-					} */
 				});
 			}
 		});
