@@ -15,6 +15,7 @@
   <xsl:param name="chapter.autolabel" select="1"></xsl:param>
   <xsl:param name="section.autolabel" select="1"></xsl:param>
   <xsl:param name="callout.graphics" select="0"></xsl:param>
+  <xsl:param name="abstract.notitle.enabled" select="0"></xsl:param>
 
   <!-- <xsl:template match="xi:include"/> -->
   <xsl:template match="xi:include">
