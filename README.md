@@ -109,6 +109,11 @@ structure.
 
 <img src="./media/doc-structure-treeview.png" width="480px"/>
 
+## XML emtity autocompletion
+
+Start typing `&` and VSCode tries to find the right entity as you type. You can specify
+which entity files to exclude. By default, all referenced entity files are included.
+
 ## CodeLens support
 
 With the DocBook assembly XML (`*.asm.xml`) open, you can navigate to referenced
