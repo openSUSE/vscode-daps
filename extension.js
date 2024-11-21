@@ -592,47 +592,47 @@ document.addEventListener('scroll', () => {
 			const topLine = editor.visibleRanges[0].start.line;
 			previewPanel.webview.postMessage({ command: 'syncScroll', line: topLine });
 		});
+		let previewLinkScrollBoth = dapsConfig.get('previewLinkScrollBoth');
+		if (previewLinkScrollBoth) {
+			// Listen to scroll messages from the WebView
+			previewPanel.webview.onDidReceiveMessage(async (message) => {
+				switch (message.command) {
+					case 'scroll': {
+						const scrollPosition = message.position;
+						dbg(`preview:scrollPosition ${scrollPosition}`);
 
-		// Listen to scroll messages from the WebView
-		previewPanel.webview.onDidReceiveMessage(async (message) => {
-			switch (message.command) {
-				case 'scroll': {
-					const scrollPosition = message.position;
-					dbg(`preview:scrollPosition ${scrollPosition}`);
+						const srcXMLfile = message.srcXMLfile;
+						dbg(`preview:srcXMLfile ${srcXMLfile}`);
 
-					const srcXMLfile = message.srcXMLfile;
-					dbg(`preview:srcXMLfile ${srcXMLfile}`);
+						const lineToScroll = message.line;
+						dbg(`preview:scroll:lineToScroll ${lineToScroll}`);
 
-					const lineToScroll = message.line;
-					dbg(`preview:scroll:lineToScroll ${lineToScroll}`);
+						if (lineToScroll !== undefined) {
+							// Ensure the correct editor is opened
+							const fileUri = vscode.Uri.file(srcXMLfile);
 
-					if (lineToScroll !== undefined) {
-						// Ensure the correct editor is opened
-						const fileUri = vscode.Uri.file(srcXMLfile);
+							// Check if the document is already open
+							let targetEditor = vscode.window.visibleTextEditors.find(editor =>
+								editor.document.uri.fsPath === fileUri.fsPath
+							);
 
-						// Check if the document is already open
-						let targetEditor = vscode.window.visibleTextEditors.find(editor =>
-							editor.document.uri.fsPath === fileUri.fsPath
-						);
+							if (!targetEditor) {
+								// Open the file if it is not already open
+								const document = await vscode.workspace.openTextDocument(fileUri);
+								targetEditor = await vscode.window.showTextDocument(document);
+							}
 
-						if (!targetEditor) {
-							// Open the file if it is not already open
-							const document = await vscode.workspace.openTextDocument(fileUri);
-							targetEditor = await vscode.window.showTextDocument(document);
+							if (targetEditor) {
+								const position = new vscode.Position(lineToScroll - 1, 0); // Convert 1-based to 0-based
+								const range = new vscode.Range(position, position);
+								targetEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+							}
 						}
-
-						if (targetEditor) {
-							const position = new vscode.Position(lineToScroll - 1, 0); // Convert 1-based to 0-based
-							const range = new vscode.Range(position, position);
-							targetEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-						}
+						break;
 					}
-					break;
 				}
-			}
-		}, undefined, context.subscriptions);
-
-
+			}, undefined, context.subscriptions);
+		}
 	}));
 
 	/**
