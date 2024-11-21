@@ -2,9 +2,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-// configure parser
 const { DOMParser } = require('@xmldom/xmldom');
-//const { match } = require('assert');
 const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
@@ -239,7 +237,7 @@ function activate(context) {
 				const resourceRef = module.getAttribute('resourceref');
 				dbg(`codelenses - resourceRef: ${resourceRef}`);
 				const activeRange = new vscode.Range(lineNumber, 0, lineNumber, 0);
-				const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath
+				const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath;
 				const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
 				dbg(`codelenses - Path: ${directoryPath}/${resources[resourceRef]}`);
 				if (resourceRef) {
@@ -463,6 +461,9 @@ function activate(context) {
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		// path to images
 		let docPreviewImgPath = dapsConfig.get('docPreviewImgPath');
+		dbg(`preview:docPreviewImgPath ${docPreviewImgPath}`);
+		const activeEditorDir = getActiveEditorDir();
+		dbg(`preview:activeEditorDir ${activeEditorDir}`);
 		// create a new webView if it does not exist yet
 		if (previewPanel === undefined) {
 			previewPanel = vscode.window.createWebviewPanel(
@@ -470,7 +471,8 @@ function activate(context) {
 				'HTML Preview', // Title displayed in the panel
 				vscode.ViewColumn.Two, // Editor column to show the webview panel
 				{
-					enableScripts: true
+					enableScripts: true,
+					localResourceRoots: [vscode.Uri.file(path.join(activeEditorDir, docPreviewImgPath))]
 				}
 			);
 		}
@@ -482,6 +484,20 @@ function activate(context) {
 		dbg(`xsltproc cmd: ${transformCmd}`);
 		// get its stdout into a variable
 		let htmlContent = execSync(transformCmd).toString();
+		//update <img/> tags for webview
+		// Create a regex to match <img src="...">
+		const imageRegex = /<img src="([^"]+)"/g;
+		// Replace all image src attributes
+		htmlContent = htmlContent.replace(imageRegex, (match, src) => {
+			// For each image, create the path to the image
+			const imgUri = vscode.Uri.file(path.join(activeEditorDir, docPreviewImgPath, src));
+			dbg(`preview:imgUri ${imgUri}`);
+			const imgWebviewUri = previewPanel.webview.asWebviewUri(imgUri);
+			dbg(`preview:imgWebviewUri ${imgWebviewUri}`);
+			// Return the updated <img> tag with the new src
+			return `<img src="${imgWebviewUri}"`;
+		});
+		//compile the whole HTML for webview
 		let html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -1097,7 +1113,6 @@ function getXMLentites(entityFiles) {
 	 * @returns {string} Path to the active file
 	 */
 function getActiveFile(contextFileURI) {
-	dbg(`XMLfile from context: ${XMLfile}`);
 	var XMLfile;
 	if (contextFileURI) { //check if XML file was passed as context
 		XMLfile = contextFileURI.path;
@@ -1139,6 +1154,18 @@ function getElementsWithAllowedTagNames(rootElement, allowedTagNames) {
 	return result;
 }
 
+/**
+ * Return the directory path of the active editor file
+ */
+function getActiveEditorDir() {
+	const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath;
+	if (!activeEditorPath) {
+		dbg(`Cannot find active editor`);
+		return false;
+	}
+	const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
+	return directoryPath;
+}
 // This method is called when your extension is deactivated
 function deactivate() { }
 
