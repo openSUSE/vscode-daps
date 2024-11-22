@@ -322,6 +322,11 @@
             "l10n",
             "templates"
           ]
+        },
+        "daps.previewLinkScrollBoth": {
+          "description": "Whether scrolling the preview scrolls the source editor as well",
+          "type": "boolean",
+          "default": false
         }
       }
     },

@@ -2,15 +2,15 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-// configure parser
 const { DOMParser } = require('@xmldom/xmldom');
-//const { match } = require('assert');
 const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
 const execSync = require('child_process').execSync;
 const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 const buildTargets = ['pdf', 'html'];
 const dapsConfigGlobal = vscode.workspace.getConfiguration('daps');
 const dbgChannel = vscode.window.createOutputChannel('DAPS');
+let previewPanel = undefined;
+
 
 // create or re-use DAPS terminal
 var terminal = null;
@@ -110,6 +110,38 @@ function activate(context) {
 	var extensionPath = context.extensionPath;
 	dbg(`Extension path: ${extensionPath}`);
 	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	/**
+	 * E V E N T S    L I S T E N I N G
+	 */
+	// TODO tbazant chack if event listeners need to check document.languageId === 'xml'
+	// when saving active editor:
+	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
+		const fileName = document.uri.path;
+		const scrollMap = createScrollMap(fileName);
+		dbg(`saved document: ${fileName}`);
+		// refresh HTML preview
+		if (fileName == getActiveFile() && previewPanel) {
+			vscode.commands.executeCommand('daps.docPreview');
+			previewPanel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+		}
+		// refresh doc structure treeview
+		vscode.commands.executeCommand('docStructureTreeView.refresh');
+	}));
+	// when closing active editor:
+	context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(() => {
+		// clear the scroll map for HTML preview
+		let scrollMap = {};
+	}));
+	// when active editor is changed:
+	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((activeEditor) => {
+		if (activeEditor && activeEditor.document.languageId === 'xml') {
+			// refresh doc structure treeview
+			vscode.commands.executeCommand('docStructureTreeView.refresh');
+			// create scroll map for HTML preview
+			createScrollMap();
+		}
+	}));
+
 	// cmd for focusing a line in active editor
 	vscode.commands.registerCommand('daps.focusLineInActiveEditor', async (lineNumber) => {
 		const activeTextEditor = vscode.window.activeTextEditor;
@@ -175,14 +207,7 @@ function activate(context) {
 			vscode.window.showErrorMessage(`Error opening file: ${err.message}`);
 		}
 	});
-	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((activeEditor) => {
-		if (activeEditor && activeEditor.document.languageId === 'xml') {
-			vscode.commands.executeCommand('docStructureTreeView.refresh');
-		}
-	}));
-	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
-		vscode.commands.executeCommand('docStructureTreeView.refresh');
-	}));
+
 	/**
 	 * enable codelens for DocBook assembly files
 	 */
@@ -212,7 +237,7 @@ function activate(context) {
 				const resourceRef = module.getAttribute('resourceref');
 				dbg(`codelenses - resourceRef: ${resourceRef}`);
 				const activeRange = new vscode.Range(lineNumber, 0, lineNumber, 0);
-				const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath
+				const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath;
 				const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
 				dbg(`codelenses - Path: ${directoryPath}/${resources[resourceRef]}`);
 				if (resourceRef) {
@@ -350,7 +375,7 @@ function activate(context) {
 	/**
 	* Search for a specific string in files matching a pattern within a directory.
 	* @param {string} rootDir - The directory to search within.
-		  * @param {array} excludeDirs - Array of directory names to exclude from searching.
+	* @param {array} excludeDirs - Array of directory names to exclude from searching.
 	* @param {string} searchTerm - The string to search for.
 	* @param {RegExp} filePattern - The pattern to match files.
 	* @returns {Array} - An array of search results.
@@ -401,7 +426,6 @@ function activate(context) {
 		context.subscriptions.push(vscode.languages.registerCompletionItemProvider('xml', {
 			provideCompletionItems(document, position, token, context) {
 				dbg(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
-				dbg(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
 				// get array of entity files
 				let entityFiles = getXMLentityFiles(document.fileName);
 				dbg(`Number of entity files: ${entityFiles.length}`);
@@ -431,19 +455,24 @@ function activate(context) {
 	/**
 	 * enables document HTML preview + handler to update it when src doc chanegs
 	 */
-	let previewPanel = undefined;
 	context.subscriptions.push(vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
 		// get img src path from config
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		// path to images
 		let docPreviewImgPath = dapsConfig.get('docPreviewImgPath');
+		dbg(`preview:docPreviewImgPath ${docPreviewImgPath}`);
+		const activeEditorDir = getActiveEditorDir();
+		dbg(`preview:activeEditorDir ${activeEditorDir}`);
 		// create a new webView if it does not exist yet
 		if (previewPanel === undefined) {
 			previewPanel = vscode.window.createWebviewPanel(
 				'htmlPreview', // Identifies the type of the webview
 				'HTML Preview', // Title displayed in the panel
 				vscode.ViewColumn.Two, // Editor column to show the webview panel
-				{}
+				{
+					enableScripts: true,
+					localResourceRoots: [vscode.Uri.file(path.join(activeEditorDir, docPreviewImgPath))]
+				}
 			);
 		}
 		// what is the document i want to preview?
@@ -454,20 +483,184 @@ function activate(context) {
 		dbg(`xsltproc cmd: ${transformCmd}`);
 		// get its stdout into a variable
 		let htmlContent = execSync(transformCmd).toString();
-		// resolve the file's directory and cd there
-		previewPanel.webview.html = htmlContent;
-		previewPanel.onDidDispose(() => {
-			// The panel has been disposed of, so reset the global reference
-			previewPanel = undefined;
+		// Update <img/> tags for webview, create a regex to match <img src="...">
+		const imageRegex = /<img src="([^"]+)"/g;
+		// Replace all image src attributes
+		htmlContent = htmlContent.replace(imageRegex, (match, src) => {
+			var imgURI = undefined;
+			// For each image, create the path to the image
+			imgUri = vscode.Uri.file(path.join(activeEditorDir, docPreviewImgPath, src));
+			dbg(`preview:imgUri ${imgUri}`);
+			// check if imgURI extsts and if not, check SVG variant
+			if (!fs.existsSync(imgUri.path)) {
+				const svgPath = imgUri.path.replace(/\.[^/.]+$/, ".svg");
+				dbg(`preview:svgPath: ${svgPath}`);
+				if (fs.existsSync(svgPath)) {
+					imgUri = vscode.Uri.file(svgPath);
+				} else {
+					dbg(`preview:imgUri: Neither ${imgUri.path} nor ${svgPath} exist`)
+				}
+			}
+			dbg(`preview:final imgUri: ${imgUri}`);
+			// create img URI that the webview can swollow
+			const imgWebviewUri = previewPanel.webview.asWebviewUri(imgUri);
+			dbg(`preview:imgWebviewUri ${imgWebviewUri}`);
+			// Return the updated <img> tag with the new src
+			return `<img src="${imgWebviewUri}"`;
 		});
-	}));
-	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
-		dbg(`onChange document: ${document.uri.path}`);
-		if (document.uri.path == getActiveFile() && previewPanel) {
-			vscode.commands.executeCommand('daps.docPreview');
+		//compile the whole HTML for webview
+		let html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML Preview</title>
+</head>
+<body>
+  <!-- Your preview content goes here -->
+  <div id="content">
+    ${htmlContent}
+  </div>
+  <script>
+const vscode = acquireVsCodeApi();
+const srcXMLfile = "${srcXMLfile}";
+let scrollMap = []; // Scroll map sent from the extension
+let isProgrammaticScroll = false; // Flag to track programmatic scrolling
+
+// Handle messages sent from the extension to the webview
+window.addEventListener('message', event => {
+    const message = event.data; // The JSON data sent by the extension
+    switch (message.command) {
+        case 'updateMap':
+            scrollMap = message.map;
+            // Enhance the scrollMap with dynamically calculated offsets
+            scrollMap = scrollMap.map(entry => {
+                const element = document.getElementById(entry.id);
+                return {
+                    ...entry,
+                    offset: element ? element.offsetTop : 0
+                };
+            });
+            console.log(scrollMap);
+            break;
+        case 'syncScroll':
+            // Scroll to a specific line programmatically
+            const lineToElement = scrollMap.find(item => item.line === message.line);
+            if (lineToElement) {
+                const element = document.getElementById(lineToElement.id);
+                if (element) {
+                    isProgrammaticScroll = true; // Set the flag to ignore the scroll event
+                    element.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+            break;
+    }
+});
+
+// Send scroll messages to the extension
+document.addEventListener('scroll', () => {
+    if (isProgrammaticScroll) {
+        // Reset the flag and ignore this scroll event
+        isProgrammaticScroll = false;
+        return;
+    }
+
+    const scrollPosition = window.scrollY;
+
+    // Find the appropriate line based on scroll position
+    let lineToScroll = null;
+    for (let i = 0; i < scrollMap.length - 1; i++) {
+        if (
+            scrollPosition >= scrollMap[i].offset &&
+            scrollPosition < scrollMap[i + 1].offset
+        ) {
+            lineToScroll = scrollMap[i].line;
+            break;
+        }
+    }
+
+    // Send message only if a matching line was found
+    if (lineToScroll !== null) {
+        console.log({
+            command: 'scroll',
+            position: scrollPosition,
+            line: lineToScroll,
+            srcXMLfile: srcXMLfile
+        });
+        vscode.postMessage({
+            command: 'scroll',
+            position: scrollPosition,
+            line: lineToScroll,
+            srcXMLfile: srcXMLfile
+        });
+    }
+});
+</script>
+
+</body>
+</html>`;
+		const scrollMap = createScrollMap(vscode.window.activeTextEditor.document.fileName);
+		dbg(`preview:scrollmap:length ${scrollMap.length}`);
+
+		previewPanel.webview.html = html;
+		previewPanel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+
+		previewPanel.onDidDispose(
+			() => {
+				previewPanel = undefined;
+			},
+			undefined,
+			context.subscriptions
+		);
+
+		vscode.window.onDidChangeTextEditorVisibleRanges(event => {
+			const editor = event.textEditor;
+			const topLine = editor.visibleRanges[0].start.line;
+			previewPanel.webview.postMessage({ command: 'syncScroll', line: topLine });
+		});
+		let previewLinkScrollBoth = dapsConfig.get('previewLinkScrollBoth');
+		if (previewLinkScrollBoth) {
+			// Listen to scroll messages from the WebView
+			previewPanel.webview.onDidReceiveMessage(async (message) => {
+				switch (message.command) {
+					case 'scroll': {
+						const scrollPosition = message.position;
+						dbg(`preview:scrollPosition ${scrollPosition}`);
+
+						const srcXMLfile = message.srcXMLfile;
+						dbg(`preview:srcXMLfile ${srcXMLfile}`);
+
+						const lineToScroll = message.line;
+						dbg(`preview:scroll:lineToScroll ${lineToScroll}`);
+
+						if (lineToScroll !== undefined) {
+							// Ensure the correct editor is opened
+							const fileUri = vscode.Uri.file(srcXMLfile);
+
+							// Check if the document is already open
+							let targetEditor = vscode.window.visibleTextEditors.find(editor =>
+								editor.document.uri.fsPath === fileUri.fsPath
+							);
+
+							if (!targetEditor) {
+								// Open the file if it is not already open
+								const document = await vscode.workspace.openTextDocument(fileUri);
+								targetEditor = await vscode.window.showTextDocument(document);
+							}
+
+							if (targetEditor) {
+								const position = new vscode.Position(lineToScroll - 1, 0); // Convert 1-based to 0-based
+								const range = new vscode.Range(position, position);
+								targetEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+							}
+						}
+						break;
+					}
+				}
+			}, undefined, context.subscriptions);
 		}
 	}));
-
 
 	/**
 	 * @description validates documentation identified by DC file
@@ -784,6 +977,31 @@ function activate(context) {
 	}
 }
 
+/**
+ * create scroll map for HTMl preview
+ */
+function createScrollMap(fileName) {
+	var docContent = fs.readFileSync(fileName, 'utf-8');
+	dbg(`scrollmap:filename ${fileName}`);
+	let scrollMap = [];
+	dbg(`scrollmap:docContent length ${docContent.length}`);
+	const lines = docContent.split('\n');
+	dbg(`scrollmap:docContent:lines ${lines.length}`);
+	for (let index = 0; index < lines.length; index++) {
+		let idMatch = lines[index].match(/xml:id="([^"]+)"/i);
+		if (idMatch) {
+			let idValue = idMatch[1];
+			dbg(`scrollmap:idValue ${idValue}`);
+			scrollMap.push({
+				line: index + 1, // Line number (1-based index)
+				id: idValue
+			});
+		}
+	}
+	dbg(`scrollmap:length ${scrollMap.length}`);
+	return scrollMap;
+}
+
 //debugging
 function dbg(msg) {
 	const dapsConfig = vscode.workspace.getConfiguration('daps');
@@ -944,10 +1162,21 @@ function getElementsWithAllowedTagNames(rootElement, allowedTagNames) {
 			result.push(element);
 		}
 	}
-
 	return result;
 }
 
+/**
+ * Return the directory path of the active editor file
+ */
+function getActiveEditorDir() {
+	const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath;
+	if (!activeEditorPath) {
+		dbg(`Cannot find active editor`);
+		return false;
+	}
+	const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
+	return directoryPath;
+}
 // This method is called when your extension is deactivated
 function deactivate() { }
 
