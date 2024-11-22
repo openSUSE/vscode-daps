@@ -375,7 +375,7 @@ function activate(context) {
 	/**
 	* Search for a specific string in files matching a pattern within a directory.
 	* @param {string} rootDir - The directory to search within.
-		  * @param {array} excludeDirs - Array of directory names to exclude from searching.
+	* @param {array} excludeDirs - Array of directory names to exclude from searching.
 	* @param {string} searchTerm - The string to search for.
 	* @param {RegExp} filePattern - The pattern to match files.
 	* @returns {Array} - An array of search results.
@@ -425,7 +425,6 @@ function activate(context) {
 		dbg(`autocompleteXMLentities: ${dapsConfig.get('autocompleteXMLentities')}`)
 		context.subscriptions.push(vscode.languages.registerCompletionItemProvider('xml', {
 			provideCompletionItems(document, position, token, context) {
-				dbg(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
 				dbg(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
 				// get array of entity files
 				let entityFiles = getXMLentityFiles(document.fileName);
@@ -484,14 +483,26 @@ function activate(context) {
 		dbg(`xsltproc cmd: ${transformCmd}`);
 		// get its stdout into a variable
 		let htmlContent = execSync(transformCmd).toString();
-		//update <img/> tags for webview
-		// Create a regex to match <img src="...">
+		// Update <img/> tags for webview, create a regex to match <img src="...">
 		const imageRegex = /<img src="([^"]+)"/g;
 		// Replace all image src attributes
 		htmlContent = htmlContent.replace(imageRegex, (match, src) => {
+			var imgURI = undefined;
 			// For each image, create the path to the image
-			const imgUri = vscode.Uri.file(path.join(activeEditorDir, docPreviewImgPath, src));
+			imgUri = vscode.Uri.file(path.join(activeEditorDir, docPreviewImgPath, src));
 			dbg(`preview:imgUri ${imgUri}`);
+			// check if imgURI extsts and if not, check SVG variant
+			if (!fs.existsSync(imgUri.path)) {
+				const svgPath = imgUri.path.replace(/\.[^/.]+$/, ".svg");
+				dbg(`preview:svgPath: ${svgPath}`);
+				if (fs.existsSync(svgPath)) {
+					imgUri = vscode.Uri.file(svgPath);
+				} else {
+					dbg(`preview:imgUri: Neither ${imgUri.path} nor ${svgPath} exist`)
+				}
+			}
+			dbg(`preview:final imgUri: ${imgUri}`);
+			// create img URI that the webview can swollow
 			const imgWebviewUri = previewPanel.webview.asWebviewUri(imgUri);
 			dbg(`preview:imgWebviewUri ${imgWebviewUri}`);
 			// Return the updated <img> tag with the new src
