@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.7.16
+- HTML preview is locked to the source editor when scrolling
+- images are displayed in HTML preview
 ## 0.7.15
 - introduced `daps.xrefCodelensExcludeDirs` option to list subdirectories that
   should be excluded from searching for xref targets
