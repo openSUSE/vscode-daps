@@ -605,23 +605,19 @@ document.addEventListener('scroll', () => {
 
 		previewPanel.webview.html = html;
 		previewPanel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+		previewPanel.onDidDispose(() => {
+			previewPanel = undefined;
+		});
 
-		previewPanel.onDidDispose(
-			() => {
-				previewPanel = undefined;
-			},
-			undefined,
-			context.subscriptions
-		);
-
+		// listen to scroll messages from the active editor
 		vscode.window.onDidChangeTextEditorVisibleRanges(event => {
 			const editor = event.textEditor;
 			const topLine = editor.visibleRanges[0].start.line;
 			previewPanel.webview.postMessage({ command: 'syncScroll', line: topLine });
 		});
+		// Listen to scroll messages from the WebView
 		let previewLinkScrollBoth = dapsConfig.get('previewLinkScrollBoth');
 		if (previewLinkScrollBoth) {
-			// Listen to scroll messages from the WebView
 			previewPanel.webview.onDidReceiveMessage(async (message) => {
 				switch (message.command) {
 					case 'scroll': {
