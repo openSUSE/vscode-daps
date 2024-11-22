@@ -13,6 +13,9 @@ let previewPanel = undefined;
 
 
 // create or re-use DAPS terminal
+/**
+ * Holds the DAPS terminal instance, or null if it hasn't been created yet.
+ */
 var terminal = null;
 for (let i = 0; i < vscode.window.terminals.length; i++) {
 	if (vscode.window.terminals[i].name == 'DAPS') {
@@ -25,7 +28,9 @@ if (terminal == null) {
 }
 
 /**
- * class that creates data for DOcBook structure TreeView
+ * Provides the data for the DocBook structure tree view in the VS Code extension.
+ * This class is responsible for managing the tree view, including refreshing the
+ * view and providing the tree items.
  */
 class docStructureTreeDataProvider {
 	constructor() {
@@ -1117,6 +1122,12 @@ function getXMLentityFiles(XMLfile) {
 	return result;
 }
 
+/**
+ * Extracts a list of XML entity names from the provided entity files.
+ *
+ * @param {string[]} entityFiles - An array of file paths containing XML entity definitions.
+ * @returns {string[]} - An array of XML entity names.
+ */
 function getXMLentites(entityFiles) {
 	// extract XML entities from files to a list
 	var entList = [];
@@ -1164,7 +1175,14 @@ function emptyDocStructure(message) {
 	}]
 }
 
-// Function to get elements with tag names from the structureElements array
+/**
+ * Retrieves all elements from the given root element that have a tag name
+ * included in the provided allowedTagNames array.
+ *
+ * @param {Element} rootElement - The root element to search for allowed elements.
+ * @param {string[]} allowedTagNames - An array of tag names to include in the result.
+ * @returns {Element[]} - An array of elements that have an allowed tag name.
+ */
 function getElementsWithAllowedTagNames(rootElement, allowedTagNames) {
 	const result = [];
 
@@ -1184,7 +1202,8 @@ function getElementsWithAllowedTagNames(rootElement, allowedTagNames) {
 }
 
 /**
- * Return the directory path of the active editor file
+ * Returns the directory path of the active editor file.
+ * @returns {string|boolean} The directory path of the active editor file, or `false` if the active editor cannot be found.
  */
 function getActiveEditorDir() {
 	const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath;
