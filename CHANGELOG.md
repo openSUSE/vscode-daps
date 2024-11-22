@@ -1,7 +1,9 @@
 # Change Log
 
+## 0.7.18
+- doc structure tree is closed with last XML editor
 ## 0.7.17
-- fixed doubling && when autocompleting XMl entities
+- fixed doubling && when autocompleting XML entities
 ## 0.7.16
 - HTML preview is locked to the source editor when scrolling
 - images are displayed in HTML preview
