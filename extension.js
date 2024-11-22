@@ -425,31 +425,53 @@ function activate(context) {
 		dbg(`autocompleteXMLentities: ${dapsConfig.get('autocompleteXMLentities')}`)
 		context.subscriptions.push(vscode.languages.registerCompletionItemProvider('xml', {
 			provideCompletionItems(document, position, token, context) {
-				dbg(`doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
-				// get array of entity files
+				dbg(`entity:doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
+
+				// Get array of entity files
 				let entityFiles = getXMLentityFiles(document.fileName);
-				dbg(`Number of entity files: ${entityFiles.length}`);
-				//extract entites from entity files
+				dbg(`entity:Number of entity files: ${entityFiles.length}`);
+
+				// Extract entities from entity files
 				let entities = getXMLentites(entityFiles);
-				dbg(`Number of entities: ${entities.length}`);
+				dbg(`entity:Number of entities: ${entities.length}`);
+
 				let result = [];
 				entities.forEach(entity => {
+					dbg(`entity:entity ${entity}`)
 					let completionItem = new vscode.CompletionItem(entity);
 					completionItem.label = `&${entity}`;
+					dbg(`entity:completionItem.label ${completionItem.label}`)
 					completionItem.kind = vscode.CompletionItemKind.Keyword;
+					dbg(`entity:completionItem.kind ${completionItem.kind}`)
 					completionItem.filterText = entity.substring(-1);
-					// dont double && when triggered with &
-					if (context.triggerKind == 0) {
-						completionItem.insertText = new vscode.SnippetString(`&${entity}`);
-					} else {
+					dbg(`entity:completionItem.filterText ${completionItem.filterText}`)
+
+					// Adjust `insertText` based on the trigger context
+					const lineText = document.lineAt(position).text;
+					dbg(`entity:lineText ${lineText}`);
+					const textBeforeCursor = lineText.slice(0, position.character);
+					dbg(`entity:textBeforeCursor ${textBeforeCursor}`);
+					const indexOfAmpersand = textBeforeCursor.lastIndexOf('&');
+					dbg(`entity:indexOfAmpersand ${indexOfAmpersand}`);
+					const textFromAmpersand = indexOfAmpersand !== -1 ? textBeforeCursor.slice(indexOfAmpersand) : '';
+					dbg(`entity:textFromAmpersand ${textFromAmpersand}`);
+					const charBeforeCursor = lineText[position.character - 1] || '';
+					dbg(`entity:charBeforeCursor ${charBeforeCursor}`);
+
+					// If the context was triggered by `&`, only insert the entity itself
+					if (charBeforeCursor === '&' || textFromAmpersand) {
 						completionItem.insertText = new vscode.SnippetString(entity);
+					} else {
+						completionItem.insertText = new vscode.SnippetString(`&${entity}`);
 					}
 					result.push(completionItem);
 				});
+
 				dbg(`Number of results: ${result.length}`);
 				return result;
 			}
 		}, '&'));
+
 	}
 
 	/**
