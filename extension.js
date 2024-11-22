@@ -47,59 +47,92 @@ class docStructureTreeDataProvider {
 	}
 
 	getChildren(element) {
-		// get XML file content
-		const filePath = getActiveFile();
+		// Check if there are any open XML editors
+		const hasOpenXmlEditor = vscode.window.visibleTextEditors.some(
+			editor => editor.document.languageId === 'xml'
+		);
+		if (!hasOpenXmlEditor) {
+			return this._createEmptyStructure('No DocBook XML editor opened');
+		}
+
+		const filePath = this._getActiveFile();
 		if (!filePath) {
-			return emptyDocStructure('No DocBook XML editor opened');
+			return this._createEmptyStructure('No DocBook XML editor opened');
 		}
-		var docContent = fs.readFileSync(filePath, 'utf-8');
-		const xmlDoc = parser.parseFromString(docContent, 'text/xml');
+
+		const xmlDoc = this._parseXmlDocument(filePath);
+		const structureElements = this._getStructureElements();
+		const sectionElements = getElementsWithAllowedTagNames(xmlDoc, structureElements);
+
+		if (sectionElements.length === 0) {
+			return this._createEmptyStructure('The current document has no structure');
+		}
+
+		return this._createTreeItems(element, sectionElements, structureElements);
+	}
+
+	_getActiveFile() {
+		return getActiveFile();
+	}
+
+	_parseXmlDocument(filePath) {
+		const docContent = fs.readFileSync(filePath, 'utf-8');
+		return parser.parseFromString(docContent, 'text/xml');
+	}
+
+	_getStructureElements() {
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
-		const structureElements = dapsConfig.get('structureElements');
-		var sectionElements = getElementsWithAllowedTagNames(xmlDoc, structureElements);
-		dbg(`sectionElements length: ${sectionElements.length}`);
-		if (sectionElements.length == 0) {
-			return emptyDocStructure('The current document has no structure')
-		}
-		var result = [];
-		for (let i = 0; i < sectionElements.length; i++) {
-			const sectionElement = sectionElements[i];
-			// if no treeview item was clicked and the iterated sectionElement's parent is not structural
-			if (((!element && !structureElements.includes(sectionElement.parentNode.nodeName)))
-				// or treeview item is clicked and the iterated sectionElement is a kid of the clicked item
-				|| (element && (`${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}` == element.id))) {
-				// does element have 'section' kids?
-				var collapsibleState;
-				for (let j = 0; j < sectionElement.childNodes.length; j++) {
-					if (structureElements.includes(sectionElement.childNodes[j].nodeName)) {
-						collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-						break;
-					} else {
-						collapsibleState = vscode.TreeItemCollapsibleState.None;
-					}
-				}
-				// does the element have a title?
-				var label = null;
-				if (sectionElement.getElementsByTagName('title')[0]) {
-					label = `(${sectionElement.nodeName.substring(0, 1)}) "${sectionElement.getElementsByTagName('title')[0].textContent}"`;
-				} else {
-					label = `(${sectionElement.nodeName.substring(0, 1)}) "*** MISSING TITLE ***"`;
-				}
-				result.push({
-					label: label,
-					// iconPath: vscode.ThemeIcon.Folder,
-					collapsibleState: collapsibleState,
-					id: `${sectionElement.nodeName}_${sectionElement.lineNumber}`,
-					parentId: `${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}`,
-					command: {
-						title: 'Activate related line',
-						command: 'daps.focusLineInActiveEditor',
-						arguments: [sectionElement.lineNumber.toString()]
-					}
-				});
+		return dapsConfig.get('structureElements');
+	}
+
+	_createEmptyStructure(message) {
+		return [{
+			label: message,
+			collapsibleState: vscode.TreeItemCollapsibleState.None,
+		}];
+	}
+
+	_createTreeItems(element, sectionElements, structureElements) {
+		return sectionElements
+			.filter(sectionElement => this._shouldIncludeElement(element, sectionElement, structureElements))
+			.map(sectionElement => this._createTreeItem(sectionElement, structureElements));
+	}
+
+	_shouldIncludeElement(element, sectionElement, structureElements) {
+		return (!element && !structureElements.includes(sectionElement.parentNode.nodeName)) ||
+			(element && `${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}` === element.id);
+	}
+
+	_createTreeItem(sectionElement, structureElements) {
+		const collapsibleState = this._determineCollapsibleState(sectionElement, structureElements);
+		const label = this._createLabel(sectionElement);
+
+		return {
+			label,
+			collapsibleState,
+			id: `${sectionElement.nodeName}_${sectionElement.lineNumber}`,
+			parentId: `${sectionElement.parentNode.nodeName}_${sectionElement.parentNode.lineNumber}`,
+			command: {
+				title: 'Activate related line',
+				command: 'daps.focusLineInActiveEditor',
+				arguments: [sectionElement.lineNumber.toString()]
+			}
+		};
+	}
+
+	_determineCollapsibleState(sectionElement, structureElements) {
+		for (let i = 0; i < sectionElement.childNodes.length; i++) {
+			if (structureElements.includes(sectionElement.childNodes[i].nodeName)) {
+				return vscode.TreeItemCollapsibleState.Collapsed;
 			}
 		}
-		return result;
+		return vscode.TreeItemCollapsibleState.None;
+	}
+
+	_createLabel(sectionElement) {
+		const titleElement = sectionElement.getElementsByTagName('title')[0];
+		const title = titleElement ? titleElement.textContent : '*** MISSING TITLE ***';
+		return `(${sectionElement.nodeName.substring(0, 1)}) "${title}"`;
 	}
 }
 
@@ -120,34 +153,52 @@ function activate(context) {
 	 */
 	// TODO tbazant chack if event listeners need to check document.languageId === 'xml'
 	// when saving active editor:
-	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
-		const fileName = document.uri.path;
-		const scrollMap = createScrollMap(fileName);
-		dbg(`saved document: ${fileName}`);
-		// refresh HTML preview
-		if (fileName == getActiveFile() && previewPanel) {
-			vscode.commands.executeCommand('daps.docPreview');
-			previewPanel.webview.postMessage({ command: 'updateMap', map: scrollMap });
-		}
-		// refresh doc structure treeview
-		vscode.commands.executeCommand('docStructureTreeView.refresh');
-	}));
-	// when closing active editor:
-	context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(() => {
-		// clear the scroll map for HTML preview
-		let scrollMap = {};
-	}));
-	// when active editor is changed:
-	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((activeEditor) => {
-		if (activeEditor && activeEditor.document.languageId === 'xml') {
+	context.subscriptions.push(
+		vscode.workspace.onDidSaveTextDocument((document) => {
+			const fileName = document.uri.path;
+			const scrollMap = createScrollMap(fileName);
+			dbg(`saved document: ${fileName}`);
+			// refresh HTML preview
+			if (fileName == getActiveFile() && previewPanel) {
+				vscode.commands.executeCommand('daps.docPreview');
+				previewPanel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+			}
 			// refresh doc structure treeview
 			vscode.commands.executeCommand('docStructureTreeView.refresh');
-			// create scroll map for HTML preview
-			createScrollMap();
-		}
-	}));
+		}));
+	// when closing active editor:
+	context.subscriptions.push(
+		vscode.workspace.onDidCloseTextDocument(() => {
+			// clear the scroll map for HTML preview
+			let scrollMap = {};
+		}));
+	// when active editor is changed:
+	context.subscriptions.push(
+		vscode.window.onDidChangeActiveTextEditors((activeEditor) => {
+			if (activeEditor && activeEditor.document.languageId === 'xml') {
+				// refresh doc structure treeview
+				vscode.commands.executeCommand('docStructureTreeView.refresh');
+				// create scroll map for HTML preview
+				createScrollMap();
+			}
+		}));
+	// when the visible editors change
+	context.subscriptions.push(
+		vscode.window.onDidChangeVisibleTextEditors(() => {
+			// ensure the tree view is cleared when the last XML editor is closed and updated 
+			vscode.commands.executeCommand('docStructureTreeView.refresh');
+		})
+	);
 
-	// cmd for focusing a line in active editor
+	/**
+	  * Focuses the active editor on the specified line number.
+	  * 
+	  * This command is used to move the cursor and scroll the editor to the specified line number in the active text editor.
+	  * If the 'onClickedStructureItemMoveCursor' configuration option is enabled, the cursor will be moved to the specified line.
+	  * Otherwise, the editor will be scrolled to reveal the specified line.
+	  * 
+	  * @param {number} lineNumber - The line number to focus in the active editor.
+	  */
 	vscode.commands.registerCommand('daps.focusLineInActiveEditor', async (lineNumber) => {
 		const activeTextEditor = vscode.window.activeTextEditor;
 		if (activeTextEditor) {
@@ -178,7 +229,15 @@ function activate(context) {
 
 		}
 	});
-	// register the peek definition command
+	/**
+	  * Registers a command to open a file in the editor with a peek view.
+	  *
+	  * This command is used to open a file in the editor and display a peek view of the specified range of the file.
+	  * The peek view allows the user to quickly view the contents of the file without switching to the full editor.
+	  *
+	  * @param {string} filePath - The path of the file to open.
+	  * @param {vscode.Range} range - The range of the file to display in the peek view.
+	  */
 	context.subscriptions.push(vscode.commands.registerCommand('daps.peekFile', async (filePath, range) => {
 		const uri = vscode.Uri.file(filePath);
 		vscode.commands.executeCommand('editor.action.peekLocations', uri, range.start, [new vscode.Location(uri, range)], 'peek');
