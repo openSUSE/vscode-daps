@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.7.19
+- fixed typo in method name
 ## 0.7.18
 - doc structure tree is closed with last XML editor
 ## 0.7.17
