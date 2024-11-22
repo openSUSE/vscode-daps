@@ -174,7 +174,7 @@ function activate(context) {
 		}));
 	// when active editor is changed:
 	context.subscriptions.push(
-		vscode.window.onDidChangeActiveTextEditors((activeEditor) => {
+		vscode.window.onDidChangeActiveTextEditor((activeEditor) => {
 			if (activeEditor && activeEditor.document.languageId === 'xml') {
 				// refresh doc structure treeview
 				vscode.commands.executeCommand('docStructureTreeView.refresh');
