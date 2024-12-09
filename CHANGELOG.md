@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.7.20
+- removed default 'html' build target, 'html' is listed first when asked
 ## 0.7.19
 - fixed typo in method name
 ## 0.7.18

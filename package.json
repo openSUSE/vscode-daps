@@ -258,7 +258,7 @@
         "daps.buildTarget": {
           "description": "The build target for the current workspace. If not specified, the user is asked to select one.",
           "type": "string",
-          "default": "html"
+          "default": null
         },
         "daps.autoSave": {
           "description": "Specify if the active editor will be automatically saved before running file-specific command.",
