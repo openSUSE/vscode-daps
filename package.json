@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.7.20",
+  "version": "0.7.21",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -292,6 +292,29 @@
         },
         "daps.showXrefCodelens": {
           "description": "Show the link to the referenced section",
+          "type": "string",
+          "default": "disabled",
+          "enum": [
+            "peek",
+            "link",
+            "both",
+            "disabled"
+          ],
+          "enumDescriptions": [
+            "Peek into the linked file from the current editor",
+            "Open the linked file in a new tab",
+            "Show both the 'peek' and 'open' links",
+            "Disable link parsing"
+          ],
+          "enumItemLabels": [
+            "Peek",
+            "Link",
+            "Both",
+            "Disabled"
+          ]
+        },
+        "daps.showAssemblyCodelens": {
+          "description": "Show links to inherited modules",
           "type": "string",
           "default": "disabled",
           "enum": [

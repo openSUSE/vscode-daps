@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.7.21
+- xref and assembly codelens are activated on save event
+- added `daps.showXrefCodelens` option to enable xref codelens
 ## 0.7.20
 - removed default 'html' build target, 'html' is listed first when asked
 ## 0.7.19
