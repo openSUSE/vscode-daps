@@ -405,10 +405,11 @@ function activate(context) {
 	/**
 	 * E V E N T S    L I S T E N I N G
 	 */
-	// TODO tbazant chack if event listeners need to check document.languageId === 'xml'
 	// when saving active editor:
 	context.subscriptions.push(
 		vscode.workspace.onDidSaveTextDocument((document) => {
+			updateEntityDiagnostics(document);
+			// update scrollmap
 			const fileName = document.uri.path;
 			const scrollMap = createScrollMap(fileName);
 			dbg(`saved document: ${fileName}`);
@@ -431,6 +432,7 @@ function activate(context) {
 		vscode.window.onDidChangeActiveTextEditor((activeEditor) => {
 			if (activeEditor && activeEditor.document.languageId === 'xml') {
 				// refresh doc structure treeview
+				updateEntityDiagnostics(activeEditor.document);
 				vscode.commands.executeCommand('docStructureTreeView.refresh');
 				// create scroll map for HTML preview
 				createScrollMap();
@@ -444,6 +446,105 @@ function activate(context) {
 		})
 	);
 
+	const entityDiagnostics = vscode.languages.createDiagnosticCollection("entities");
+	context.subscriptions.push(entityDiagnostics);
+
+	/**
+	 * Analyzes the document for strings that can be replaced by an XML entity and creates diagnostics.
+	 * @param {vscode.TextDocument} document The document to analyze.
+	 */
+	function updateEntityDiagnostics(document) {
+		// Get the extension's configuration to check if the feature is enabled.
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		if (!dapsConfig.get('replaceWithXMLentity') || document.languageId !== 'xml') {
+			// If the feature is disabled or the file is not XML, clear any existing diagnostics and exit.
+			entityDiagnostics.clear();
+			return;
+		}
+
+		// Generate the map of replaceable string values to their corresponding entity names.
+		const entityValueMap = createEntityValueMap(document.fileName);
+		if (entityValueMap.size === 0) {
+			// If no entities are found, clear diagnostics and exit.
+			entityDiagnostics.clear();
+			return;
+		}
+
+		const diagnostics = [];
+		// Keep track of ranges that have already been diagnosed to avoid overlapping suggestions.
+		const diagnosedRanges = [];
+		const text = document.getText();
+
+		// Convert the map to an array and sort it by the length of the entity value in descending order.
+		// This ensures that longer, more specific phrases (including multiline ones) are matched first.
+		const sortedEntities = Array.from(entityValueMap.entries()).sort((a, b) => b[0].length - a[0].length);
+
+		sortedEntities.forEach(([entityValue, entityName]) => {
+			// Escape special characters in the entity value for use in a regular expression.
+			// Then, replace spaces with `\s+` to match any whitespace sequence (including newlines).
+			const pattern = entityValue
+				.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') // Escape regex special characters.
+				.replace(/\s+/g, '\\s+');
+			const regex = new RegExp(pattern, 'g');
+			let match;
+
+			while ((match = regex.exec(text)) !== null) {
+				const startPos = document.positionAt(match.index);
+				const endPos = document.positionAt(match.index + match[0].length);
+				const range = new vscode.Range(startPos, endPos);
+				
+				// Check if the new range overlaps with any range that has already been diagnosed.
+				// This prevents suggesting a replacement for "SUSE" if "SUSE Observability" has already been matched.
+				const isOverlapping = diagnosedRanges.some(diagnosedRange => range.intersection(diagnosedRange));
+
+				// If there is no overlap, create and add the new diagnostic.
+				if (!isOverlapping) {
+					// Create a new diagnostic (the underline and suggestion in the editor).
+					const diagnostic = new vscode.Diagnostic(
+						range,
+						`Replace with entity ${entityName}`,
+						vscode.DiagnosticSeverity.Information
+					);
+					diagnostic.code = 'replaceWithEntity';
+					diagnostic.source = 'DAPS';
+					diagnostics.push(diagnostic);
+					// Add the range to our list of diagnosed ranges to prevent overlaps.
+					diagnosedRanges.push(range);
+				}
+			}
+		});
+
+		// Apply the collected diagnostics to the document.
+		entityDiagnostics.set(document.uri, diagnostics);
+	}
+
+	// Register a Code Actions Provider to offer a "Quick Fix" for our entity diagnostics.
+	context.subscriptions.push(
+		vscode.languages.registerCodeActionsProvider('xml', {
+			// This function is called by VS Code when the user clicks the lightbulb icon.
+			provideCodeActions(document, range, context, token) {
+				const codeActions = [];
+				// Filter the diagnostics at the cursor position to only include our entity replacement suggestions.
+				context.diagnostics
+					.filter(diagnostic => diagnostic.code === 'replaceWithEntity')
+					.forEach(diagnostic => {
+						// Extract the entity name (e.g., "&sliberty;") from the diagnostic message.
+						const entityName = diagnostic.message.split(' ')[3];
+						// Create a new CodeAction, which is the "Quick Fix" item in the menu.
+						const action = new vscode.CodeAction(`Replace with ${entityName}`, vscode.CodeActionKind.QuickFix);
+						// Create a WorkspaceEdit to define the text change (replace the string with the entity).
+						action.edit = new vscode.WorkspaceEdit();
+						action.edit.replace(document.uri, diagnostic.range, entityName);
+						// Associate this action with the specific diagnostic it fixes.
+						action.diagnostics = [diagnostic];
+						// Mark this as the preferred action.
+						action.isPreferred = true;
+						codeActions.push(action);
+					});
+				return codeActions;
+			}
+		})
+	);
 	/**
 	  * Focuses the active editor on the specified line number.
 	  * 
@@ -804,6 +905,29 @@ document.addEventListener('scroll', () => {
 					}
 				}
 			}, undefined, context.subscriptions);
+		}
+	}));
+
+	/**
+	 * Command to replace strings with their corresponding XML entities.
+	 */
+	context.subscriptions.push(vscode.commands.registerCommand('daps.replaceWithEntity', async () => {
+		const editor = vscode.window.activeTextEditor;
+		if (editor && editor.document.languageId === 'xml') {
+			const entityValueMap = createEntityValueMap(editor.document.fileName);
+			if (entityValueMap.size > 0) {
+				const edit = new vscode.WorkspaceEdit();
+				let text = editor.document.getText();
+
+				entityValueMap.forEach((entityName, entityValue) => {
+					const regex = new RegExp(entityValue.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
+					text = text.replace(regex, entityName);
+				});
+
+				const fullRange = new vscode.Range(editor.document.positionAt(0), editor.document.positionAt(editor.document.getText().length));
+				edit.replace(editor.document.uri, fullRange, text);
+				await vscode.workspace.applyEdit(edit);
+			}
 		}
 	}));
 
@@ -1260,8 +1384,8 @@ function getXMLentites(entityFiles) {
 		}));
 	});
 	dbg(`size of entList: ${entList.length}`);
-	// leave only entity names in the entity array
 
+	// leave only entity names in the entity array
 	var result = entList.map(processEntLine);
 	function processEntLine(line) {
 		return `${line.split(" ")[1]};`;
@@ -1385,6 +1509,92 @@ function searchInFiles(rootDir, excludeDirs, searchTerm, filePattern) {
 	return results;
 }
 
+/**
+ * Processes all included entity files and parses each file to extract individual entities
+ * into a map where the key is the entity's value and the value is the entity's name.
+ * For example, `<!ENTITY sliberty "&suse; Liberty Linux">` would be mapped as
+ * `"&suse; Liberty Linux"` -> `&sliberty`.
+ *
+ * @param {string} documentFileName The path to the document file to get entity files for.
+ * @returns {Map<string, string>} A map from entity values to entity names.
+ */
+function createEntityValueMap(documentFileName) {
+	// Get a list of all XML entity files associated with the current document.
+	const entityFiles = getXMLentityFiles(documentFileName);
+	// This map will store the initial name-to-value mapping, e.g., 'sliberty' -> '&suse; Liberty Linux'.
+	const nameToValueMap = new Map();
+
+	// --- 1. First pass: Collect all raw entity definitions from all entity files. ---
+	entityFiles.forEach(entFile => {
+		try {
+			// Read the content of the entity file.
+			const fileContent = fs.readFileSync(entFile, 'utf8');
+			// Regular expression to capture an entity's name and its value, excluding complex values.
+			// The 'g' flag allows finding all matches, and 's' (dotAll) allows '.' to match newlines.
+			const entityRegex = /<!ENTITY\s+([^\s]+)\s+"([^"<>\[\]]+)"/gs;
+			let match;
+
+			// Process the entire file content to find all entity definitions.
+			while ((match = entityRegex.exec(fileContent)) !== null) {
+				const [, entityName, entityValue] = match;
+
+				// Exclude entities that contain numeric character references (e.g., &#x000AE;).
+				if (/&#\S+;/.test(entityValue)) {
+					dbg(`Skipping entity '${entityName}' because its value contains a numeric character reference.`);
+					continue;
+				}
+
+				// Replace &nbsp; with a regular space and &reg; with * to avoid resolution issues.
+				const cleanedValue = entityValue.replace(/&nbsp;/g, ' ').replace(/&reg;/g, '*');
+				// Store the raw (but cleaned) entity definition.
+				nameToValueMap.set(entityName, cleanedValue);
+			}
+		} catch (error) {
+			// Log any errors that occur during file reading or parsing.
+			dbg(`Error reading or parsing entity file ${entFile}: ${error.message}`);
+		}
+	});
+
+	// --- 2. Second pass: Resolve nested entities and create the final value-to-name map. ---
+	// This map will store the final, fully resolved value to its entity name, e.g., 'SUSE Liberty Linux' -> '&sliberty;'.
+	const entityValueMap = new Map();
+	// Regex to find entity references (e.g., &entityname;) within a string.
+	const entityRegex = /&([a-zA-Z0-9_.-]+);/g;
+
+	// Iterate over the raw entities collected in the first pass.
+	for (const [entityName, entityValue] of nameToValueMap.entries()) {
+		let resolvedValue = entityValue;
+		let match;
+		// Use a Set to track entities seen during the resolution of a single value to detect circular references.
+		const seen = new Set();
+
+		// Keep replacing entities until no more can be found or a circular dependency is detected.
+		while ((match = entityRegex.exec(resolvedValue)) !== null) {
+			// The name of the nested entity to be replaced (e.g., 'suse' from '&suse;').
+			const nestedEntityName = match[1];
+
+			// Check for circular references (e.g., <!ENTITY a "&b;"> and <!ENTITY b "&a;">).
+			if (seen.has(nestedEntityName)) {
+				dbg(`Circular entity reference detected for '${nestedEntityName}' in '${entityName}'. Skipping further resolution.`);
+				break; // Avoid infinite loop
+			}
+			seen.add(nestedEntityName);
+
+			// If the nested entity exists in our map, replace it with its value.
+			if (nameToValueMap.has(nestedEntityName)) {
+				resolvedValue = resolvedValue.replace(match[0], nameToValueMap.get(nestedEntityName));
+				entityRegex.lastIndex = 0; // Reset regex index to re-scan the modified string
+			}
+		}
+
+		// Store the fully resolved value and its corresponding entity name in the final map.
+		entityValueMap.set(resolvedValue, `&${entityName};`);
+	}
+	dbg(`Number of entity pairs: ${entityValueMap.size}`);
+
+	return entityValueMap;
+}
+
 // This method is called when your extension is deactivated
 function deactivate() { }
 
@@ -1392,4 +1602,3 @@ module.exports = {
 	activate,
 	deactivate
 }
-

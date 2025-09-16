@@ -160,7 +160,7 @@
       "title": "DAPS",
       "properties": {
         "daps.enableDbg": {
-          "description": "Enable login in a dedicated output channel.",
+          "description": "Enable logging in a dedicated output channel.",
           "type": "string",
           "enum": [
             "output",
@@ -348,6 +348,11 @@
         },
         "daps.previewLinkScrollBoth": {
           "description": "Whether scrolling the preview scrolls the source editor as well",
+          "type": "boolean",
+          "default": false
+        },
+        "daps.replaceWithXMLentity": {
+          "description": "If enabled, automatically suggests to replace strings with their corresponding XML entities.",
           "type": "boolean",
           "default": false
         }
