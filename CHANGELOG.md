@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.7.22
+- added `daps.replaceWithXMLentity` option to enable entity replacement suggestions.
+- added `daps.replaceWithXMLentityIgnoreTags` option to configure tags where
+  entity replacement is ignored.
+
 ## 0.7.21
 - xref and assembly codelens are activated on save event
 - added `daps.showXrefCodelens` option to enable xref codelens

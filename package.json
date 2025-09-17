@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.7.21",
+  "version": "0.7.22",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -355,6 +355,22 @@
           "description": "If enabled, automatically suggests to replace strings with their corresponding XML entities.",
           "type": "boolean",
           "default": false
+        },
+        "daps.replaceWithXMLentityIgnoreTags": {
+          "description": "A list of XML tags inside which entity replacement suggestions should be ignored.",
+          "type": "array",
+          "default": [
+            "screen",
+            "command",
+            "package",
+            "option",
+            "filename",
+            "systemitem",
+            "literal",
+            "guimenu",
+            "envar",
+            "remark"
+          ]
         }
       }
     },

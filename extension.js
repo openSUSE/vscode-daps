@@ -462,6 +462,35 @@ function activate(context) {
 			return;
 		}
 
+		// Define tags inside which entity replacement should be skipped.
+		const noReplaceTags = dapsConfig.get('replaceWithXMLentityIgnoreTags');
+		const noReplaceRanges = [];
+		const text = document.getText();
+
+		// 1. Find content of no-replace tags.
+		const noReplaceRegex = new RegExp(`<(${noReplaceTags.join('|')})\\b[^>]*>([\\s\\S]*?)<\\/\\1>`, 'g');
+		let noReplaceMatch;
+		while ((noReplaceMatch = noReplaceRegex.exec(text)) !== null) {
+			const contentIndex = noReplaceMatch.index + noReplaceMatch[0].indexOf(noReplaceMatch[2]);
+			const contentEndIndex = contentIndex + noReplaceMatch[2].length;
+			noReplaceRanges.push({ start: contentIndex, end: contentEndIndex });
+		}
+
+		// 2. Find content of attributes that should not be replaced (e.g., xml:id, linkend).
+		const attrRegex = /="([^"]+)"/g;
+		let attrMatch;
+		while ((attrMatch = attrRegex.exec(text)) !== null) {
+			// The attribute value is in group 1. We need to calculate its start and end index within the document.
+			// The start index of the value is the index of the full match plus the length of the attribute name part (e.g., 'linkend="').
+			const valueStartIndex = attrMatch.index + attrMatch[0].indexOf(attrMatch[1]);
+			const valueEndIndex = valueStartIndex + attrMatch[1].length;
+			noReplaceRanges.push({ start: valueStartIndex, end: valueEndIndex });
+		}
+
+		if (noReplaceRanges.length > 0) {
+			dbg(`Found ${noReplaceRanges.length} no-replace zones.`);
+		}
+
 		// Generate the map of replaceable string values to their corresponding entity names.
 		const entityValueMap = createEntityValueMap(document.fileName);
 		if (entityValueMap.size === 0) {
@@ -473,7 +502,6 @@ function activate(context) {
 		const diagnostics = [];
 		// Keep track of ranges that have already been diagnosed to avoid overlapping suggestions.
 		const diagnosedRanges = [];
-		const text = document.getText();
 
 		// Convert the map to an array and sort it by the length of the entity value in descending order.
 		// This ensures that longer, more specific phrases (including multiline ones) are matched first.
@@ -481,14 +509,28 @@ function activate(context) {
 
 		sortedEntities.forEach(([entityValue, entityName]) => {
 			// Escape special characters in the entity value for use in a regular expression.
-			// Then, replace spaces with `\s+` to match any whitespace sequence (including newlines).
-			const pattern = entityValue
+			// Then, replace spaces with `\s+` to match any whitespace sequence (including newlines) and wrap with word boundaries.
+			const pattern = `\\b(${entityValue
 				.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') // Escape regex special characters.
-				.replace(/\s+/g, '\\s+');
-			const regex = new RegExp(pattern, 'g');
+				.replace(/\s+/g, '\\s+')})\\b`;
+			const regex = new RegExp(pattern, 'gi');
 			let match;
 
 			while ((match = regex.exec(text)) !== null) {
+				// Check if the match is already part of an entity reference (e.g., `&cockpit;`).
+				const charBefore = text.charAt(match.index - 1);
+				const charAfter = text.charAt(match.index + match[0].length);
+				if (charBefore === '&' && charAfter === ';') {
+					continue; // Skip this match as it's already an entity.
+				}
+
+				// Check if the match is inside one of the no-replace tag ranges.
+				const inNoReplaceZone = noReplaceRanges.some(zone =>
+					match.index >= zone.start && (match.index + match[0].length) <= zone.end
+				);
+				if (inNoReplaceZone) {
+					continue; // Skip this match.
+				}
 				const startPos = document.positionAt(match.index);
 				const endPos = document.positionAt(match.index + match[0].length);
 				const range = new vscode.Range(startPos, endPos);
