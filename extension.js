@@ -584,7 +584,7 @@ function activate(context) {
 					// Create a new diagnostic (the underline and suggestion in the editor).
 					const diagnostic = new vscode.Diagnostic(
 						range,
-						`Replace with entity ${entityName}`,
+						`Consider replacing with entity ${entityName}`,
 						vscode.DiagnosticSeverity.Information
 					);
 					diagnostic.code = 'replaceWithEntity';
