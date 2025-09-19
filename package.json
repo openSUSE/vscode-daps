@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.7.22",
+  "version": "0.8.0",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -369,8 +369,37 @@
             "literal",
             "guimenu",
             "envar",
-            "remark"
+            "remark",
+            "quote"
           ]
+        },
+        "daps.replaceWithEntitiesIgnorePhrases": {
+          "description": "A list of phrases that will be skipped from replacing with an entity if matched.",
+          "type": "array",
+          "default": []
+        },
+        "daps.replaceWithADOCattribute": {
+          "description": "If enabled, automatically suggests to replace strings with their corresponding AsciiDoc attributes.",
+          "type": "boolean",
+          "default": false
+        },
+        "daps.replaceWithADOCattributeIgnoreBlocks": {
+          "description": "A list of AsciiDoc block styles inside which attribute replacement suggestions should be ignored.",
+          "type": "array",
+          "default": [
+            "source",
+            "literal",
+            "listing",
+            "passthrough",
+            "screen",
+            "code",
+            "console"
+          ]
+        },
+        "daps.replaceWithADOCattributeIgnorePhrases": {
+          "description": "A list of phrases that will be skipped from replacing with an AsciiDoc attribute if matched.",
+          "type": "array",
+          "default": []
         }
       }
     },

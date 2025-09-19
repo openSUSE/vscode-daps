@@ -1,10 +1,14 @@
 # Change Log
 
-## 0.7.22
+## 0.8.0
+- introduced DocBook XML and AsciiDoc phrase replacement by matching entity/attribute
+- added `daps.replaceWithEntitiesIgnorePhrases` to skip replacement for matched phrases.
+- added `daps.replaceWithADOCattributeIgnorePhrases` to skip replacement for matched phrases.
+
+## 0.7.21
 - added `daps.replaceWithXMLentity` option to enable entity replacement suggestions.
 - added `daps.replaceWithXMLentityIgnoreTags` option to configure tags where
   entity replacement is ignored.
-
 ## 0.7.21
 - xref and assembly codelens are activated on save event
 - added `daps.showXrefCodelens` option to enable xref codelens

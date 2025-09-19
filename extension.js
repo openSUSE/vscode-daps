@@ -409,10 +409,10 @@ function activate(context) {
 	context.subscriptions.push(
 		vscode.workspace.onDidSaveTextDocument((document) => {
 			updateEntityDiagnostics(document);
+			updateAttributeDiagnostics(document);
 			// update scrollmap
 			const fileName = document.uri.path;
 			const scrollMap = createScrollMap(fileName);
-			dbg(`saved document: ${fileName}`);
 			// refresh HTML preview
 			if (fileName == getActiveFile() && previewPanel) {
 				vscode.commands.executeCommand('daps.docPreview');
@@ -430,12 +430,14 @@ function activate(context) {
 	// when active editor is changed:
 	context.subscriptions.push(
 		vscode.window.onDidChangeActiveTextEditor((activeEditor) => {
-			if (activeEditor && activeEditor.document.languageId === 'xml') {
+			if (activeEditor) {
+				const document = activeEditor.document;
+				updateEntityDiagnostics(document);
+				updateAttributeDiagnostics(document);
 				// refresh doc structure treeview
-				updateEntityDiagnostics(activeEditor.document);
 				vscode.commands.executeCommand('docStructureTreeView.refresh');
 				// create scroll map for HTML preview
-				createScrollMap();
+				createScrollMap(document.fileName);
 			}
 		}));
 	// when the visible editors change
@@ -448,6 +450,9 @@ function activate(context) {
 
 	const entityDiagnostics = vscode.languages.createDiagnosticCollection("entities");
 	context.subscriptions.push(entityDiagnostics);
+
+	const attributeDiagnostics = vscode.languages.createDiagnosticCollection("attributes");
+	context.subscriptions.push(attributeDiagnostics);
 
 	/**
 	 * Analyzes the document for strings that can be replaced by an XML entity and creates diagnostics.
@@ -465,6 +470,9 @@ function activate(context) {
 		// Define tags inside which entity replacement should be skipped.
 		const noReplaceTags = dapsConfig.get('replaceWithXMLentityIgnoreTags');
 		const noReplaceRanges = [];
+		// Define phrases that should be skipped from replacing.
+		const ignorePhrases = dapsConfig.get('replaceWithEntitiesIgnorePhrases');
+
 		const text = document.getText();
 
 		// 1. Find content of no-replace tags.
@@ -474,6 +482,22 @@ function activate(context) {
 			const contentIndex = noReplaceMatch.index + noReplaceMatch[0].indexOf(noReplaceMatch[2]);
 			const contentEndIndex = contentIndex + noReplaceMatch[2].length;
 			noReplaceRanges.push({ start: contentIndex, end: contentEndIndex });
+		}
+
+		// Find XML comments and add them to the ignore ranges.
+		const commentRegex = /<!--[\s\S]*?-->/g;
+		let commentMatch;
+		while ((commentMatch = commentRegex.exec(text)) !== null) {
+			// Add the entire comment block to the no-replace ranges.
+			noReplaceRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+		}
+
+		// 2. Find content inside double quotes.
+		const quoteRegex = /"([^"]+)"/g;
+		let quoteMatch;
+		while ((quoteMatch = quoteRegex.exec(text)) !== null) {
+			const valueStartIndex = quoteMatch.index + 1;
+			noReplaceRanges.push({ start: valueStartIndex, end: valueStartIndex + quoteMatch[1].length });
 		}
 
 		// 2. Find content of attributes that should not be replaced (e.g., xml:id, linkend).
@@ -516,12 +540,28 @@ function activate(context) {
 			const regex = new RegExp(pattern, 'gi');
 			let match;
 
+			// Check if the entity value itself is in the ignore list.
+			// Using `some` to allow for case-insensitive comparison if needed in the future.
+			if (ignorePhrases.some(phrase => phrase.toLowerCase() === entityValue.toLowerCase())) {
+				return; // Skip this entity entirely.
+			}
+
 			while ((match = regex.exec(text)) !== null) {
 				// Check if the match is already part of an entity reference (e.g., `&cockpit;`).
 				const charBefore = text.charAt(match.index - 1);
 				const charAfter = text.charAt(match.index + match[0].length);
 				if (charBefore === '&' && charAfter === ';') {
 					continue; // Skip this match as it's already an entity.
+				}
+
+				// Check if the match is part of a compound phrase (e.g., "nvidia-custom-string", "containers/ollama").
+				// We check for a non-whitespace character followed by a separator, or a separator followed by a non-whitespace character.
+				const beforeStr = text.substring(match.index - 2, match.index);
+				const afterStr = text.substring(match.index + match[0].length, match.index + match[0].length + 2);
+				const isCompound = /\S[-+./]$/.test(beforeStr) || /^[-+./]\S/.test(afterStr);
+
+				if (isCompound) {
+					continue; // Skip this match as it's part of a compound phrase.
 				}
 
 				// Check if the match is inside one of the no-replace tag ranges.
@@ -560,6 +600,161 @@ function activate(context) {
 		entityDiagnostics.set(document.uri, diagnostics);
 	}
 
+	/**
+	 * Analyzes an AsciiDoc document for strings that can be replaced by an AsciiDoc attribute and creates diagnostics.
+	 * @param {vscode.TextDocument} document The document to analyze.
+	 */
+	function updateAttributeDiagnostics(document) {
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		if (!dapsConfig.get('replaceWithADOCattribute') || document.languageId !== 'asciidoc') {
+			attributeDiagnostics.clear();
+			return;
+		}
+
+		const noReplaceBlocks = dapsConfig.get('replaceWithADOCattributeIgnoreBlocks');
+		const noReplaceRanges = [];
+		const ignorePhrases = dapsConfig.get('replaceWithADOCattributeIgnorePhrases');
+		const text = document.getText();
+
+		// 1. Find content of no-replace blocks (e.g., source, literal).
+		// This regex finds both styled blocks like `[source]` and simple delimited blocks `----`.
+		// It also finds command prompts ($) that might be part of a command block.
+		const blockRegex = new RegExp(`^\\[(${noReplaceBlocks.join('|')})\\]\\n((?:.*\\\\\\n)*.*[^\\\\]\\n)`, 'gm');
+		let noReplaceMatch;
+
+		while ((noReplaceMatch = blockRegex.exec(text)) !== null) {
+			noReplaceRanges.push({ start: noReplaceMatch.index, end: noReplaceMatch.index + noReplaceMatch[0].length });
+		}
+
+		// 2. Find content of inline monospace/literal text (e.g., `text` or ``text``).
+		// This regex finds text enclosed in single or double backticks.
+		const inlineMonoRegex = /(`{1,2})([^`]+?)\1/g;
+		let inlineMatch;
+		while ((inlineMatch = inlineMonoRegex.exec(text)) !== null) {
+			const contentIndex = inlineMatch.index;
+			noReplaceRanges.push({ start: contentIndex, end: contentIndex + inlineMatch[0].length });
+		}
+
+		// 3. Find AsciiDoc comments (single-line and block).
+		const singleLineCommentRegex = /^\/\/.*/gm;
+		let commentMatch;
+		while ((commentMatch = singleLineCommentRegex.exec(text)) !== null) {
+			noReplaceRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+		}
+		const blockCommentRegex = /^\/{4,}\n[\s\S]*?\n\/{4,}$/gm;
+		while ((commentMatch = blockCommentRegex.exec(text)) !== null) {
+			noReplaceRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+		}
+
+		// 4. Find AsciiDoc section IDs and anchors (e.g., [[my-id]] or [#my-id]).
+		const sectionIdRegex = /\[\[[^\]]+\]\]|\[#[^\]]+\]/g;
+		let idMatch;
+		while ((idMatch = sectionIdRegex.exec(text)) !== null) {
+			noReplaceRanges.push({ start: idMatch.index, end: idMatch.index + idMatch[0].length });
+		}
+
+		// 5. Find AsciiDoc cross-references (e.g., <<my-anchor>>).
+		const xrefRegex = /<<[^>]+>>/g;
+		let xrefMatch;
+		while ((xrefMatch = xrefRegex.exec(text)) !== null) {
+			noReplaceRanges.push({ start: xrefMatch.index, end: xrefMatch.index + xrefMatch[0].length });
+		}
+
+		// 6. Find content inside double quotes.
+		const quoteRegex = /"([^"]+)"/g;
+		let quoteMatch;
+		while ((quoteMatch = quoteRegex.exec(text)) !== null) {
+			const valueStartIndex = quoteMatch.index + 1;
+			noReplaceRanges.push({ start: valueStartIndex, end: valueStartIndex + quoteMatch[1].length });
+		}
+
+		// 6. Find URLs and other network schemas (e.g., https://..., ftp://..., mailto:...).
+		const urlRegex = /\b(https?|ftp|file|mailto|irc|news|telnet):\/\/[^\s,>\])]+/g;
+		let urlMatch;
+		while ((urlMatch = urlRegex.exec(text)) !== null) {
+			noReplaceRanges.push({ start: urlMatch.index, end: urlMatch.index + urlMatch[0].length });
+		}
+
+
+		if (noReplaceRanges.length > 0) {
+			dbg(`Found ${noReplaceRanges.length} no-replace AsciiDoc blocks.`);
+		}
+
+		const attributeValueMap = getADOCattributes(document.fileName);
+		if (attributeValueMap.size === 0) {
+			attributeDiagnostics.clear();
+			return;
+		}
+
+		const diagnostics = [];
+		const diagnosedRanges = [];
+
+		const sortedAttributes = Array.from(attributeValueMap.entries()).sort((a, b) => b[0].length - a[0].length);
+
+		sortedAttributes.forEach(([attrValue, attrName]) => {
+			// Ensure the value is not empty and is substantial enough to avoid trivial matches.
+			if (attrValue.trim().length < 2) return;
+
+			const pattern = `\\b(${attrValue
+				.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+				.replace(/\s+/g, '\\s+')})\\b`;
+			const regex = new RegExp(pattern, 'gi');
+			let match;
+
+			if (ignorePhrases.some(phrase => phrase.toLowerCase() === attrValue.toLowerCase())) {
+				return; // Skip this attribute entirely.
+			}
+
+			while ((match = regex.exec(text)) !== null) {
+				// Check if the match is already part of an attribute reference (e.g., {sliberty}).
+				const charBefore = text.charAt(match.index - 1);
+				const charAfter = text.charAt(match.index + match[0].length);
+				if (charBefore === '{' && charAfter === '}') {
+					continue;
+				}
+
+				// Check if the match is part of a compound phrase (e.g., "nvidia-custom-string", "containers/ollama").
+				// We check for a non-whitespace character followed by a separator, or a separator followed by a non-whitespace character.
+				const beforeStr = text.substring(match.index - 2, match.index);
+				const afterStr = text.substring(match.index + match[0].length, match.index + match[0].length + 2);
+				const isCompound = /\S[-+./]$/.test(beforeStr) || /^[-+./]\S/.test(afterStr);
+
+				if (isCompound) {
+					continue; // Skip this match as it's part of a compound phrase.
+				}
+
+				// Check if the match is inside one of the no-replace block ranges.
+				const inNoReplaceZone = noReplaceRanges.some(zone =>
+					match.index >= zone.start && (match.index + match[0].length) <= zone.end
+				);
+				if (inNoReplaceZone) {
+					continue;
+				}
+
+				const startPos = document.positionAt(match.index);
+				const endPos = document.positionAt(match.index + match[0].length);
+				const range = new vscode.Range(startPos, endPos);
+
+				const isOverlapping = diagnosedRanges.some(diagnosedRange => range.intersection(diagnosedRange));
+
+				if (!isOverlapping) {
+					const replacementText = `{${attrName.slice(1, -1)}}`;
+					const diagnostic = new vscode.Diagnostic(
+						range,
+						`Consider replacing with attribute ${replacementText}`,
+						vscode.DiagnosticSeverity.Information
+					);
+					diagnostic.code = 'replaceWithAttribute';
+					diagnostic.source = 'DAPS'; // The replacement text is stored in the message
+					diagnostics.push(diagnostic);
+					diagnosedRanges.push(range);
+				}
+			}
+		});
+
+		attributeDiagnostics.set(document.uri, diagnostics);
+	}
+
 	// Register a Code Actions Provider to offer a "Quick Fix" for our entity diagnostics.
 	context.subscriptions.push(
 		vscode.languages.registerCodeActionsProvider('xml', {
@@ -573,13 +768,35 @@ function activate(context) {
 						// Extract the entity name (e.g., "&sliberty;") from the diagnostic message.
 						const entityName = diagnostic.message.split(' ')[3];
 						// Create a new CodeAction, which is the "Quick Fix" item in the menu.
-						const action = new vscode.CodeAction(`Replace with ${entityName}`, vscode.CodeActionKind.QuickFix);
+						const action = new vscode.CodeAction(`Consider replacing with entity ${entityName}`, vscode.CodeActionKind.QuickFix);
 						// Create a WorkspaceEdit to define the text change (replace the string with the entity).
 						action.edit = new vscode.WorkspaceEdit();
 						action.edit.replace(document.uri, diagnostic.range, entityName);
 						// Associate this action with the specific diagnostic it fixes.
 						action.diagnostics = [diagnostic];
 						// Mark this as the preferred action.
+						action.isPreferred = true;
+						codeActions.push(action);
+					});
+				return codeActions;
+			}
+		})
+	);
+	/**
+	 * Registers a Code Actions Provider for AsciiDoc files to offer a "Quick Fix" for attribute diagnostics.
+	 */
+	context.subscriptions.push(
+		vscode.languages.registerCodeActionsProvider('asciidoc', {
+			provideCodeActions(document, range, context, token) {
+				const codeActions = [];
+				context.diagnostics
+					.filter(diagnostic => diagnostic.code === 'replaceWithAttribute')
+					.forEach(diagnostic => {
+						const replacementText = diagnostic.message.split(' ').pop(); // e.g., {suse}
+						const action = new vscode.CodeAction(`Replace with ${replacementText}`, vscode.CodeActionKind.QuickFix);
+						action.edit = new vscode.WorkspaceEdit();
+						action.edit.replace(document.uri, diagnostic.range, replacementText);
+						action.diagnostics = [diagnostic];
 						action.isPreferred = true;
 						codeActions.push(action);
 					});
@@ -1434,6 +1651,142 @@ function getXMLentites(entityFiles) {
 	}
 	return result;
 }
+
+/**
+ * @description Scans an AsciiDoc file for included attribute files recursively.
+ * @param {string} docFileName - The path to the AsciiDoc file to start scanning from.
+ * @param {Set<string>} [processedFiles=new Set()] - A set of already processed file paths to avoid circular includes.
+ * @returns {string[]} An array of absolute paths to the included attribute files.
+ */
+function getADOCattributeFiles(docFileName, processedFiles = new Set()) {
+	// Check if this is the first (non-recursive) call by seeing if the processedFiles set is empty.
+	const initialCall = processedFiles.size === 0;
+	// If it's the initial call,
+	if (initialCall) {
+		// add the main document to the set of processed files to prevent it from being included in the results if referenced within other files.
+		processedFiles.add(docFileName);
+	}
+
+	// Check if a document file name was provided and if the file exists.
+	if (!docFileName || !fs.existsSync(docFileName)) {
+		// Log a debug message if the file is missing or not specified.
+		dbg(`getADOCattributeFiles: File does not exist or is not provided: ${docFileName}`);
+		// Return an empty array as no files can be processed.
+		return [];
+	}
+
+	// Log which file is currently being processed.
+	dbg(`getADOCattributeFiles: Processing ${docFileName}`);
+
+	// Read the content of the AsciiDoc file.
+	const docContent = fs.readFileSync(docFileName, 'utf-8');
+	// Get the directory of the current file to resolve relative paths.
+	const docDir = path.dirname(docFileName);
+	// Define a regular expression to find 'include::filename.adoc[]' statements at the beginning of a line.
+	const includeRegex = /^include::([^\[]+)\[\]/gm;
+	// Initialize an array to store the paths of found attribute files.
+	let attributeFiles = [];
+	// Variable to hold the result of the regex execution.
+	let match;
+
+	// Loop through all 'include::' matches in the document content.
+	while ((match = includeRegex.exec(docContent)) !== null) {
+		// Extract the relative path from the regex match (the first captured group).
+		const relativePath = match[1];
+		// Resolve the relative path to an absolute path based on the current document's directory.
+		const absolutePath = path.resolve(docDir, relativePath);
+
+		// Check if this file has already been processed to prevent infinite loops from circular includes.
+		if (processedFiles.has(absolutePath)) {
+			// Log that a circular dependency was detected and skip this file.
+			dbg(`getADOCattributeFiles: Circular include detected, skipping ${absolutePath}`);
+			// Continue to the next match.
+			continue;
+		}
+
+		// Add the new absolute path to the set of processed files.
+		processedFiles.add(absolutePath);
+		// Add the absolute path to our list of attribute files.
+		attributeFiles.push(absolutePath);
+		// Recursively call this function for the newly found file to process its includes, and concatenate the results.
+		attributeFiles = attributeFiles.concat(getADOCattributeFiles(absolutePath, processedFiles));
+	}
+	// Return the final list of all collected attribute file paths.
+	return attributeFiles;
+}
+
+/**
+ * @description Parses AsciiDoc attribute files to create a map of resolved attribute values to their names.
+ * This function handles nested attributes (e.g., :attr1: {attr2}) by recursively resolving them.
+ * @param {string} docFileName - The path to the main AsciiDoc document.
+ * @returns {Map<string, string>} A map from resolved attribute values to attribute names (e.g., "SUSE Liberty Linux" -> ":sliberty:").
+ */
+function getADOCattributes(docFileName) {
+	// 1. Get all attribute files, including nested includes.
+	const attributeFiles = getADOCattributeFiles(docFileName);
+	// This map will store the initial name-to-value mapping, e.g., 'sliberty' -> '{suse} Liberty Linux'.
+	const nameToValueMap = new Map();
+
+	// --- First pass: Collect all raw attribute definitions from all files. ---
+	attributeFiles.forEach(attrFile => {
+		try {
+			const fileContent = fs.readFileSync(attrFile, 'utf8');
+			// Regex to capture an attribute's name and its value.
+			// Example: :my-attribute: Some value here
+			const attributeRegex = /^:([^:]+):\s+(.*)$/gm;
+			let match;
+
+			while ((match = attributeRegex.exec(fileContent)) !== null) {
+				const [, attrName, attrValue] = match;
+				// Store the raw attribute definition.
+				const cleanedValue = attrValue.trim().replace(/{nbsp}/g, ' ');
+				nameToValueMap.set(attrName.trim(), cleanedValue);
+			}
+		} catch (error) {
+			dbg(`Error reading or parsing AsciiDoc attribute file ${attrFile}: ${error.message}`);
+		}
+	});
+
+	// --- Second pass: Resolve nested attributes and create the final value-to-name map. ---
+	// This map will store the final, fully resolved value to its attribute name, e.g., 'SUSE Liberty Linux' -> ':sliberty:'.
+	const attributeValueMap = new Map();
+	// Regex to find attribute references (e.g., {attr-name}) within a string.
+	const nestedAttrRegex = /\{([a-zA-Z0-9_.-]+)\}/g;
+
+	for (const [attrName, attrValue] of nameToValueMap.entries()) {
+		let resolvedValue = attrValue;
+		let match;
+		// Use a Set to track attributes seen during the resolution of a single value to detect circular references.
+		const seen = new Set();
+
+		// Keep replacing nested attributes until no more can be found or a circular dependency is detected.
+		while ((match = nestedAttrRegex.exec(resolvedValue)) !== null) {
+			const nestedAttrName = match[1];
+
+			// Check for circular references.
+			if (seen.has(nestedAttrName)) {
+				dbg(`Circular attribute reference detected for '{${nestedAttrName}}' in ':${attrName}:'. Skipping further resolution.`);
+				break; // Avoid infinite loop.
+			}
+			seen.add(nestedAttrName);
+
+			// If the nested attribute exists in our map, replace it with its value.
+			if (nameToValueMap.has(nestedAttrName)) {
+				resolvedValue = resolvedValue.replace(match[0], nameToValueMap.get(nestedAttrName));
+				// Reset regex index to re-scan the modified string from the beginning.
+				nestedAttrRegex.lastIndex = 0;
+			}
+		}
+
+		// Store the fully resolved value and its corresponding attribute name in the final map.
+		// The key is the value, and the value is the attribute name formatted for replacement.
+		attributeValueMap.set(resolvedValue, `:${attrName}:`);
+	}
+
+	dbg(`getADOCattributes: Found ${attributeValueMap.size} resolved AsciiDoc attributes.`);
+	return attributeValueMap;
+}
+
 
 /**
 	 * @description Resolves active file name from either context argument or active editor
