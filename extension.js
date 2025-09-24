@@ -470,8 +470,8 @@ function activate(context) {
 		// Define tags inside which entity replacement should be skipped.
 		const noReplaceTags = dapsConfig.get('replaceWithXMLentityIgnoreTags');
 		const noReplaceRanges = [];
-		// Define phrases that should be skipped from replacing.
-		const ignorePhrases = dapsConfig.get('replaceWithEntitiesIgnorePhrases');
+		// Define phrases that should be skipped from replacing with an entity or attribute.
+		const ignorePhrases = dapsConfig.get('replaceWithIgnorePhrases');
 
 		const text = document.getText();
 
@@ -613,7 +613,7 @@ function activate(context) {
 
 		const noReplaceBlocks = dapsConfig.get('replaceWithADOCattributeIgnoreBlocks');
 		const noReplaceRanges = [];
-		const ignorePhrases = dapsConfig.get('replaceWithADOCattributeIgnorePhrases');
+		const ignorePhrases = dapsConfig.get('replaceWithIgnorePhrases');
 		const text = document.getText();
 
 		// 1. Find content of no-replace blocks (e.g., source, literal).
@@ -1724,6 +1724,9 @@ function getADOCattributeFiles(docFileName, processedFiles = new Set()) {
 function getADOCattributes(docFileName) {
 	// 1. Get all attribute files, including nested includes.
 	const attributeFiles = getADOCattributeFiles(docFileName);
+	// Also include the current document in the list of files to scan for attributes.
+	attributeFiles.unshift(docFileName);
+
 	// This map will store the initial name-to-value mapping, e.g., 'sliberty' -> '{suse} Liberty Linux'.
 	const nameToValueMap = new Map();
 
@@ -1918,6 +1921,9 @@ function createEntityValueMap(documentFileName) {
 	const entityFiles = getXMLentityFiles(documentFileName);
 	// This map will store the initial name-to-value mapping, e.g., 'sliberty' -> '&suse; Liberty Linux'.
 	const nameToValueMap = new Map();
+
+	// Also include the current document in the list of files to scan for entities.
+	entityFiles.push(documentFileName);
 
 	// --- 1. First pass: Collect all raw entity definitions from all entity files. ---
 	entityFiles.forEach(entFile => {

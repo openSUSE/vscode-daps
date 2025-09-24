@@ -1,11 +1,21 @@
 # Change Log
 
+## 0.8.1
+- deprecated `daps.replaceWithEntitiesIgnorePhrases` and
+  `daps.replaceWithADOCattributeIgnorePhrases` options in favour of the general
+  `daps.replaceWithIgnorePhrases` to skip replacement for matched phrases in
+  both XML and AsciiDoc.
+- include the currently open file for entity/attribute search
 ## 0.8.0
-- introduced DocBook XML and AsciiDoc phrase replacement by matching entity/attribute
-- added `daps.replaceWithEntitiesIgnorePhrases` to skip replacement for matched phrases.
-- added `daps.replaceWithADOCattributeIgnorePhrases` to skip replacement for matched phrases.
+- introduced DocBook XML and AsciiDoc phrase replacement by matching
+  entity/attribute
+- added `daps.replaceWithEntitiesIgnorePhrases` to skip replacement for matched
+  phrases.
+- added `daps.replaceWithADOCattributeIgnorePhrases` to skip replacement for
+  matched phrases.
 ## 0.7.21
-- added `daps.replaceWithXMLentity` option to enable entity replacement suggestions.
+- added `daps.replaceWithXMLentity` option to enable entity replacement
+  suggestions.
 - added `daps.replaceWithXMLentityIgnoreTags` option to configure tags where
   entity replacement is ignored.
 ## 0.7.21
