@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.8.2
+- Entity/attribute replacement check now runs when a document is opened or becomes active.
+- Changed the diagnostic severity for entity/attribute replacement to 'Warning' for better visibility.
+- Fixed a bug in the entity replacement quick fix that caused incorrect replacement text.
+- Fixed a bug causing quick fixes to apply changes at incorrect locations after document edits.
+- Entity/attribute replacement diagnostics now update automatically while typing for improved accuracy.
+
 ## 0.8.1
 - deprecated `daps.replaceWithEntitiesIgnorePhrases` and
   `daps.replaceWithADOCattributeIgnorePhrases` options in favour of the general

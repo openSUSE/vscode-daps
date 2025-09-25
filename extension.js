@@ -407,11 +407,8 @@ function activate(context) {
 	 */
 	// when saving active editor:
 	context.subscriptions.push(
-		vscode.workspace.onDidSaveTextDocument((document) => {
-			updateEntityDiagnostics(document);
-			updateAttributeDiagnostics(document);
-			// update scrollmap
-			const fileName = document.uri.path;
+		vscode.workspace.onDidSaveTextDocument((document) => {			// update scrollmap
+			const fileName = document.uri.path;			
 			const scrollMap = createScrollMap(fileName);
 			// refresh HTML preview
 			if (fileName == getActiveFile() && previewPanel) {
@@ -421,6 +418,13 @@ function activate(context) {
 			// refresh doc structure treeview
 			vscode.commands.executeCommand('docStructureTreeView.refresh');
 		}));
+	// when opening a document:
+	context.subscriptions.push(
+		vscode.workspace.onDidOpenTextDocument((document) => {
+			updateEntityDiagnostics(document);
+			updateAttributeDiagnostics(document);
+		})
+	);
 	// when closing active editor:
 	context.subscriptions.push(
 		vscode.workspace.onDidCloseTextDocument(() => {
@@ -432,8 +436,6 @@ function activate(context) {
 		vscode.window.onDidChangeActiveTextEditor((activeEditor) => {
 			if (activeEditor) {
 				const document = activeEditor.document;
-				updateEntityDiagnostics(document);
-				updateAttributeDiagnostics(document);
 				// refresh doc structure treeview
 				vscode.commands.executeCommand('docStructureTreeView.refresh');
 				// create scroll map for HTML preview
@@ -447,12 +449,33 @@ function activate(context) {
 			vscode.commands.executeCommand('docStructureTreeView.refresh');
 		})
 	);
+	// when the document is changed (with debounce)
+	let diagnosticUpdateTimeout;
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeTextDocument(event => {
+			if (event.document.uri.scheme === 'file' && (event.document.languageId === 'xml' || event.document.languageId === 'asciidoc')) {
+				clearTimeout(diagnosticUpdateTimeout);
+				diagnosticUpdateTimeout = setTimeout(() => {
+					dbg('Running debounced diagnostic update.');
+					updateEntityDiagnostics(event.document);
+					updateAttributeDiagnostics(event.document);
+				}, 500); // 500ms delay
+			}
+		})
+	);
+
 
 	const entityDiagnostics = vscode.languages.createDiagnosticCollection("entities");
 	context.subscriptions.push(entityDiagnostics);
 
 	const attributeDiagnostics = vscode.languages.createDiagnosticCollection("attributes");
 	context.subscriptions.push(attributeDiagnostics);
+
+	// Initial check for documents that are already open when the extension activates
+	if (vscode.window.activeTextEditor) {
+		updateEntityDiagnostics(vscode.window.activeTextEditor.document);
+		updateAttributeDiagnostics(vscode.window.activeTextEditor.document);
+	}
 
 	/**
 	 * Analyzes the document for strings that can be replaced by an XML entity and creates diagnostics.
@@ -585,7 +608,7 @@ function activate(context) {
 					const diagnostic = new vscode.Diagnostic(
 						range,
 						`Consider replacing with entity ${entityName}`,
-						vscode.DiagnosticSeverity.Information
+						vscode.DiagnosticSeverity.Warning
 					);
 					diagnostic.code = 'replaceWithEntity';
 					diagnostic.source = 'DAPS';
@@ -742,7 +765,7 @@ function activate(context) {
 					const diagnostic = new vscode.Diagnostic(
 						range,
 						`Consider replacing with attribute ${replacementText}`,
-						vscode.DiagnosticSeverity.Information
+						vscode.DiagnosticSeverity.Warning
 					);
 					diagnostic.code = 'replaceWithAttribute';
 					diagnostic.source = 'DAPS'; // The replacement text is stored in the message
@@ -766,12 +789,12 @@ function activate(context) {
 					.filter(diagnostic => diagnostic.code === 'replaceWithEntity')
 					.forEach(diagnostic => {
 						// Extract the entity name (e.g., "&sliberty;") from the diagnostic message.
-						const entityName = diagnostic.message.split(' ')[3];
+						const replacementText = diagnostic.message.split(' ').pop();
 						// Create a new CodeAction, which is the "Quick Fix" item in the menu.
-						const action = new vscode.CodeAction(`Consider replacing with entity ${entityName}`, vscode.CodeActionKind.QuickFix);
+						const action = new vscode.CodeAction(`Replace with ${replacementText}`, vscode.CodeActionKind.QuickFix);
 						// Create a WorkspaceEdit to define the text change (replace the string with the entity).
 						action.edit = new vscode.WorkspaceEdit();
-						action.edit.replace(document.uri, diagnostic.range, entityName);
+						action.edit.replace(document.uri, diagnostic.range, replacementText);
 						// Associate this action with the specific diagnostic it fixes.
 						action.diagnostics = [diagnostic];
 						// Mark this as the preferred action.
@@ -792,10 +815,10 @@ function activate(context) {
 				context.diagnostics
 					.filter(diagnostic => diagnostic.code === 'replaceWithAttribute')
 					.forEach(diagnostic => {
-						const replacementText = diagnostic.message.split(' ').pop(); // e.g., {suse}
+						const replacementText = diagnostic.message.split(' ').pop(); // e.g., {my-attribute}
 						const action = new vscode.CodeAction(`Replace with ${replacementText}`, vscode.CodeActionKind.QuickFix);
 						action.edit = new vscode.WorkspaceEdit();
-						action.edit.replace(document.uri, diagnostic.range, replacementText);
+						action.edit.replace(document.uri, range, replacementText);
 						action.diagnostics = [diagnostic];
 						action.isPreferred = true;
 						codeActions.push(action);
@@ -1965,7 +1988,7 @@ function createEntityValueMap(documentFileName) {
 	// Iterate over the raw entities collected in the first pass.
 	for (const [entityName, entityValue] of nameToValueMap.entries()) {
 		let resolvedValue = entityValue;
-		let match;
+		let match, lastResolvedValue;
 		// Use a Set to track entities seen during the resolution of a single value to detect circular references.
 		const seen = new Set();
 
@@ -1982,9 +2005,15 @@ function createEntityValueMap(documentFileName) {
 			seen.add(nestedEntityName);
 
 			// If the nested entity exists in our map, replace it with its value.
-			if (nameToValueMap.has(nestedEntityName)) {
-				resolvedValue = resolvedValue.replace(match[0], nameToValueMap.get(nestedEntityName));
+			const nestedValue = nameToValueMap.get(nestedEntityName);
+			if (nestedValue !== undefined) {
+				lastResolvedValue = resolvedValue;
+				resolvedValue = resolvedValue.replace(match[0], nestedValue);
 				entityRegex.lastIndex = 0; // Reset regex index to re-scan the modified string
+				if (resolvedValue === lastResolvedValue) {
+					dbg(`Resolution stalled for '${entityName}'. Breaking to prevent infinite loop.`);
+					break;
+				}
 			}
 		}
 
