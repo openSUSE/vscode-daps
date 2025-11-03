@@ -607,7 +607,7 @@ function activate(context) {
 					// Create a new diagnostic (the underline and suggestion in the editor).
 					const diagnostic = new vscode.Diagnostic(
 						range,
-						`Consider replacing with entity ${entityName}`,
+						`Consider replacing with an entity (${entityName.length} options)`,
 						vscode.DiagnosticSeverity.Warning
 					);
 					diagnostic.code = 'replaceWithEntity';
@@ -615,6 +615,8 @@ function activate(context) {
 					diagnostics.push(diagnostic);
 					// Add the range to our list of diagnosed ranges to prevent overlaps.
 					diagnosedRanges.push(range);
+					// Store all possible replacements in the diagnostic object itself for the CodeActionProvider to use.
+					diagnostic.relatedInformation = entityName.map(name => new vscode.DiagnosticRelatedInformation(new vscode.Location(document.uri, range), name));
 				}
 			}
 		});
@@ -761,12 +763,12 @@ function activate(context) {
 				const isOverlapping = diagnosedRanges.some(diagnosedRange => range.intersection(diagnosedRange));
 
 				if (!isOverlapping) {
-					const replacementText = `{${attrName.slice(1, -1)}}`;
-					const diagnostic = new vscode.Diagnostic(
+					let diagnostic = new vscode.Diagnostic(
 						range,
-						`Consider replacing with attribute ${replacementText}`,
+						`Consider replacing with an attribute (${attrName.length} options)`,
 						vscode.DiagnosticSeverity.Warning
 					);
+					diagnostic.relatedInformation = attrName.map(name => new vscode.DiagnosticRelatedInformation(new vscode.Location(document.uri, range), `{${name.slice(1, -1)}}`));
 					diagnostic.code = 'replaceWithAttribute';
 					diagnostic.source = 'DAPS'; // The replacement text is stored in the message
 					diagnostics.push(diagnostic);
@@ -787,19 +789,18 @@ function activate(context) {
 				// Filter the diagnostics at the cursor position to only include our entity replacement suggestions.
 				context.diagnostics
 					.filter(diagnostic => diagnostic.code === 'replaceWithEntity')
-					.forEach(diagnostic => {
-						// Extract the entity name (e.g., "&sliberty;") from the diagnostic message.
-						const replacementText = diagnostic.message.split(' ').pop();
-						// Create a new CodeAction, which is the "Quick Fix" item in the menu.
-						const action = new vscode.CodeAction(`Replace with ${replacementText}`, vscode.CodeActionKind.QuickFix);
-						// Create a WorkspaceEdit to define the text change (replace the string with the entity).
-						action.edit = new vscode.WorkspaceEdit();
-						action.edit.replace(document.uri, diagnostic.range, replacementText);
-						// Associate this action with the specific diagnostic it fixes.
-						action.diagnostics = [diagnostic];
-						// Mark this as the preferred action.
-						action.isPreferred = true;
-						codeActions.push(action);
+					.forEach(diagnostic => {						
+						// The possible replacements are stored in relatedInformation.
+						if (diagnostic.relatedInformation) {
+							diagnostic.relatedInformation.forEach(info => {
+								const replacementText = info.message; // e.g., "&k8s;"
+								const action = new vscode.CodeAction(`Replace with ${replacementText}`, vscode.CodeActionKind.QuickFix);
+								action.edit = new vscode.WorkspaceEdit();
+								action.edit.replace(document.uri, diagnostic.range, replacementText);
+								action.diagnostics = [diagnostic];
+								codeActions.push(action);
+							});
+						}
 					});
 				return codeActions;
 			}
@@ -814,14 +815,17 @@ function activate(context) {
 				const codeActions = [];
 				context.diagnostics
 					.filter(diagnostic => diagnostic.code === 'replaceWithAttribute')
-					.forEach(diagnostic => {
-						const replacementText = diagnostic.message.split(' ').pop(); // e.g., {my-attribute}
-						const action = new vscode.CodeAction(`Replace with ${replacementText}`, vscode.CodeActionKind.QuickFix);
-						action.edit = new vscode.WorkspaceEdit();
-						action.edit.replace(document.uri, range, replacementText);
-						action.diagnostics = [diagnostic];
-						action.isPreferred = true;
-						codeActions.push(action);
+					.forEach(diagnostic => {						
+						if (diagnostic.relatedInformation) {
+							diagnostic.relatedInformation.forEach(info => {
+								const replacementText = info.message; // e.g., "{k8s}"
+								const action = new vscode.CodeAction(`Replace with ${replacementText}`, vscode.CodeActionKind.QuickFix);
+								action.edit = new vscode.WorkspaceEdit();
+								action.edit.replace(document.uri, diagnostic.range, replacementText);
+								action.diagnostics = [diagnostic];
+								codeActions.push(action);
+							});
+						}
 					});
 				return codeActions;
 			}
@@ -1806,7 +1810,14 @@ function getADOCattributes(docFileName) {
 
 		// Store the fully resolved value and its corresponding attribute name in the final map.
 		// The key is the value, and the value is the attribute name formatted for replacement.
-		attributeValueMap.set(resolvedValue, `:${attrName}:`);
+		const formattedAttrName = `:${attrName}:`;
+		if (attributeValueMap.has(resolvedValue)) {
+			// If this value already exists, add the new attribute name to the array.
+			attributeValueMap.get(resolvedValue).push(formattedAttrName);
+		} else {
+			// Otherwise, create a new entry with an array containing this attribute name.
+			attributeValueMap.set(resolvedValue, [formattedAttrName]);
+		}
 	}
 
 	dbg(`getADOCattributes: Found ${attributeValueMap.size} resolved AsciiDoc attributes.`);
@@ -2018,7 +2029,14 @@ function createEntityValueMap(documentFileName) {
 		}
 
 		// Store the fully resolved value and its corresponding entity name in the final map.
-		entityValueMap.set(resolvedValue, `&${entityName};`);
+		const formattedEntityName = `&${entityName};`;
+		if (entityValueMap.has(resolvedValue)) {
+			// If this value already exists, add the new entity name to the array.
+			entityValueMap.get(resolvedValue).push(formattedEntityName);
+		} else {
+			// Otherwise, create a new entry with an array containing this entity name.
+			entityValueMap.set(resolvedValue, [formattedEntityName]);
+		}
 	}
 	dbg(`Number of entity pairs: ${entityValueMap.size}`);
 
