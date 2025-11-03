@@ -5,27 +5,11 @@ const { exec } = require('child_process');
 const { DOMParser } = require('@xmldom/xmldom');
 const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
 const execSync = require('child_process').execSync;
-const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
-const buildTargets = ['html', 'pdf'];
-const dapsConfigGlobal = vscode.workspace.getConfiguration('daps');
-const dbgChannel = vscode.window.createOutputChannel('DAPS');
-let previewPanel = undefined;
 
-
-/**
- * Holds the DAPS terminal instance, or null if it hasn't been created yet.
- */
-var terminal = null;
-for (let i = 0; i < vscode.window.terminals.length; i++) {
-	if (vscode.window.terminals[i].name == 'DAPS') {
-		terminal = vscode.window.terminals[i];
-		break;
-	}
-}
-if (terminal == null) {
-	terminal = vscode.window.createTerminal('DAPS');
-}
-
+// TODO: turn all execSync calls to asynchronous
+// TODO: break down God complex functions
+// TODO: replace almost identical structures with a more robust universal function with try {} catch
+ 
 /**
  * Provides the data for the DocBook structure tree view in the VS Code extension.
  * This class is responsible for managing the tree view, including refreshing the
@@ -148,7 +132,7 @@ class assemblyModulesCodeLensesProvider {
 
 		// Listen for save events to refresh the CodeLenses
 		vscode.workspace.onDidSaveTextDocument((document) => {
-			const pattern = dapsConfigGlobal.get('dbAssemblyPattern');
+			const pattern = vscode.workspace.getConfiguration('daps').get('dbAssemblyPattern');
 			if (vscode.languages.match({ pattern }, document)) {
 				this.refresh(document);
 			}
@@ -397,23 +381,47 @@ class xrefCodeLensProvider {
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+	dbgChannel = vscode.window.createOutputChannel('DAPS');
 	dbg('Congratulations, your extension "daps" is now active!');
 	dbg('Debug channel opened');
 	var extensionPath = context.extensionPath;
 	dbg(`Extension path: ${extensionPath}`);
 	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	const buildTargets = ['html', 'pdf'];
+
+	/**
+	 * Finds or creates the DAPS terminal instance.
+	 * @returns {vscode.Terminal} The DAPS terminal.
+	 */
+	function getDapsTerminal() {
+		for (let i = 0; i < vscode.window.terminals.length; i++) {
+			if (vscode.window.terminals[i].name === 'DAPS') {
+				return vscode.window.terminals[i];
+			}
+		}
+		return vscode.window.createTerminal('DAPS');
+	}
+
+	// Manager for the HTML preview panel state
+	const previewManager = {
+		panel: undefined,
+		dispose: function() {
+			this.panel = undefined;
+		}
+	};
+
 	/**
 	 * E V E N T S    L I S T E N I N G
 	 */
 	// when saving active editor:
 	context.subscriptions.push(
 		vscode.workspace.onDidSaveTextDocument((document) => {			// update scrollmap
-			const fileName = document.uri.path;			
+			const fileName = document.uri.path;
 			const scrollMap = createScrollMap(fileName);
 			// refresh HTML preview
-			if (fileName == getActiveFile() && previewPanel) {
+			if (fileName == getActiveFile() && previewManager.panel) {
 				vscode.commands.executeCommand('daps.docPreview');
-				previewPanel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+				previewManager.panel.webview.postMessage({ command: 'updateMap', map: scrollMap });
 			}
 			// refresh doc structure treeview
 			vscode.commands.executeCommand('docStructureTreeView.refresh');
@@ -597,7 +605,7 @@ function activate(context) {
 				const startPos = document.positionAt(match.index);
 				const endPos = document.positionAt(match.index + match[0].length);
 				const range = new vscode.Range(startPos, endPos);
-				
+
 				// Check if the new range overlaps with any range that has already been diagnosed.
 				// This prevents suggesting a replacement for "SUSE" if "SUSE Observability" has already been matched.
 				const isOverlapping = diagnosedRanges.some(diagnosedRange => range.intersection(diagnosedRange));
@@ -789,7 +797,7 @@ function activate(context) {
 				// Filter the diagnostics at the cursor position to only include our entity replacement suggestions.
 				context.diagnostics
 					.filter(diagnostic => diagnostic.code === 'replaceWithEntity')
-					.forEach(diagnostic => {						
+					.forEach(diagnostic => {
 						// The possible replacements are stored in relatedInformation.
 						if (diagnostic.relatedInformation) {
 							diagnostic.relatedInformation.forEach(info => {
@@ -815,7 +823,7 @@ function activate(context) {
 				const codeActions = [];
 				context.diagnostics
 					.filter(diagnostic => diagnostic.code === 'replaceWithAttribute')
-					.forEach(diagnostic => {						
+					.forEach(diagnostic => {
 						if (diagnostic.relatedInformation) {
 							diagnostic.relatedInformation.forEach(info => {
 								const replacementText = info.message; // e.g., "{k8s}"
@@ -920,7 +928,7 @@ function activate(context) {
 	 * referenced assembly modules.
 	 */
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({
-		pattern: dapsConfigGlobal.get('dbAssemblyPattern')
+		pattern: dapsConfig.get('dbAssemblyPattern')
 	}, new assemblyModulesCodeLensesProvider(context)));
 
 	/**
@@ -1000,8 +1008,8 @@ function activate(context) {
 		const activeEditorDir = getActiveEditorDir();
 		dbg(`preview:activeEditorDir ${activeEditorDir}`);
 		// create a new webView if it does not exist yet
-		if (previewPanel === undefined) {
-			previewPanel = vscode.window.createWebviewPanel(
+		if (previewManager.panel === undefined) {
+			previewManager.panel = vscode.window.createWebviewPanel(
 				'htmlPreview', // Identifies the type of the webview
 				'HTML Preview', // Title displayed in the panel
 				vscode.ViewColumn.Two, // Editor column to show the webview panel
@@ -1039,7 +1047,7 @@ function activate(context) {
 			}
 			dbg(`preview:final imgUri: ${imgUri}`);
 			// create img URI that the webview can swollow
-			const imgWebviewUri = previewPanel.webview.asWebviewUri(imgUri);
+			const imgWebviewUri = previewManager.panel.webview.asWebviewUri(imgUri);
 			dbg(`preview:imgWebviewUri ${imgWebviewUri}`);
 			// Return the updated <img> tag with the new src
 			return `<img src="${imgWebviewUri}"`;
@@ -1139,17 +1147,17 @@ document.addEventListener('scroll', () => {
 		const scrollMap = createScrollMap(vscode.window.activeTextEditor.document.fileName);
 		dbg(`preview:scrollmap:length ${scrollMap.length}`);
 
-		previewPanel.webview.html = html;
-		previewPanel.webview.postMessage({ command: 'updateMap', map: scrollMap });
-		previewPanel.onDidDispose(() => {
-			previewPanel = undefined;
+		previewManager.panel.webview.html = html;
+		previewManager.panel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+		previewManager.panel.onDidDispose(() => {
+			previewManager.dispose();
 		});
 
 		// listen to scroll messages from the active editor
 		vscode.window.onDidChangeTextEditorVisibleRanges(event => {
 			const editor = event.textEditor;
 			const topLine = editor.visibleRanges[0].start.line;
-			previewPanel.webview.postMessage({ command: 'syncScroll', line: topLine });
+			previewManager.panel.webview.postMessage({ command: 'syncScroll', line: topLine });
 		});
 		// Listen to scroll messages from the WebView
 		let previewLinkScrollBoth = dapsConfig.get('previewLinkScrollBoth');
@@ -1223,6 +1231,11 @@ document.addEventListener('scroll', () => {
 	 * @returns true or false depending on how validation happened
 	 */
 	context.subscriptions.push(vscode.commands.registerCommand('daps.validate', async function validate(contextDCfile) {
+		if (!vscode.workspace.workspaceFolders) {
+			vscode.window.showErrorMessage("Cannot run DAPS command: No workspace folder is open.");
+			return false;
+		}
+		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		var DCfile = await getDCfile(contextDCfile);
 		if (DCfile) {
 			// assemble daps command
@@ -1234,6 +1247,7 @@ document.addEventListener('scroll', () => {
 			// decide whether to run terminal
 			try {
 				if (dapsConfig.get('runTerminal')) {
+					const terminal = getDapsTerminal();
 					dbg('Running command in terminal');
 					terminal.sendText(dapsCmd);
 					terminal.show(true);
@@ -1255,6 +1269,11 @@ document.addEventListener('scroll', () => {
 	 * @returns true or false depending on how the build happened
 	 */
 	context.subscriptions.push(vscode.commands.registerCommand('daps.buildDCfile', async function buildDCfile(contextDCfile) {
+		if (!vscode.workspace.workspaceFolders) {
+			vscode.window.showErrorMessage("Cannot run DAPS command: No workspace folder is open.");
+			return false;
+		}
+		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		var buildTarget;
 		var DCfile = await getDCfile(contextDCfile);
 		// try if buildTarget is included in settings or get it from user
@@ -1279,6 +1298,7 @@ document.addEventListener('scroll', () => {
 				process.chdir(workspaceFolderUri.path);
 				dbg(`cwd is ${workspaceFolderUri.path}`);
 				if (dapsConfig.get('runTerminal')) {
+					const terminal = getDapsTerminal();
 					dbg('Running command in terminal');
 					terminal.sendText(dapsCmd);
 					terminal.show(true);
@@ -1329,6 +1349,7 @@ document.addEventListener('scroll', () => {
 			try {
 				await autoSave(XMLfile);
 				if (dapsConfig.get('runTerminal')) {
+					const terminal = getDapsTerminal();
 					dbg('Running command in terminal');
 					terminal.sendText(dapsCmd);
 					terminal.show(true);
@@ -1356,6 +1377,11 @@ document.addEventListener('scroll', () => {
 		}
 	}));
 	context.subscriptions.push(vscode.commands.registerCommand('daps.buildRootId', async function buildRootId(contextFileURI) {
+		if (!vscode.workspace.workspaceFolders) {
+			vscode.window.showErrorMessage("Cannot run DAPS command: No workspace folder is open.");
+			return;
+		}
+		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		var buildTarget = await getBuildTarget();
 		var DCfile = await getDCfile();
 		var rootId = await getRootId(contextFileURI, DCfile);
@@ -1373,6 +1399,7 @@ document.addEventListener('scroll', () => {
 				process.chdir(workspaceFolderUri.path);
 				dbg(`cwd is ${workspaceFolderUri.path}`);
 				if (dapsConfig.get('runTerminal')) {
+					const terminal = getDapsTerminal();
 					dbg('Running command in terminal');
 					terminal.sendText(dapsCmd);
 					terminal.show(true);
@@ -1478,6 +1505,11 @@ document.addEventListener('scroll', () => {
 	 * @returns {string} discovered root ID
 	 */
 	async function getRootId(contextFileURI, DCfile) {
+		if (!vscode.workspace.workspaceFolders) {
+			vscode.window.showErrorMessage("Cannot get Root ID: No workspace folder is open.");
+			return;
+		}
+		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		var rootId;
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		if (contextFileURI) { // check if rootId was passed as argument
@@ -1497,6 +1529,11 @@ document.addEventListener('scroll', () => {
 		return rootId;
 	}
 	function getRootIds(DCfile) {
+		if (!vscode.workspace.workspaceFolders) {
+			vscode.window.showErrorMessage("Cannot get Root IDs: No workspace folder is open.");
+			return [];
+		}
+		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		process.chdir(workspaceFolderUri.path);
 		dbg(`cwd is ${workspaceFolderUri.path}`);
 		var rootIdsCmd = `sh -c "cat \`daps -d ${DCfile} bigfile | tail -n1\` | xsltproc ${extensionPath}/xslt/get-ids-from-structure.xsl - | cut -d# -f2"`;
@@ -1576,6 +1613,12 @@ function dbg(msg) {
  * @returns {array} of DC files from the current directory
  */
 function getDCfiles(folderUri) {
+	if (!folderUri) {
+		// If no folder is open, we can't get DC files.
+		if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+			folderUri = vscode.workspace.workspaceFolders[0].uri;
+		} else return [];
+	}
 	dbg(`folder: ${folderUri.path}`);
 	var allFiles = fs.readdirSync(folderUri.path);
 	dbg(`no of all files: ${allFiles.length}`)
@@ -1590,6 +1633,11 @@ function getDCfiles(folderUri) {
  * @returns {string} DCfile name
  */
 async function getDCfile() {
+	if (!vscode.workspace.workspaceFolders) {
+		vscode.window.showErrorMessage("Cannot get DC file: No workspace folder is open.");
+		return;
+	}
+	const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 	var DCfile;
 	const dapsConfig = vscode.workspace.getConfiguration('daps');
 	if (DCfile = arguments[0]) { // check if DCfile URI was passed as argument
