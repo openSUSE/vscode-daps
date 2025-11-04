@@ -184,10 +184,10 @@ class assemblyModulesCodeLensesProvider {
 				const activeRange = new vscode.Range(lineNumber, 0, lineNumber, 0);
 				const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath;
 				const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
-			const showAssemblyCodelens = vscode.workspace.getConfiguration('daps').get('showAssemblyCodelens');
+				const showAssemblyCodelens = vscode.workspace.getConfiguration('daps').get('showAssemblyCodelens');
 				// Add peek action
-			if (showAssemblyCodelens == 'peek'
-				|| showAssemblyCodelens == 'both') {
+				if (showAssemblyCodelens == 'peek'
+					|| showAssemblyCodelens == 'both') {
 					const peekUri = vscode.Uri.file(`${directoryPath}/${resources[resourceRef]}`);
 					codeLenses.push(new vscode.CodeLens(activeRange, {
 						title: `Peek into ${path.basename(resources[resourceRef])} `,
@@ -197,8 +197,8 @@ class assemblyModulesCodeLensesProvider {
 				}
 
 				// Add open action 
-			if (showAssemblyCodelens == 'link'
-				|| showAssemblyCodelens == 'both') {
+				if (showAssemblyCodelens == 'link'
+					|| showAssemblyCodelens == 'both') {
 					codeLenses.push(new vscode.CodeLens(activeRange, {
 						title: "Open in a new tab",
 						command: 'daps.openFile',
@@ -387,7 +387,7 @@ function activate(context) {
 	dbg('Debug channel opened');
 	var extensionPath = context.extensionPath;
 	dbg(`Extension path: ${extensionPath}`);
-	
+
 
 	/**
 	 * Finds or creates the DAPS terminal instance.
@@ -622,6 +622,7 @@ function activate(context) {
 			}
 
 			while ((match = regex.exec(text)) !== null) {
+				dbg(`entity match: ${match[0]}`);
 				// Check if the match is already part of an entity reference (e.g., `&cockpit;`).
 				const charBefore = text.charAt(match.index - 1);
 				const charAfter = text.charAt(match.index + match[0].length);
@@ -1976,7 +1977,7 @@ function searchInFiles(rootDir, excludeDirs, searchTerm, filePattern) {
 			}
 			// skip directories that are to be excluded
 			if (excludeDirs.includes(path.basename(filePath))) {
-				dbg(`codelens:xref skipping exclideDir: ${path.basename(filePath)}`);
+				dbg(`codelens:xref skipping excludeDir: ${path.basename(filePath)}`);
 				return;
 			}
 			// Recursive call for subdirectories
@@ -2010,6 +2011,12 @@ function searchInFiles(rootDir, excludeDirs, searchTerm, filePattern) {
  * @returns {Map<string, string>} A map from entity values to entity names.
  */
 function createEntityValueMap(documentFileName) {
+	// Helper function to strip XML markup from a string
+	function stripMarkup(text) {
+		const markupRegex = /<[^>]*>/g;
+		return text.replace(markupRegex, '');
+	}
+
 	// Get a list of all XML entity files associated with the current document.
 	const entityFiles = getXMLentityFiles(documentFileName);
 	// This map will store the initial name-to-value mapping, e.g., 'sliberty' -> '&suse; Liberty Linux'.
@@ -2025,23 +2032,26 @@ function createEntityValueMap(documentFileName) {
 			const fileContent = fs.readFileSync(entFile, 'utf8');
 			// Regular expression to capture an entity's name and its value, excluding complex values.
 			// The 'g' flag allows finding all matches, and 's' (dotAll) allows '.' to match newlines.
-			const entityRegex = /<!ENTITY\s+([^\s]+)\s+"([^"<>\[\]]+)"/gs;
+			const entityRegex = /<!ENTITY\s+([^\s]+)\s+"([^"]+)"/gs;
 			let match;
 
 			// Process the entire file content to find all entity definitions.
 			while ((match = entityRegex.exec(fileContent)) !== null) {
 				const [, entityName, entityValue] = match;
 
+				// Replace &nbsp; with a regular space and &reg; with * to avoid resolution issues.
+				const cleanedValue = entityValue.replace(/&nbsp;/g, ' ').replace(/&reg;/g, '*');
+
 				// Exclude entities that contain numeric character references (e.g., &#x000AE;).
-				if (/&#\S+;/.test(entityValue)) {
+				if (/&#\S+;/.test(cleanedValue)) {
 					dbg(`Skipping entity '${entityName}' because its value contains a numeric character reference.`);
 					continue;
 				}
 
-				// Replace &nbsp; with a regular space and &reg; with * to avoid resolution issues.
-				const cleanedValue = entityValue.replace(/&nbsp;/g, ' ').replace(/&reg;/g, '*');
+				// Strip any XML tags from the entity's value.
+				const strippedValue = stripMarkup(cleanedValue);
 				// Store the raw (but cleaned) entity definition.
-				nameToValueMap.set(entityName, cleanedValue);
+				nameToValueMap.set(entityName, strippedValue);
 			}
 		} catch (error) {
 			// Log any errors that occur during file reading or parsing.
@@ -2052,6 +2062,7 @@ function createEntityValueMap(documentFileName) {
 	// --- 2. Second pass: Resolve nested entities and create the final value-to-name map. ---
 	// This map will store the final, fully resolved value to its entity name, e.g., 'SUSE Liberty Linux' -> '&sliberty;'.
 	const entityValueMap = new Map();
+
 	// Regex to find entity references (e.g., &entityname;) within a string.
 	const entityRegex = /&([a-zA-Z0-9_.-]+);/g;
 
@@ -2059,6 +2070,7 @@ function createEntityValueMap(documentFileName) {
 	for (const [entityName, entityValue] of nameToValueMap.entries()) {
 		let resolvedValue = entityValue;
 		let match, lastResolvedValue;
+
 		// Use a Set to track entities seen during the resolution of a single value to detect circular references.
 		const seen = new Set();
 
@@ -2087,20 +2099,24 @@ function createEntityValueMap(documentFileName) {
 			}
 		}
 
+		// Strip XML markup from the fully resolved value before using it as a map key.
+		const strippedValue = stripMarkup(resolvedValue);
+
 		// Store the fully resolved value and its corresponding entity name in the final map.
 		const formattedEntityName = `&${entityName};`;
-		if (entityValueMap.has(resolvedValue)) {
+		if (entityValueMap.has(strippedValue)) {
 			// If this value already exists, add the new entity name to the array.
-			entityValueMap.get(resolvedValue).push(formattedEntityName);
+			entityValueMap.get(strippedValue).push(formattedEntityName);
 		} else {
 			// Otherwise, create a new entry with an array containing this entity name.
-			entityValueMap.set(resolvedValue, [formattedEntityName]);
+			entityValueMap.set(strippedValue, [formattedEntityName]);
 		}
 	}
 	dbg(`Number of entity pairs: ${entityValueMap.size}`);
 
 	return entityValueMap;
 }
+
 
 // This method is called when your extension is deactivated
 function deactivate() { }

@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.8.4
+- improved entity matching by including stripped entities with XML markup
+- streamlined process for executing daps commands
+- consolidated reading of config options
 ## 0.8.3
 - improved entity/attribute replacement allowing multiple options
 - refactored the code to get rid of global variables that called VSCode API
