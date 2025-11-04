@@ -5,11 +5,11 @@ const { exec } = require('child_process');
 const { DOMParser } = require('@xmldom/xmldom');
 const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
 const execSync = require('child_process').execSync;
+const buildTargets = ['html', 'pdf'];
 
 // TODO: turn all execSync calls to asynchronous
 // TODO: break down God complex functions
-// TODO: replace almost identical structures with a more robust universal function with try {} catch
- 
+
 /**
  * Provides the data for the DocBook structure tree view in the VS Code extension.
  * This class is responsible for managing the tree view, including refreshing the
@@ -184,10 +184,10 @@ class assemblyModulesCodeLensesProvider {
 				const activeRange = new vscode.Range(lineNumber, 0, lineNumber, 0);
 				const activeEditorPath = vscode.window.activeTextEditor.document.uri.fsPath;
 				const directoryPath = activeEditorPath.substring(0, activeEditorPath.lastIndexOf('/'));
-				const dapsConfig = vscode.workspace.getConfiguration('daps');
+			const showAssemblyCodelens = vscode.workspace.getConfiguration('daps').get('showAssemblyCodelens');
 				// Add peek action
-				if (dapsConfig.get('showAssemblyCodelens') == 'peek'
-					|| dapsConfig.get('showAssemblyCodelens') == 'both') {
+			if (showAssemblyCodelens == 'peek'
+				|| showAssemblyCodelens == 'both') {
 					const peekUri = vscode.Uri.file(`${directoryPath}/${resources[resourceRef]}`);
 					codeLenses.push(new vscode.CodeLens(activeRange, {
 						title: `Peek into ${path.basename(resources[resourceRef])} `,
@@ -197,8 +197,8 @@ class assemblyModulesCodeLensesProvider {
 				}
 
 				// Add open action 
-				if (dapsConfig.get('showAssemblyCodelens') == 'link'
-					|| dapsConfig.get('showAssemblyCodelens') == 'both') {
+			if (showAssemblyCodelens == 'link'
+				|| showAssemblyCodelens == 'both') {
 					codeLenses.push(new vscode.CodeLens(activeRange, {
 						title: "Open in a new tab",
 						command: 'daps.openFile',
@@ -219,8 +219,6 @@ class assemblyModulesCodeLensesProvider {
 class xrefCodeLensProvider {
 	constructor(context) {
 		this.context = context;
-		this.dapsConfig = vscode.workspace.getConfiguration('daps');
-		this.excludeDirs = this.dapsConfig.get('xrefCodelensExcludeDirs');
 		this._cachedCodeLenses = new Map();
 
 		// Event emitter to trigger code lens updates
@@ -257,7 +255,9 @@ class xrefCodeLensProvider {
 	}
 
 	_computeCodeLenses(document) {
-		dbg(`codelens:xrefCodelensExcludeDirs: ${this.excludeDirs}`);
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		const excludeDirs = dapsConfig.get('xrefCodelensExcludeDirs');
+		dbg(`codelens:xrefCodelensExcludeDirs: ${excludeDirs}`);
 		const fileType = document.languageId;
 		dbg(`codelens:xref:languageId: ${fileType}`);
 		const xrefElements = this._extractXrefElements(document, fileType);
@@ -271,7 +271,7 @@ class xrefCodeLensProvider {
 			dbg(`codelens:xref:xrefLinkend: ${xrefLinkend}`);
 			const matchedReferers = searchInFiles(
 				workspaceFolderUri.fsPath,
-				this.excludeDirs,
+				excludeDirs,
 				this._getSearchPattern(xrefLinkend, fileType),
 				fileType === "asciidoc" ? /\.adoc$/ : /\.xml$/
 			);
@@ -288,12 +288,13 @@ class xrefCodeLensProvider {
 			matchedReferers.forEach((referer, index) => {
 				dbg(`codelens:xref:matchedReferer ${index}: ${referer.file}`);
 
-				if (this.dapsConfig.get('showXrefCodelens') === 'peek' || this.dapsConfig.get('showXrefCodelens') === 'both') {
+				const showXrefCodelens = dapsConfig.get('showXrefCodelens');
+				if (showXrefCodelens === 'peek' || showXrefCodelens === 'both') {
 					const codeLensPeek = this._createPeekCodeLens(document, activeRange, referer);
 					codeLenses.push(codeLensPeek);
 				}
 
-				if (this.dapsConfig.get('showXrefCodelens') === 'link' || this.dapsConfig.get('showXrefCodelens') === 'both') {
+				if (showXrefCodelens === 'link' || showXrefCodelens === 'both') {
 					const codeLensOpen = this._createOpenCodeLens(activeRange, referer);
 					codeLenses.push(codeLensOpen);
 				}
@@ -386,8 +387,7 @@ function activate(context) {
 	dbg('Debug channel opened');
 	var extensionPath = context.extensionPath;
 	dbg(`Extension path: ${extensionPath}`);
-	const dapsConfig = vscode.workspace.getConfiguration('daps');
-	const buildTargets = ['html', 'pdf'];
+	
 
 	/**
 	 * Finds or creates the DAPS terminal instance.
@@ -405,7 +405,7 @@ function activate(context) {
 	// Manager for the HTML preview panel state
 	const previewManager = {
 		panel: undefined,
-		dispose: function() {
+		dispose: function () {
 			this.panel = undefined;
 		}
 	};
@@ -486,13 +486,57 @@ function activate(context) {
 	}
 
 	/**
+	 * Executes a DAPS command with error handling.
+	 *
+	 * @param {string} command - The DAPS command to execute.
+	 * @param {string} successMessage - The message to display on success.
+	 * @param {function} successCallback - An optional callback function to execute on success.
+	 * @returns {boolean} - True if the command executed successfully, false otherwise.
+	 */
+	async function executeDapsCommand(command, successMessage, successCallback) {
+		if (!vscode.workspace.workspaceFolders) {
+			vscode.window.showErrorMessage("Cannot run DAPS command: No workspace folder is open.");
+			return false;
+		}
+		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		try {
+			// Change working directory to current workspace
+			process.chdir(workspaceFolderUri.path);
+			dbg(`cwd is ${workspaceFolderUri.path}`);
+
+			// Execute the command in a terminal or via execSync
+			if (dapsConfig.get('runTerminal')) {
+				const terminal = getDapsTerminal();
+				dbg('Running command in terminal');
+				terminal.sendText(command);
+				terminal.show(true);
+			} else {
+				vscode.window.showInformationMessage(`Running ${command}`);
+				let cmdOutput = execSync(command);
+				if (successCallback) {
+					await successCallback(cmdOutput);
+				}
+				vscode.window.showInformationMessage(successMessage);
+			}
+			return true;
+		} catch (err) {
+			vscode.window.showErrorMessage(`Command failed: ${err}`);
+			return false;
+		}
+	}
+
+
+
+	/**
 	 * Analyzes the document for strings that can be replaced by an XML entity and creates diagnostics.
 	 * @param {vscode.TextDocument} document The document to analyze.
 	 */
 	function updateEntityDiagnostics(document) {
 		// Get the extension's configuration to check if the feature is enabled.
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
-		if (!dapsConfig.get('replaceWithXMLentity') || document.languageId !== 'xml') {
+		const replaceWithXMLentity = dapsConfig.get('replaceWithXMLentity');
+		if (!replaceWithXMLentity || document.languageId !== 'xml') {
 			// If the feature is disabled or the file is not XML, clear any existing diagnostics and exit.
 			entityDiagnostics.clear();
 			return;
@@ -639,7 +683,8 @@ function activate(context) {
 	 */
 	function updateAttributeDiagnostics(document) {
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
-		if (!dapsConfig.get('replaceWithADOCattribute') || document.languageId !== 'asciidoc') {
+		const replaceWithADOCattribute = dapsConfig.get('replaceWithADOCattribute');
+		if (!replaceWithADOCattribute || document.languageId !== 'asciidoc') {
 			attributeDiagnostics.clear();
 			return;
 		}
@@ -851,7 +896,7 @@ function activate(context) {
 	vscode.commands.registerCommand('daps.focusLineInActiveEditor', async (lineNumber) => {
 		const activeTextEditor = vscode.window.activeTextEditor;
 		if (activeTextEditor) {
-			const dapsConfig = vscode.workspace.getConfiguration('daps');
+			const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
 
 			if (dapsConfig.get('onClickedStructureItemMoveCursor')) {
 				// Ensure the lineNumber is within valid bounds
@@ -903,7 +948,7 @@ function activate(context) {
 	 * command for opening editor, optionally in a split window
 	 */
 	vscode.commands.registerCommand('daps.openFile', async (file, line) => {
-		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
 		const viewMode = dapsConfig.get('openFileSplit') ? vscode.ViewColumn.Beside : { preview: false };
 
 		try {
@@ -928,7 +973,7 @@ function activate(context) {
 	 * referenced assembly modules.
 	 */
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({
-		pattern: dapsConfig.get('dbAssemblyPattern')
+		pattern: vscode.workspace.getConfiguration('daps').get('dbAssemblyPattern')
 	}, new assemblyModulesCodeLensesProvider(context)));
 
 	/**
@@ -944,8 +989,7 @@ function activate(context) {
 	/**
 	 * enable autocomplete XML entities from external files
 	 */
-	if (dapsConfig.get('autocompleteXMLentities')) {
-		dbg(`autocompleteXMLentities: ${dapsConfig.get('autocompleteXMLentities')}`)
+	if (vscode.workspace.getConfiguration('daps').get('autocompleteXMLentities')) {
 		context.subscriptions.push(vscode.languages.registerCompletionItemProvider('xml', {
 			provideCompletionItems(document, position, token, context) {
 				dbg(`entity:doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
@@ -1001,7 +1045,7 @@ function activate(context) {
 	 */
 	context.subscriptions.push(vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
 		// get img src path from config
-		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
 		// path to images
 		let docPreviewImgPath = dapsConfig.get('docPreviewImgPath');
 		dbg(`preview:docPreviewImgPath ${docPreviewImgPath}`);
@@ -1160,7 +1204,7 @@ document.addEventListener('scroll', () => {
 			previewManager.panel.webview.postMessage({ command: 'syncScroll', line: topLine });
 		});
 		// Listen to scroll messages from the WebView
-		let previewLinkScrollBoth = dapsConfig.get('previewLinkScrollBoth');
+		let previewLinkScrollBoth = vscode.workspace.getConfiguration('daps').get('previewLinkScrollBoth');
 		if (previewLinkScrollBoth) {
 			previewPanel.webview.onDidReceiveMessage(async (message) => {
 				switch (message.command) {
@@ -1238,27 +1282,10 @@ document.addEventListener('scroll', () => {
 		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		var DCfile = await getDCfile(contextDCfile);
 		if (DCfile) {
-			// assemble daps command
 			const dapsCmd = getDapsCmd({ DCfile: DCfile, cmd: 'validate' });
-			const dapsConfig = vscode.workspace.getConfiguration('daps');
-			// change working directory to current workspace
-			process.chdir(workspaceFolderUri.path);
-			dbg(`cwd is ${workspaceFolderUri.path}`);
-			// decide whether to run terminal
-			try {
-				if (dapsConfig.get('runTerminal')) {
-					const terminal = getDapsTerminal();
-					dbg('Running command in terminal');
-					terminal.sendText(dapsCmd);
-					terminal.show(true);
-				} else {
-					vscode.window.showInformationMessage(`Running ${dapsCmd}`);
-					execSync(dapsCmd);
-					vscode.window.showInformationMessage('Validation succeeded.');
-				}
+			const success = await executeDapsCommand(dapsCmd, 'Validation succeeded.');
+			if (success) {
 				return true;
-			} catch (err) {
-				vscode.window.showErrorMessage(`Validation failed: ${err}`);
 			}
 		}
 		return false;
@@ -1292,7 +1319,6 @@ document.addEventListener('scroll', () => {
 				buildTarget: buildTarget,
 			}
 			var dapsCmd = getDapsCmd(params);
-			const dapsConfig = vscode.workspace.getConfiguration('daps');
 			try {
 				// change working directory to current workspace
 				process.chdir(workspaceFolderUri.path);
@@ -1345,7 +1371,7 @@ document.addEventListener('scroll', () => {
 				params['options'].push('--single');
 			}
 			var dapsCmd = getDapsCmd(params);
-			const dapsConfig = vscode.workspace.getConfiguration('daps');
+			const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
 			try {
 				await autoSave(XMLfile);
 				if (dapsConfig.get('runTerminal')) {
@@ -1393,37 +1419,22 @@ document.addEventListener('scroll', () => {
 				rootId: rootId
 			}
 			const dapsCmd = getDapsCmd(params);
-			const dapsConfig = vscode.workspace.getConfiguration('daps');
-			try {
-				// change working directory to current workspace
-				process.chdir(workspaceFolderUri.path);
-				dbg(`cwd is ${workspaceFolderUri.path}`);
-				if (dapsConfig.get('runTerminal')) {
-					const terminal = getDapsTerminal();
-					dbg('Running command in terminal');
-					terminal.sendText(dapsCmd);
-					terminal.show(true);
-				} else {
-					vscode.window.showInformationMessage(`Running ${dapsCmd}`);
-					let cmdOutput = execSync(dapsCmd);
-					let targetBuild = cmdOutput.toString().trim();
-					if (buildTarget == 'html') {
-						targetBuild = targetBuild + 'index.html';
-					}
-					dbg('target build: ' + targetBuild);
-					vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
-						dbg(selected);
-						if (selected === 'Open document') {
-							exec('xdg-open ' + targetBuild);
-						} else if (selected === 'Copy link') {
-							vscode.env.clipboard.writeText(targetBuild);
-						}
-					});
+			const success = await executeDapsCommand(dapsCmd, 'Build succeeded.', async (cmdOutput) => {
+				let targetBuild = cmdOutput.toString().trim();
+				if (buildTarget == 'html') {
+					targetBuild = targetBuild + 'index.html';
 				}
-				return true;
-			} catch (err) {
-				vscode.window.showErrorMessage(`Build failed: ${err.message}`);
-			}
+				dbg('target build: ' + targetBuild);
+				vscode.window.showInformationMessage('Build succeeded.', 'Open document', 'Copy link').then(selected => {
+					dbg(selected);
+					if (selected === 'Open document') {
+						exec('xdg-open ' + targetBuild);
+					} else if (selected === 'Copy link') {
+						vscode.env.clipboard.writeText(targetBuild);
+					}
+				});
+			});
+			return success;
 		}
 		return false;
 	}));
@@ -1444,7 +1455,7 @@ document.addEventListener('scroll', () => {
 			var dapsXMLformatCmd = null;
 			// vscode.window.showInformationMessage(`XMLformatting ${XMLfile}`);
 			await autoSave(XMLfile);
-			const dapsConfig = vscode.workspace.getConfiguration('daps');
+			const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
 			dapsXMLformatCmd = `${dapsConfig.get('XMLformatExecutable')} -i ${XMLfile}`;
 			if (dapsConfig.get('XMLformatConfigFile')) {
 				dapsXMLformatCmd += ` -f ${dapsConfig.get('XMLformatConfigFile')}`
@@ -1511,7 +1522,7 @@ document.addEventListener('scroll', () => {
 		}
 		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		var rootId;
-		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
 		if (contextFileURI) { // check if rootId was passed as argument
 			const editor = vscode.window.activeTextEditor;
 			const selection = editor.selection;
@@ -1548,7 +1559,7 @@ document.addEventListener('scroll', () => {
 	 * @returns {boolean}
 	 */
 	async function autoSave(XMLfile) {
-		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
 		if (dapsConfig.get('autoSave') == true) {
 			//var document = vscode.Uri.parse(XMLfile);
 			const textDocuments = vscode.workspace.textDocuments;
@@ -1639,7 +1650,7 @@ async function getDCfile() {
 	}
 	const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 	var DCfile;
-	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
 	if (DCfile = arguments[0]) { // check if DCfile URI was passed as argument
 		// if yes, use only the base name from the full URI
 		DCfile = DCfile.path.split('/').pop();
@@ -1660,7 +1671,7 @@ async function getDCfile() {
  */
 async function getBuildTarget() {
 	// try if buildTarget is included in settings or get it from user
-	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
 	var buildTarget;
 	if (buildTarget = dapsConfig.get('buildTarget')) {
 		dbg(`buildTarget from config: ${buildTarget}`);

@@ -1,13 +1,13 @@
 {
-  "name": "daps",
-  "displayName": "DAPS",
+  "name": "dapsy",
+  "displayName": "DAPSy",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
   "version": "0.8.3",
   "repository": "https://github.com/openSUSE/vscode-daps",
-  "publisher": "openSUSE",
+  "publisher": "bazantici",
   "author": {
     "name": "Tomáš Bažant",
-    "email": "tbazant@suse.cz"
+    "email": "tomik.bazik@gmail.com"
   },
   "icon": "icon.png",
   "engines": {
