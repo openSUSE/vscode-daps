@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<?asciidoc-toc?><?asciidoc-numbered?><book xmlns="http://docbook.org/ns/docbook" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
+<info>
+<title>Tests for vscode-daps features</title>
+<date>2025-07-31</date>
+</info>
+<chapter xml:id="id-entity-replacement">
+<title>Entity replacement</title>
+<para>Kubernetes is a cluster solution.
+Kubernetes is a great cluster solution.</para>
+</chapter>
+</book>

@@ -1,0 +1,11 @@
+:doctype: book
+:experimental:
+
+include::generic-attributes.adoc[]
+
+= Tests for vscode-daps features
+
+== Entity replacement
+Kubernetes is a cluster solution.
+{kube} is a great cluster solution.
+
