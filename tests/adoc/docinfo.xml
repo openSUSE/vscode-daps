@@ -1,0 +1,42 @@
+<!-- History -->
+<revhistory xml:id="rh-article-private-registry">
+  <revision><date>2025-09-04</date>
+    <revdescription>
+      <para>
+        Release notes added to version 1.0
+      </para>
+    </revdescription>
+  </revision>
+  <revision><date>2025-09-01</date>
+    <revdescription>
+      <para>
+        Initial public release
+      </para>
+    </revdescription>
+  </revision>
+</revhistory>
+<!-- Series -->
+<meta name="series" its:translate="no" xmlns:its="http://www.w3.org/2005/11/its">Products &amp; Solutions</meta>
+<!-- Task -->
+<meta name="task" its:translate="no" xmlns:its="http://www.w3.org/2005/11/its" >
+  <phrase>Container Management</phrase>
+</meta>
+<meta name="category"><phrase>Systems Management</phrase></meta>
+<!-- Docmanager -->
+<dm:docmanager xmlns:dm="urn:x-suse:ns:docmanager">
+  <dm:bugtracker>
+    <dm:url>https://bugzilla.suse.com/enter_bug.cgi</dm:url>
+    <dm:component>Trento</dm:component>
+    <dm:product>Documentation</dm:product>
+    <dm:assignee>tbazant@suse.com</dm:assignee>
+  </dm:bugtracker>
+  <dm:translation>no</dm:translation>
+</dm:docmanager>
+<!-- Social Media -->
+<meta name="title" its:translate="yes"
+      xmlns:its="http://www.w3.org/2005/11/its">Getting Started with {productname}</meta>
+<meta name="social-descr" its:translate="yes"
+      xmlns:its="http://www.w3.org/2005/11/its">Basic steps to deploy and use {productname}</meta>
+<!-- Search -->
+<meta name="description" its:translate="yes"
+xmlns:its="http://www.w3.org/2005/11/its">{productnameshort} a container registry for {SUSE} customers.</meta>

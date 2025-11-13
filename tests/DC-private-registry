@@ -1,0 +1,17 @@
+# Sources
+MAIN=book.adoc
+SRC_DIR=adoc/
+IMG_SRC_DIR=images
+
+
+# ASCIIDoc options
+ADOC_POST=yes
+ADOC_TYPE=book
+ADOC_ATTRIBUTES=" --attribute env-daps=1"
+
+# Stylesheets
+STYLEROOT="/usr/share/xml/docbook/stylesheet/suse2022-ns"
+FALLBACK_STYLEROOT="/usr/share/xml/docbook/stylesheet/suse-ns"
+
+# DocBook Validation
+DOCBOOK5_RNG_URI="http://docbook.org/xml/5.0/rng/docbookxi.rng"

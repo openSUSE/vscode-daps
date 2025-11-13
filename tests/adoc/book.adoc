@@ -1,0 +1,46 @@
+:doctype: book
+:experimental:
+:docinfo:
+:toc: left
+
+include::generic-attributes.adoc[]
+
+= Getting started with {productname}
+:revdate: 2025-10-15
+:page-revdate: {revdate}
+
+// Release Notes
+[preface]
+include::release_notes.adoc[]
+
+// Copyright
+[preface]
+include::common_copyright_gfdl.adoc[]
+
+ifdef::env-github[]
+:imagesdir: ../images/
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+// Introduction
+include::introduction.adoc[]
+
+// Deployment
+include::deployment.adoc[]
+
+// Deployment HA
+include::deployment_ha.adoc[]
+
+// Appendix
+[appendix]
+include::helm_chart_override.adoc[]
+
+[appendix]
+include::ha_helm_chart_example.adoc[]
+
+[appendix]
+include::common_license_gfdl1.2.adoc[]

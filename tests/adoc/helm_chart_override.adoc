@@ -1,0 +1,426 @@
+include::generic-attributes.adoc[]
+
+[#pr-helm-chart-override]
+== Overriding the {productname} {helm} chart
+:revdate: 2025-10-15
+:page-revdate: {revdate}
+
+The {productname} ({productnameshort}) {helm} chart is delivered with default values.
+You can adjust the {helm} chart installation in one of the following ways:
+
+* Append specific parameters to the `--set` flags on the `helm install` command line, for example:
+[source]
+$ helm install <RELEASE_NAME> \
+oci://registry.suse.com/private-registry/private-registry-helm \
+--namespace <PRIVATE_REGISTRY_NAMESPACE> \
+--set harborAdminPassword=<MY_PASSWORD> \
+--set externalURL=https://<PRIVATE_REGISTRY_FQDN> \
+--set expose.ingress.hosts.core=<PRIVATE_REGISTRY_FQDN>
+* Create a {suse} custom `suse_registry_override.yaml` file and pass it to the `--f` flag, for example:
+[source]
+  $ helm install <RELEASE_NAME> \
+  oci://registry.suse.com/private-registry/private-registry-helm \
+  --namespace <PRIVATE_REGISTRY_NAMESPACE>
+  -f suse_registry_override.yaml
+
+[#pr-helm-chart-override-examples]
+=== Examples of {sregistry} {helm} override files
+.Minimal deployment with {ingress}
+[example]
+----
+expose:   
+  type: ingress //<1>
+  ingress:     
+    hosts:
+      core: <PRIVATE_REGISTRY_FQDN> //<2>
+
+externalURL: https://<PRIVATE_REGISTRY_FQDN> //<3>
+
+harborAdminPassword: "<MY_PASSWORD>" //<4>
+
+database:   
+  internal:     
+    password: "<MY_PASSWORD_POSTGRESQL>"
+
+redis:   
+  internal:     
+   password: "<MY_PASSWORD_REDIS>"
+----
+[callouts]
+<1> How {sregistry} is exposed. Can be `ingress`, `loadBalancer`, `nodePort` or `clusterIPhis`. Default is `ingress`.
+<2> Host name for the {kube} internal networking configuration.
+<3> URL where the {sregistry} application runs. It is used to generate links in the user interface, redirects and also for API responses.
+<4> The administrator password to the application.
+
+.Typical deployment with `loadBalancer`
+[example]
+----
+expose:   
+  type: loadBalancer //<1>
+  tls:
+    enabled: true
+    certSource: secret //<2>
+    secret:  
+      secretName: <SECRET_NAME>
+  
+    auto:
+      commonName: <PRIVATE_REGISTRY_FQDN> //<3>
+
+externalURL: https://<PRIVATE_REGISTRY_FQDN> //<4>
+
+harborAdminPassword: "<MY_PASSWORD>" //<5>
+
+database:   
+  internal:     
+    password: "<MY_PASSWORD_POSTGRESQL>"
+
+redis:   
+  internal:     
+   password: "<MY_PASSWORD_REDIS>"
+----
+[callouts]
+<1> How {sregistry} is exposed. Can be `ingress`, `loadBalancer`, `nodePort` or `clusterIP`. Default is `ingress`.
+<2> Can be `auto`, `secret` or `none`. Depending on the option, you may have to include additional values.
+<3> When using TLS encryption, this field must match the `externalURL` value.
+<4> URL where the {sregistry} application runs. It is used to generate links in the user interface, redirects and also for API responses.
+<5> The administrator password to the application.
+
+[#pr-helm-chart-override-parameters]
+=== Overriding {helm} chart parameters and values
+
+The following tables list all parameters with descriptions that you can use to override the default installation values.
+
+.Global parameters
+`global.imageRegistry`:: Sets a global override for the container image registry used for all images.  
+`global.imagePullSecrets`:: Sets global pull secrets for accessing the container image registry.
+
+.Common parameters
+`harborAdminPassword`:: Sets the initial password for {harbor} administrator. Change it from portal after deployment. Default is `Harbor12345`.
+`externalURL`:: Specifies the external URL for `harbor-core` service. Default is `\https://core.harbor.domain`.
+`existingSecretAdminPasswordKey`:: Sets the key name in the secret containing {harbor} administrator password. Default is `HARBOR_ADMIN_PASSWORD`.
+`imagePullSecrets`:: Sets the `imagePullSecrets` names for all deployments.
+`updateStrategy.type`:: Sets the update strategy for deployments with persistent volumes. Accepts `RollingUpdate` or `Recreate`. Use `Recreate` when RWM for volumes is not supported. Default is `RollingUpdate`.
+`logLevel`:: Sets the log level for {harbor} services. Accepts `fatal`, `error`, `warn`, `info`, `debug` or `trace`. Default is `debug`.
+`enableMigratehelmHook`:: Runs database migration job via {helm} hook. When `true`, separates migration job from `harbor-core`. Default is `false`.
+`caSecretName`:: Specifies the secret name containing the `ca.crt` key.
+
+.Proxy parameters
+`proxy.httpProxy`:: Specifies the HTTP proxy server URL. Default is `""`.  
+`proxy.httpsProxy`:: Specifies the HTTPS proxy server URL. Default is `""`.  
+`proxy.noProxy`:: Sets URLs that bypass the proxy configuration. Default is `127.0.0.1,localhost,.local,.internal`.  
+`proxy.components`:: Sets components that use the proxy configuration. Default is `["core","jobservice","trivy"]`.
+
+.Expose parameters
+`expose.type`:: Specifies service exposure type: `ingress`, `clusterIP`, `nodePort` or `loadBalancer`. Default is `ingress`.  
+`expose.tls.enabled`:: Enables TLS. Default is `true`.  
+`expose.tls.certSource`:: Sets TLS certificate source as `auto`, `secret` or `none`. Default is `auto`.  
+`expose.tls.auto.commonName`:: Sets certificate common name when type is not `ingress`.  
+`expose.tls.secret.secretName`:: Specifies name of secret containing `tls.crt` (certificate) and `tls.key` (private key).  
+`expose.ingress.hosts.core`:: Sets {harbor} core service host in {ingress} rule. Default is `core.harbor.domain`.  
+`expose.ingress.controller`:: Sets {ingress} controller type. Supports `default`, `gce`, `alb`, `f5-bigip` and `ncp`. Default is `default`.  
+`expose.ingress.kubeVersionOverride`:: Overrides {kube} version for {ingress} templating.  
+`expose.ingress.annotations`:: Sets {ingress} annotations.  
+`expose.ingress.labels`:: Sets {ingress}-specific labels. Default is `{}`.  
+`expose.clusterIP.name`:: Sets ClusterIP service name. Default is `harbor`.  
+`expose.clusterIP.annotations`:: Sets ClusterIP service annotations. Default is `{}`.  
+`expose.clusterIP.ports.httpPort`:: Sets HTTP service port. Default is `80`.  
+`expose.clusterIP.ports.httpsPort`:: Sets HTTPS service port. Default is `443`.  
+`expose.clusterIP.labels`:: Sets ClusterIP-specific labels. Default is `{}`.  
+`expose.nodePort.name`:: Sets NodePort service name. Default is `harbor`.  
+`expose.nodePort.ports.http.port`:: Sets HTTP service port. Default is `80`.  
+`expose.nodePort.ports.http.nodePort`:: Sets HTTP node port. Default is `30002`.  
+`expose.nodePort.ports.https.port`:: Sets HTTPS service port. Default is `443`.  
+`expose.nodePort.ports.https.nodePort`:: Sets HTTPS node port. Default is `30003`.  
+`expose.nodePort.annotations`:: Sets NodePort annotations.  
+`expose.nodePort.labels`:: Sets NodePort-specific labels. Default is `{}`.  
+`expose.loadBalancer.name`:: Sets service name. Default is `harbor`.  
+`expose.loadBalancer.IP`:: Sets loadBalancer IP when IP assignment is supported. Default is `""`.  
+`expose.loadBalancer.ports.httpPort`:: Sets HTTP service port. Default is `80`.  
+`expose.loadBalancer.ports.httpsPort`:: Sets HTTPS service port. Default is `30002`.  
+`expose.loadBalancer.annotations`:: Sets loadBalancer service annotations. Default is `{}`.  
+`expose.loadBalancer.labels`:: Sets loadBalancer-specific labels. Default is `{}`.  
+`expose.loadBalancer.sourceRanges`:: Specifies IP address ranges for loadBalancerSourceRanges. Default is `[]`.
+
+[#helm-persistence-parameters]
+.Persistence parameters
+`persistence.enabled`:: Enables or disables data persistence. Default is `true`.  
+`persistence.resourcePolicy`:: `keep` prevents removal of PVCs during a {helm} delete operation. Empty value deletes PVCs after chart deletion. Default is `keep`.  
+`persistence.persistentVolumeClaim.registry.existingClaim`:: The existing PVC that must be created manually before binding. Requires a subPath specification if the PVC is shared with other components.  
+`persistence.persistentVolumeClaim.registry.storageClass`:: The `storageClass` that provisions the volume.  
+`persistence.persistentVolumeClaim.registry.subPath`:: The subpath in the volume.  
+`persistence.persistentVolumeClaim.registry.accessMode`:: The access mode of the volume. Default is `ReadWriteOnce`.  
+`persistence.persistentVolumeClaim.registry.size`:: The size of the volume. Default is `5Gi`.  
+`persistence.persistentVolumeClaim.registry.annotations`:: The annotations of the volume.  
+`persistence.persistentVolumeClaim.jobservice.jobLog.existingClaim`:: The existing PVC that must be created manually before binding. Requires a subPath specification if the PVC is shared with other components.  
+`persistence.persistentVolumeClaim.jobservice.jobLog.storageClass`:: The `storageClass` that provisions the volume.  
+`persistence.persistentVolumeClaim.jobservice.jobLog.subPath`:: The subpath in the volume.  
+`persistence.persistentVolumeClaim.jobservice.jobLog.accessMode`:: The access mode of the volume. Default is `ReadWriteOnce`.  
+`persistence.persistentVolumeClaim.jobservice.jobLog.size`:: The size of the volume. Default is `1Gi`.  
+`persistence.persistentVolumeClaim.jobservice.jobLog.annotations`:: The annotations of the volume.  
+`persistence.persistentVolumeClaim.database.existingClaim`:: The existing PVC that must be created manually before binding. Requires a subPath specification if the PVC is shared with other components.  
+`persistence.persistentVolumeClaim.database.storageClass`:: The `storageClass` that provisions the volume.  
+`persistence.persistentVolumeClaim.database.subPath`:: The subpath in the volume. Ignored when an external database is used.  
+`persistence.persistentVolumeClaim.database.accessMode`:: The access mode of the volume. Ignored when an external database is used. Default is `ReadWriteOnce`.  
+`persistence.persistentVolumeClaim.database.size`:: The size of the volume. Ignored when an external database is used. Default is `1Gi`.  
+`persistence.persistentVolumeClaim.database.annotations`:: The annotations of the volume.  
+`persistence.persistentVolumeClaim.redis.existingClaim`:: The existing PVC that must be created manually before binding. Requires a subPath specification if the PVC is shared with other components.  
+`persistence.persistentVolumeClaim.redis.storageClass`:: The `storageClass` that provisions the volume. Uses default StorageClass if not specified.  
+`persistence.persistentVolumeClaim.redis.subPath`:: The subpath in the volume. Ignored when an external {valkey} is used.  
+`persistence.persistentVolumeClaim.redis.accessMode`:: The access mode of the volume. Ignored when an external {valkey} is used. Default is `ReadWriteOnce`.  
+`persistence.persistentVolumeClaim.redis.size`:: The size of the volume. Ignored when an external {valkey} is used. Default is `1Gi`.  
+`persistence.persistentVolumeClaim.redis.annotations`:: The annotations of the volume.  
+`persistence.persistentVolumeClaim.trivy.existingClaim`:: The existing PVC that must be created manually before binding. Requires a subPath specification if the PVC is shared with other components.  
+`persistence.persistentVolumeClaim.trivy.storageClass`:: The `storageClass` that provisions the volume. Uses default StorageClass if not specified.  
+`persistence.persistentVolumeClaim.trivy.subPath`:: The subpath in the volume.  
+`persistence.persistentVolumeClaim.trivy.accessMode`:: The access mode of the volume. Default is `ReadWriteOnce`.  
+`persistence.persistentVolumeClaim.trivy.size`:: The size of the volume. Default is `1Gi`.  
+`persistence.persistentVolumeClaim.trivy.annotations`:: The annotations of the volume.  
+`persistence.imageChartStorage.disableredirect`:: Controls redirect management from content back-ends. Set to true to disable redirects for unsupported back-ends. Default is `false`.  
+`persistence.imageChartStorage.caBundleSecretName`:: The name of secret containing CA bundle for self-signed storage service certificates.  
+`persistence.imageChartStorage.type`:: The storage type for images and charts: `filesystem`, `azure`, `gcs`, `s3`, `swift`, or `oss`. Default is `filesystem`.  
+`persistence.imageChartStorage.gcs.existingSecret`:: The name of existing secret containing the GCS service account JSON key. The key must be `gcs-key.json`. Default is `""`.  
+`persistence.imageChartStorage.gcs.useWorkloadIdentity`:: Enables workload identity usage in a GKE cluster. Default is `false`.
+
+.{nginx} parameters
+[options="header"]
+`nginx.image.repository`:: The image repository for {nginx}. Default is `private-registry/harbor-nginx`.
+`nginx.image.tag`:: The image tag for {nginx}.
+`nginx.replicas`:: The number of replicas to run. Default is `1`.
+`nginx.revisionHistoryLimit`:: The maximum number of old `ReplicaSet` revisions to retain. Default is `10`.
+`nginx.resources`:: The compute resources allocated for the container. Default is `undefined`.
+`nginx.automountServiceAccountToken`:: Controls automatic mounting of the service account token. Default is `false`.
+`nginx.nodeSelector`:: The node labels used for pod assignment. Default is `{}`.
+`nginx.tolerations`:: The pod assignment tolerations. Default is `[]`.
+`nginx.affinity`:: The node or pod affinity rules. Default is `{}`.
+`nginx.topologySpreadConstraints`:: The rules for spreading pods across failure-domains such as regions or availability zones. Default is `[]`.
+`nginx.podAnnotations`:: The annotations added to the {nginx} pod. Default is `{}`.
+
+
+.Portal parameters
+`portal.image.repository`:: Repository location for the portal image. Default is `private-registry/harbor-portal`.
+`portal.image.tag`:: Tag for the portal image. Default is `3.11`.
+`portal.replicas`:: Number of replicas to create. Default is `1`.
+`portal.revisionHistoryLimit`:: Maximum number of old `ReplicaSet` revisions to retain. Default is `10`.
+`portal.resources`:: Resources allocated to the container. Default is `undefined`.
+`portal.automountServiceAccountToken`:: Controls automatic mounting of the service account token. Default is `false`.
+`portal.nodeSelector`:: Node labels used for pod assignment. Default is `{}`.
+`portal.tolerations`:: Tolerations used for pod assignment. Default is `[]`.
+`portal.affinity`:: Node and pod affinity settings. Default is `{}`.
+`portal.topologySpreadConstraints`:: Defines pod distribution across failure-domains such as regions or availability zones. Default is `[]`.
+`portal.podAnnotations`:: Annotations added to the portal pod. Default is `{}`.
+`portal.serviceAnnotations`:: Annotations added to the portal service. Default is `{}`.
+`portal.priorityClassName`:: Priority class name for pod execution.
+`portal.initContainers`:: Init containers to be run before the controller container starts. Default is `[]`.
+
+
+.Core parameters
+`core.image.repository`:: The repository for the {harbor} core image. Default is `private-registry/harbor-core`.
+`core.image.tag`:: The tag for the {harbor} core image. Default is `2.11`.
+`core.replicas`:: The number of replicas. Default is `1`.
+`core.revisionHistoryLimit`:: The revision history limit. Default is `10`.
+`core.startupProbe.initialDelaySeconds`:: The initial delay in seconds for the startup probe. Default is `10`.
+`core.resources`:: The resources to allocate for the container. Default is `undefined`.
+`core.automountServiceAccountToken`:: Mounts the service account token. Default is `false`.
+`core.nodeSelector`:: The node labels for pod assignment. Default is `{}`.
+`core.tolerations`:: The tolerations for pod assignment. Default is `[]`.
+`core.affinity`:: The node or pod affinities. Default is `{}`.
+`core.topologySpreadConstraints`:: The constraints that define how pods are spread across failure-domains like regions or availability zones. Default is `[]`.
+`core.podAnnotations`:: The annotations to add to the core pod. Default is `{}`.
+`core.serviceAnnotations`:: The annotations to add to the core service. Default is `{}`.
+`core.configureUserSettings`:: A JSON string in the environment variable CONFIG_OVERWRITE_JSON to configure user settings.
+`core.quotaUpdateProvider`:: The provider for updating project quota usage, options are `redis` or `db`. Default is `db`.
+`core.secret`:: Used when core server communicates with other components.
+`core.secretName`:: The name of a {kube} secret to use your own TLS certificate and private key for token encryption or decryption.
+`core.tokenKey`:: The PEM-formatted RSA private key used to sign service tokens.
+`core.tokenCert`:: The PEM-formatted certificate signed by `core.tokenKey` used to validate service tokens.
+`core.xsrfKey`:: The XSRF key, automatically generated if not specified.
+`core.priorityClassName`:: The priority class to run the pod as.
+`core.artifactPullAsyncFlushDuration`:: The time duration for asynchronously updating artifact pull time and repository pull count.
+`core.gdpr.deleteUser`:: Enables GDPR compliant user deletion. Default is `false`.
+`core.gdpr.auditLogsCompliant`:: Enables GDPR compliance for audit logs by changing username to its CRC32 value if that user was deleted from the system. Default is `false`.
+`core.initContainers`:: The init containers to run before the controller's container starts. Default is `[]`.
+
+
+.Jobservice parameters
+`jobservice.image.repository`:: The repository for the jobservice image. Default is `private-registry/harbor-jobservice`.  
+`jobservice.image.tag`:: The tag for the jobservice image. Default is `2.11`.  
+`jobservice.replicas`:: The number of replicas. Default is `1`.  
+`jobservice.revisionHistoryLimit`:: The revision history limit. Default is `10`.  
+`jobservice.maxJobWorkers`:: The maximum number of job workers. Default is `10`.  
+`jobservice.jobLoggers`:: The loggers for jobs: `file`, `database` or `stdout`. Default is `[file]`.  
+`jobservice.loggerSweeperDuration`:: The duration in days to keep job logs (ignored if `jobLoggers` is set to `stdout`). Default is `14`.  
+`jobservice.notification.webhook_job_max_retry`:: The maximum number of retries for webhook notification sending. Default is `3`.  
+`jobservice.notification.webhook_job_http_client_timeout`:: The HTTP client timeout in seconds for webhook notification sending. Default is `3`.  
+`jobservice.reaper.max_update_hours`:: The maximum time in hours to wait for a task to finish. If the task is not finished after the specified hours, it is marked as an error but continues to run. Default is `24`.  
+`jobservice.reaper.max_dangling_hours`:: The maximum time in hours for execution in running state without a new task created. Default is `168`.  
+`jobservice.resources`:: The [resources] to allocate for container. Default is `undefined`.  
+`jobservice.automountServiceAccountToken`:: Mounts the service account token. Default is `false`.  
+`jobservice.nodeSelector`:: The node labels for pod assignment. Default is `{}`.  
+`jobservice.tolerations`:: The tolerations for pod assignment. Default is `[]`.  
+`jobservice.affinity`:: The node or pod affinities. Default is `{}`.  
+`jobservice.topologySpreadConstraints`:: The constraints that define how pods are spread across failure-domains like regions or availability zones. Default is `[]`.  
+`jobservice.podAnnotations`:: The annotations to add to the jobservice pod. Default is `{}`.  
+`jobservice.priorityClassName`:: The priority class to run the pod as.  
+`jobservice.secret`:: The secret used when job service communicates with other components. If a secret key is not specified, {helm} generates it. Must be a string of 16 characters.  
+`jobservice.initContainers`:: The init containers to run before the controller's container starts. Default is `[]`.
+
+
+.Registry parameters
+`registry.registry.image.repository`:: The repository location for the registry image. Default is `private-registry/harbor-registry`.  
+`registry.registry.image.tag`:: The tag for the registry image. Default is `2.11`.  
+`registry.registry.resources`:: The [resources] to allocate for container. Default is `undefined`.  
+`registry.controller.image.repository`:: The repository location for the registry controller image. Default is `private-registry/harbor-registryctl`.  
+`registry.controller.image.tag`:: The tag for the registry controller image. Default is `2.11`.  
+`registry.controller.resources`:: The [resources] to allocate for container. Default is `undefined`.  
+`registry.replicas`:: The number of replica instances. Default is `1`.  
+`registry.revisionHistoryLimit`:: The maximum number of revisions to maintain in history. Default is `10`.  
+`registry.nodeSelector`:: The node labels for pod assignment. Default is `{}`.  
+`registry.automountServiceAccountToken`:: Controls whether to mount the service account token. Default is `false`.  
+`registry.tolerations`:: The tolerations for pod assignment. Default is `[]`.  
+`registry.affinity`:: The node or pod affinities. Default is `{}`.  
+`registry.topologySpreadConstraints`:: The constraints that define pod distribution across failure-domains such as regions or availability zones. Default is `[]`.  
+`registry.middleware`:: Middleware support for a CDN between back-end storage and {docker} pull recipient.  
+`registry.podAnnotations`:: The annotations to add to the registry pod. Default is `{}`.  
+`registry.priorityClassName`:: The priority class for pod execution.  
+`registry.secret`:: The secret that secures the upload state between client and registry storage back-end.  
+`registry.credentials.username`:: The username for {harbor} core's internal registry access. Default is `harbor_registry_user`.  
+`registry.credentials.password`:: The password for {harbor} core's internal registry access. Default is `harbor_registry_password`.  
+`registry.credentials.existingSecret`:: An existing secret containing the password for registry instance access in htpasswd auth mode. Default is `""`.  
+`registry.credentials.htpasswdString`:: The login and password in htpasswd string format. Excludes `registry.credentials.username` and `registry.credentials.password`. Default is `undefined`.  
+`registry.relativeurls`:: Returns relative URLs in Location headers when true. Required if {harbor} is behind a reverse proxy. Default is `false`.  
+`registry.upload_purging.enabled`:: Enables purging of upload directories. Default is `true`.  
+`registry.upload_purging.age`:: The time period after which files in upload directories are removed, default is one week. Default is `168h`.  
+`registry.upload_purging.interval`:: The time interval between purge operations. Default is `24h`.  
+`registry.upload_purging.dryrun`:: Enables dryrun mode for upload purging. Default is `false`.  
+`registry.initContainers`:: The init containers that run before the controller's container starts. Default is `[]`.
+
+
+.{trivy} parameters
+`trivy.enabled`:: Enables or disables the {trivy} scanner. Default is `true`.  
+`trivy.image.repository`:: The repository for the {trivy} adapter image. Default is `private-registry/harbor-trivy-adapter`.  
+`trivy.image.tag`:: The tag for the {trivy} adapter image. Default is `2.11`.  
+`trivy.resources`:: The resources to allocate for the {trivy} adapter container. Default is `undefined`.  
+`trivy.automountServiceAccountToken`:: Whether to mount the service account token. Default is `false`.  
+`trivy.replicas`:: The number of Pod replicas. Default is `1`.  
+`trivy.debugMode`:: Enables {trivy} debug mode for troubleshooting. Default is `false`.  
+`trivy.vulnType`:: Comma-separated list of vulnerability types (`os` and `library`). Default is `os,library`.  
+`trivy.severity`:: Comma-separated list of vulnerability severities to check. Default is `UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL`.  
+`trivy.ignoreUnfixed`:: Displays only fixed vulnerabilities. Default is `false`.  
+`trivy.insecure`:: Skips registry certificate verification. Default is `false`.  
+`trivy.skipUpdate`:: Disables {trivy} database downloads from GitHub. Default is `false`.  
+`trivy.skipJavaDBUpdate`:: Requires manual download of the `trivy-java.db` file when enabled. Default is `false`.  
+`trivy.offlineScan`:: Prevents {trivy} from sending API requests to identify dependencies. Default is `false`.  
+`trivy.securityCheck`:: Comma-separated list of security issues to detect. Default is `vuln`.  
+`trivy.timeout`:: The duration to wait for scan completion. Default is `5m0s`.  
+`trivy.gitHubToken`:: The GitHub access token required for database downloads. Default is `undefined`.  
+`trivy.priorityClassName`:: The priority class for running the pod. Default is `undefined`.  
+`trivy.topologySpreadConstraints`:: Defines pod distribution constraints across failure domains. Default is `undefined`.  
+`trivy.initContainers`:: List of init containers to run before the main container starts. Default is `[]`.  
+
+.Database parameters
+`database.type`:: The database type. Set to `external` when using an external database. Default is `internal`.  
+`database.internal.image.repository`:: The repository for the database image. Default is `private-registry/harbor-db`.  
+`database.internal.image.tag`:: The tag for the database image. Default is `2.11`.  
+`database.internal.password`:: The password for the internal database. Default is `changeit`.  
+`database.internal.shmSizeLimit`:: The shared memory size limit for {postgresql} (typically 50% of the container memory limit). Default is `512Mi`.  
+`database.internal.resources`:: The resources allocated for the database container. Default is `undefined`.  
+`database.internal.automountServiceAccountToken`:: Controls whether the service account token is mounted. Default is `false`.  
+`database.internal.initContainer.migrator.resources`:: The resources allocated for the database migrator init container. Default is `undefined`.  
+`database.internal.initContainer.permissions.resources`:: The resources allocated for the database permissions init container. Default is `undefined`.  
+`database.internal.nodeSelector`:: The node labels for pod assignment. Default is `{}`.  
+`database.internal.tolerations`:: The tolerations for pod assignment. Default is `[]`.  
+`database.internal.affinity`:: The node or pod affinity settings. Default is `{}`.  
+`database.internal.priorityClassName`:: The priority class for running the pod. Default is `undefined`.  
+`database.internal.livenessProbe.timeoutSeconds`:: The timeout in seconds for the liveness probe (range: 1-5s). Default is `1`.  
+`database.internal.readinessProbe.timeoutSeconds`:: The timeout in seconds for the readiness probe (range: 1-5s). Default is `1`.  
+`database.internal.extrInitContainers`:: Additional init containers that run before the database container starts. Default is `[]`.  
+`database.external.host`:: The host name of the external database. Default is `192.168.0.1`.  
+`database.external.port`:: The port number of the external database. Default is `5432`.  
+`database.external.username`:: The username for the external database. Default is `user`.  
+`database.external.password`:: The password for the external database. Default is `password`.  
+`database.external.coreDatabase`:: The database name used by the core service. Default is `registry`.  
+`database.external.existingSecret`:: The existing secret containing the database password. The key must be `password`. Default is `""`.  
+`database.external.sslmode`:: The connection method for the external database. Options: `require`, `verify-full`, `verify-ca`, `disable`. Default is `disable`.  
+`database.maxIdleConns`:: The maximum number of idle connections in the pool (0 or less means no idle connections are retained). Default is `50`.  
+`database.maxOpenConns`:: The maximum number of open connections to the database (0 or less means unlimited). Default is `100`.  
+`database.podAnnotations`:: The annotations to add to the database pod. Default is `{}`.  
+
+
+.{valkey} / {redis} parameters
+`redis.type`:: The {redis} deployment type. Set to `external` for external {redis}. Default is `internal`.  
+`redis.internal.image.repository`:: The repository for the {redis} image. Default is `private-registry/harbor-redis`.  
+`redis.internal.image.tag`:: The tag for the {redis} image. Default is `7.2`.  
+`redis.internal.resources`:: The resources allocated for the {redis} container. Default is `undefined`.  
+`redis.internal.automountServiceAccountToken`:: Controls whether the service account token is mounted. Default is `false`.  
+`redis.internal.nodeSelector`:: The node labels for pod assignment. Default is `{}`.  
+`redis.internal.tolerations`:: The tolerations for pod assignment. Default is `[]`.  
+`redis.internal.affinity`:: The node or pod affinity settings. Default is `{}`.  
+`redis.internal.priorityClassName`:: The priority class for running the {redis} pod. Default is `undefined`.  
+`redis.internal.jobserviceDatabaseIndex`:: The database index for jobservice. Default is `1`.  
+`redis.internal.registryDatabaseIndex`:: The database index for registry. Default is `2`.  
+`redis.internal.trivyAdapterIndex`:: The database index for {trivy} adapter. Default is `5`.  
+`redis.internal.harborDatabaseIndex`:: The database index for miscellaneous {harbor} business logic. Default is `0`.  
+`redis.internal.cacheLayerDatabaseIndex`:: The database index for {harbor}'s cache layer. Default is `0`.  
+`redis.internal.initContainers`:: The init containers that run before the {redis} container starts. Default is `[]`.  
+`redis.external.addr`:: The address of the external {redis} instance. Default is `192.168.0.2:6379`.  
+`redis.external.sentinelMasterSet`:: The name of the {redis} Sentinel master set (if applicable). Default is `undefined`.  
+`redis.external.coreDatabaseIndex`:: The database index for core. Default is `0`.  
+`redis.external.jobserviceDatabaseIndex`:: The database index for jobservice. Default is `1`.  
+`redis.external.registryDatabaseIndex`:: The database index for registry. Default is `2`.  
+`redis.external.trivyAdapterIndex`:: The database index for {trivy} adapter. Default is `5`.  
+`redis.external.harborDatabaseIndex`:: The database index for miscellaneous {harbor} business logic. Default is `0`.  
+`redis.external.cacheLayerDatabaseIndex`:: The database index for {harbor}'s cache layer. Default is `0`.  
+`redis.external.username`:: The username for external {redis} authentication. Default is `undefined`.  
+`redis.external.password`:: The password for external {redis} authentication. Default is `undefined`.  
+`redis.external.existingSecret`:: The existing secret containing the {redis} password. The key must be `REDIS_PASSWORD`. Default is `""`.  
+`redis.podAnnotations`:: The annotations to add to the {redis} pod. Default is `{}`.  
+
+.Exporter parameters
+`exporter.replicas`:: The number of replicas to run. Default is `1`.  
+`exporter.revisionHistoryLimit`:: The revision history limit. Default is `10`.  
+`exporter.podAnnotations`:: Annotations to add to the exporter pod. Default is `{}`.  
+`exporter.image.repository`:: The repository for the exporter image. Default is `private-registry/harbor-exporter`.  
+`exporter.image.tag`:: The tag for the exporter image. Default is `2.11`.  
+`exporter.nodeSelector`:: Node labels for pod assignment. Default is `{}`.  
+`exporter.tolerations`:: Tolerations for pod assignment. Default is `[]`.  
+`exporter.affinity`:: Node or Pod affinities. Default is `{}`.  
+`exporter.topologySpreadConstraints`:: Constraints that define how Pods spread across failure-domains like regions or availability zones. Default is `[]`.  
+`exporter.automountServiceAccountToken`:: Controls whether to mount the serviceAccountToken. Default is `false`.  
+`exporter.cacheDuration`:: The cache duration for information collected by the exporter. Default is `30`.  
+`exporter.cacheCleanInterval`:: The cache clean interval for information collected by the exporter. Default is `14400`.  
+`exporter.priorityClassName`:: The priority class to run the pod as. Default is `undefined`.  
+
+.Metrics parameters
+`metrics.enabled`:: Enables {harbor} metrics. Default is `false`.  
+`metrics.core.path`:: The URL path for core metrics. Default is `/metrics`.  
+`metrics.core.port`:: The port for core metrics. Default is `8001`.  
+`metrics.registry.path`:: The URL path for registry metrics. Default is `/metrics`.  
+`metrics.registry.port`:: The port for registry metrics. Default is `8001`.  
+`metrics.exporter.path`:: The URL path for exporter metrics. Default is `/metrics`.  
+`metrics.exporter.port`:: The port for exporter metrics. Default is `8001`.  
+`metrics.serviceMonitor.enabled`:: Enables creation of a {prometheus} ServiceMonitor (require{prometheus}us CRDs). Default is `false`.  
+`metrics.serviceMonitor.additionalLabels`:: Additional labels to apply to the ServiceMonitor manifest. Default is `""`.  
+`metrics.serviceMonitor.interval`:: The scrape interval for {harbor} metrics. Default is `""`.  
+`metrics.serviceMonitor.metricRelabelings`:: The relabeling rules for metrics before ingestion. Default is `[]`.  
+`metrics.serviceMonitor.relabelings`:: The relabeling rules for metrics before scraping. Default is `[]`.  
+
+.Trace parameters
+`trace.enabled`:: Enables tracing functionality. Default is `false`.  
+`trace.provider`:: The tracing provider (`jaeger` or `otel`). Jaeger version should be 1.26+. Default is `jaeger`.  
+`trace.sample_rate`:: The sampling rate for trace data. `1` samples 100%, `0.5` samples 50%. Default is `1`.  
+`trace.namespace`:: The namespace to differentiate different {harbor} services.  
+`trace.attributes`:: A key-value dictionary for user-defined attributes in trace provider initialization.  
+`trace.jaeger.endpoint`:: The endpoint for Jaeger tracing. Default is `\http://hostname:14268/api/traces`.
+`trace.jaeger.username`:: The username for Jaeger authentication.  
+`trace.jaeger.password`:: The password for Jaeger authentication.  
+`trace.jaeger.agent_host`:: The agent host for Jaeger.  
+`trace.jaeger.agent_port`:: The agent port for Jaeger. Default is `6831`.  
+`trace.otel.endpoint`:: The endpoint for {otelemetry} tracing. Default is `hostname:4318`.  
+`trace.otel.url_path`:: The URL path for {otelemetry}. Default is `/v1/traces`.  
+`trace.otel.compression`:: Enables compression for {otelemetry}. Default is `false`.  
+`trace.otel.insecure`:: Establishes an insecure connection for {otelemetry}. Default is `true`.  
+`trace.otel.timeout`:: The timeout in seconds for {otelemetry}. Default is `10`.
+
+.Cache parameters
+`cache.enabled`:: Enables the cache layer. Default is `false`.
+`cache.expireHours`:: The expiration time in hours for the cache layer. Default is `24`.

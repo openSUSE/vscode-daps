@@ -1,0 +1,1777 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<article xmlns="http://docbook.org/ns/docbook" xml:base="AI-monitoring.xml" version="5.2" xml:id="ai-monitoring" xml:lang="en">
+  <info>
+      <title xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude">Monitoring <phrase><phrase os="suseai">SUSE AI</phrase></phrase> with OpenTelemetry and SUSE Observability</title>
+      <revhistory xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xml:id="rh-ai-monitoring">
+        <revision><date>2025-11-07</date>
+          <revdescription>
+            <para>
+              Added section on monitoring vLLM
+            </para>
+          </revdescription>
+        </revision>
+        <revision><date>2025-09-02</date>
+          <revdescription>
+            <para>
+              Initial release
+            </para>
+          </revdescription>
+        </revision>
+      </revhistory>
+
+      <meta xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" name="maintainer" content="tbazant@suse.com" its:translate="no"/>
+
+      <meta xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" name="updated" content="2024-09-16" its:translate="no"/>
+      <meta xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" name="architecture"><phrase>AMD64/Intel 64</phrase><phrase>POWER</phrase>
+      </meta>
+
+      <meta xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" name="productname" its:translate="no"><productname version="1.0"><phrase><phrase os="suseai">SUSE AI</phrase></phrase></productname>
+      </meta>
+      <meta xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" name="title" its:translate="yes">Monitoring <phrase><phrase os="suseai">SUSE AI</phrase></phrase> Applications</meta>
+      <meta xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" name="description" its:translate="yes">Monitoring <phrase><phrase os="suseai">SUSE AI</phrase></phrase> applications with OpenTelemetry to visualize service topology and collect metrics and logs</meta>
+      <meta xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" name="social-descr" its:translate="yes">Monitoring and optimizing <phrase><phrase os="suseai">SUSE AI</phrase></phrase> applications</meta>
+
+      <meta xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" name="category"><phrase>Systems Management</phrase><phrase>Tuning &amp; Performance</phrase>
+      </meta>
+
+      <meta xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" name="task"><phrase>Artificial Intelligence</phrase>
+      </meta>
+      <meta xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" name="series">Products &amp; Solutions</meta>
+      <dm:docmanager xmlns:dm="urn:x-suse:ns:docmanager" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude">
+        <dm:bugtracker>
+          <dm:url>https://bugzilla.suse.com/enter_bug.cgi</dm:url>
+          <dm:component>documentation</dm:component>
+          <dm:product>SUSE AI Application Containers</dm:product>
+          <dm:assignee>tbazant@suse.com</dm:assignee>
+        </dm:bugtracker>
+        <dm:translation>yes</dm:translation>
+      </dm:docmanager>
+      <abstract xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude">
+        <variablelist>
+          <varlistentry>
+            <term>WHAT?</term>
+            <listitem>
+              <para>
+                This document focuses on techniques for gathering telemetry data
+                from all <phrase><phrase os="suseai">SUSE AI</phrase></phrase> components, including metrics, logs and
+                traces.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>WHY?</term>
+            <listitem>
+              <para>
+                To observe, analyze and maintain the behavior, performance and
+                health of your <phrase><phrase os="suseai">SUSE AI</phrase></phrase> environment, and to troubleshoot
+                issues effectively.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>EFFORT</term>
+            <listitem>
+              <para>
+                Setting up the recommended monitoring configurations with
+                SUSE Observability is straightforward. Advanced setups for more
+                granular control may require additional time for specialized
+                analysis and fine-tuning.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>GOAL</term>
+            <listitem>
+              <para>
+                To visualize the complete topology of your services and
+                operations, providing deep insights and clarity into your
+                <phrase><phrase os="suseai">SUSE AI</phrase></phrase> environment.
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </abstract>
+    </info>
+  <section role="concept" xml:lang="en" version="5.2" xml:id="ai-monitoring-concept"><info>
+        <title xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude">Introduction</title>
+      <meta xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" name="maintainer" content="tbazant@suse.com" its:translate="no"/><abstract xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">
+      <para>
+        This document focuses on techniques for gathering telemetry data from
+        all <phrase><phrase os="suseai">SUSE AI</phrase></phrase> components.
+      </para>
+    </abstract></info>
+  
+  <para>
+    For most of the components, it presents two distinct paths:
+  </para>
+  <variablelist>
+    <varlistentry>
+      <term>Recommended settings</term>
+      <listitem>
+        <para>
+          Straightforward configurations designed to utilize the
+          SUSE Observability Extension, providing a quick solution for your
+          environment.
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Advanced configuration</term>
+      <listitem>
+        <para>
+          For users who require deeper and more granular control. Advanced
+          options unlock additional observability signals that are relevant for
+          specialized analysis and fine-tuning.
+        </para>
+      </listitem>
+    </varlistentry>
+  </variablelist>
+  <para>
+    Several setups are specific to the product, while others—particularly
+    for scraping metrics—are configured directly within the OpenTelemetry
+    Collector. By implementing the recommended settings, you can visualize the
+    complete topology of your services and operations, bringing clarity to your
+    <phrase><phrase os="suseai">SUSE AI</phrase></phrase> environment.
+  </para>
+  <section xml:id="what-is-ai-monitoring">
+    <title>What is <phrase><phrase os="suseai">SUSE AI</phrase></phrase> monitoring?</title>
+    <para>
+      Monitoring <phrase><phrase os="suseai">SUSE AI</phrase></phrase> involves observing and analyzing the behavior,
+      performance and health of its components. In a complex, distributed system
+      like <phrase><phrase os="suseai">SUSE AI</phrase></phrase>, this is achieved by collecting and interpreting
+      telemetry data. This data is typically categorized into the three pillars
+      of observability:
+    </para>
+    <variablelist>
+      <varlistentry>
+        <term>Metrics</term>
+        <listitem>
+          <para>
+            Numerical data representing system performance, such as CPU usage,
+            memory consumption or request latency.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>Logs</term>
+        <listitem>
+          <para>
+            Time-stamped text records of events that occurred within the system,
+            useful for debugging and auditing.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>Traces</term>
+        <listitem>
+          <para>
+            A representation of the path of a request as it travels through all
+            the different services in the system. Traces are essential for
+            understanding performance bottlenecks and errors in the system
+            architecture.
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </section>
+  <section xml:id="how-observability-works">
+    <title>How monitoring works</title>
+    <para>
+      <phrase><phrase os="suseai">SUSE AI</phrase></phrase> uses OpenTelemetry, an open-source observability framework,
+      for instrumenting applications. Instrumentation is the process of adding
+      code to an application to generate telemetry data. By using OpenTelemetry,
+      <phrase><phrase os="suseai">SUSE AI</phrase></phrase> ensures a standardized, vendor-neutral approach to data
+      collection.
+    </para>
+    <para>
+      The collected data is then sent to SUSE Observability, which provides a
+      comprehensive platform for visualizing, analyzing and alerting on the
+      telemetry data. This allows administrators and developers to gain deep
+      insights into the system, maintain optimal performance, and troubleshoot
+      issues effectively.
+    </para>
+  </section>
+</section>
+  <section role="task" xml:lang="en" version="5.2" xml:id="ai-monitoring-gpu"><info>
+    <title xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">Monitoring GPU usage</title>
+    <meta xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" name="maintainer" content="tbazant@suse.com" its:translate="no"/>
+    <abstract xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">
+      <para>
+        To effectively monitor the performance and utilization of your GPUs,
+        configure the OpenTelemetry Collector to scrape metrics from the NVIDIA
+        DCGM Exporter, which is deployed as part of the NVIDIA GPU Operator.
+      </para>
+    </abstract>
+  </info>
+  
+  <procedure xml:id="ai-monitoring-gpu-metrics">
+    <title>Collect GPU metrics (recommended)</title>
+    <step>
+      <para>
+        <emphasis role="bold">Grant permissions (RBAC).</emphasis> The
+        OpenTelemetry Collector requires specific permissions to discover the GPU
+        metrics endpoint within the cluster.
+      </para>
+      <para>
+        Create a file named <filename>otel-rbac.yaml</filename> with the
+        following content. It defines a <literal>Role</literal> with permissions
+        to get services and endpoints, and a <literal>RoleBinding</literal> to
+        grant these permissions to the OpenTelemetry Collector's service account.
+      </para>
+<screen>---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: suse-observability-otel-scraper
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - endpoints
+    verbs:
+      - list
+      - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: suse-observability-otel-scraper
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: suse-observability-otel-scraper
+subjects:
+  - kind: ServiceAccount
+    name: <replaceable>OPENTELEMETRY-COLLECTOR</replaceable>
+    namespace: <replaceable>OBSERVABILITY</replaceable>
+---</screen>
+      <important>
+        <para>
+          Verify that the <literal>ServiceAccount</literal> name and namespace
+          in the <literal>RoleBinding</literal> match your OpenTelemetry
+          Collector's deployment.
+        </para>
+      </important>
+    </step>
+    <step>
+      <para>
+        Apply this configuration to the <literal>gpu-operator</literal>
+        namespace.
+      </para>
+<screen><prompt>&gt; </prompt><command>kubectl apply -n gpu-operator -f otel-rbac.yaml</command></screen>
+    </step>
+    <step>
+      <para>
+        <emphasis role="bold">Configure the OpenTelemetry Collector.</emphasis>
+        Add the following Prometheus receiver configuration to your OpenTelemetry
+        Collector's values file. This tells the collector to scrape metrics from
+        any endpoint in the <literal>gpu-operator</literal> namespace every 10
+        seconds.
+      </para>
+<screen>config:
+  receivers:
+    prometheus:
+      config:
+        scrape_configs:
+          - job_name: 'gpu-metrics'
+            scrape_interval: 10s
+            scheme: http
+            kubernetes_sd_configs:
+              - role: endpoints
+                namespaces:
+                  names:
+                    - gpu-operator</screen>
+    </step>
+  </procedure>
+</section>
+  <section role="task" xml:lang="en" version="5.2" xml:id="ai-monitoring-owui"><info>
+    <title xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">Monitoring Open WebUI</title>
+    <meta xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" name="maintainer" content="tbazant@suse.com" its:translate="no"/>
+    <abstract xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">
+      <para>
+        The preferred way of retrieving relevant telemetry data from Open WebUI is
+        to use the
+        <link xlink:href="https://github.com/SUSE/suse-ai-observability-extension/blob/main/integrations/oi-filter/suse_ai_filter.py"><phrase><phrase os="suseai">SUSE AI</phrase></phrase>
+        Filter</link>. It requires enabling and configuring Open WebUI Pipelines.
+      </para>
+    </abstract>
+  </info>
+  
+  <procedure xml:id="ai-monitoring-owui-pipelines-cmdline">
+    <title>Configuring pipeline filter during Open WebUI installation (recommended)</title>
+    <step>
+      <para>
+        Verify that the Open WebUI installation override file
+        <filename>owui_custom_overrides.yaml</filename> includes the following
+        content.
+      </para>
+<screen>pipelines:
+  enabled: true
+  persistence:
+    storageClass: longhorn <co xml:id="co-storageclass"/>
+  extraEnvVars: <co xml:id="co-extraenvvars"/>
+    - name: PIPELINES_URLS <co xml:id="co-extraenvvars-pipelines-urls"/>
+      value: "https://raw.githubusercontent.com/SUSE/suse-ai-observability-extension/refs/heads/main/integrations/oi-filter/suse_ai_filter.py"
+    - name: OTEL_SERVICE_NAME <co xml:id="co-extraenvvars-otel-service-name"/>
+      value: "Open WebUI"
+    - name: OTEL_EXPORTER_HTTP_OTLP_ENDPOINT <co xml:id="co-extraenvvars-otel-exporter-http-otlp-endpoint"/>
+      value: "http://opentelemetry-collector.suse-observability.svc.cluster.local:4318"
+    - name: PRICING_JSON <co xml:id="co-extraenvvars-pricing-json"/>
+      value: "https://raw.githubusercontent.com/SUSE/suse-ai-observability-extension/refs/heads/main/integrations/oi-filter/pricing.json"
+extraEnvVars:
+- name: OPENAI_API_KEY <co xml:id="co-extraenvvars-openai-api-key"/>
+  value: "0p3n-w3bu!"</screen>
+      <note>
+        <para>
+          In the above example, there are two <literal>extraEnvVars</literal>
+          blocks: one at the root level and another inside the
+          <literal>pipelines</literal> configuration. The root-level
+          <literal>extraEnvVars</literal> is fed into Open WebUI to configure the
+          communication between Open WebUI and Open WebUI Pipelines. The
+          <literal>extraEnvVars</literal> inside the configuration are injected
+          into the container that acts as a runtime for the
+          <literal>pipelines</literal>.
+        </para>
+      </note>
+      <calloutlist>
+        <callout arearefs="co-storageclass">
+          <para>
+            <literal>longhorn</literal> or <literal>local-path</literal>.
+          </para>
+        </callout>
+        <callout arearefs="co-extraenvvars">
+          <para>
+            The environment variables that you are making available for the
+            pipeline's runtime container.
+          </para>
+        </callout>
+        <callout arearefs="co-extraenvvars-pipelines-urls">
+          <para>
+            A list of pipeline URLs to be downloaded and installed by default.
+            Individual URLs are separated by a semicolon <literal>;</literal>.
+          </para>
+          <para condition="deployment_airgap">
+            For air-gapped deployments, you need to provide the pipelines at
+            URLs that are accessible from the local host, such as an internal
+            GitLab instance.
+          </para>
+        </callout>
+        <callout arearefs="co-extraenvvars-otel-service-name">
+          <para>
+            The service name that appears in traces and topological
+            representations in SUSE Observability.
+          </para>
+        </callout>
+        <callout arearefs="co-extraenvvars-otel-exporter-http-otlp-endpoint">
+          <para>
+            The endpoint for the OpenTelemetry collector. Make sure to use the
+            HTTP port of your collector.
+          </para>
+        </callout>
+        <callout arearefs="co-extraenvvars-pricing-json">
+          <para>
+            A file for the model multipliers in cost estimation. You can
+            customize it to match your actual infrastructure experimentally.
+          </para>
+          <para condition="deployment_airgap">
+            For air-gapped deployments, you need to provide the pipelines at
+            URLs that are accessible from the local host, such as an internal
+            GitLab instance.
+          </para>
+        </callout>
+        <callout arearefs="co-extraenvvars-openai-api-key">
+          <para>
+            The value for the API key between Open WebUI and Open WebUI Pipelines. The
+            default value is <quote>0p3n-w3bu!</quote>.
+          </para>
+        </callout>
+      </calloutlist>
+    </step>
+    <step>
+      <para>
+        After you fill the override file with correct values, install or update
+        Open WebUI.
+      </para>
+<screen><prompt>&gt; </prompt><command>helm upgrade \
+  --install open-webui oci://dp.apps.rancher.io/charts/open-webui \
+  -n suse-private-ai \
+  --create-namespace \
+  --version 7.2.0 \
+  -f owui_custom_overrides.yaml</command></screen>
+      <tip>
+        <para>
+          Make sure to set the version, namespace and other options to the
+          proper values.
+        </para>
+      </tip>
+      <para>
+        After the installation is successful, you can access tracing data in
+        SUSE Observability for each chat.
+      </para>
+      <tip>
+        <para>
+          You can verify that a new connection was created with correct
+          credentials in <menuchoice><guimenu>Admin
+          Panel</guimenu><guimenu>Settings</guimenu><guimenu>Connections</guimenu></menuchoice>.
+        </para>
+        <figure xml:id="fg-pipeline-connection">
+          <title>New connection added for the pipeline</title>
+          <mediaobject>
+            <imageobject role="fo">
+              <imagedata fileref="ai-observability-connection.png" width="75%"/>
+            </imageobject>
+            <imageobject role="html">
+              <imagedata fileref="ai-observability-connection.png" width="75%"/>
+            </imageobject>
+            <textobject role="description"><phrase>Connections settings page within an admin panel, highlighting a newly added Ollama API connection with its URL and an active status</phrase>
+            </textobject>
+          </mediaobject>
+        </figure>
+      </tip>
+    </step>
+  </procedure>
+  <procedure xml:id="ai-monitoring-owui-pipelines-webui">
+    <title>Configuring a pipeline filter in Open WebUI (recommended)</title>
+    <para>
+      If you already have a running instance of Open WebUI with the pipelines
+      enabled and configured, you can set up the <phrase><phrase os="suseai">SUSE AI</phrase></phrase> Filter in its Web
+      user interface.
+    </para>
+    <itemizedlist>
+      <title>Requirements</title>
+      <listitem>
+        <para version="5.2" xml:base="../snippets/openwebui-requirement-admin-privileges.xml">
+  You must have Open WebUI administrator privileges to access configuration
+  screens or settings mentioned in this section.
+</para>
+      </listitem>
+    </itemizedlist>
+    <step>
+      <para>
+        In the bottom left of the Open WebUI window, click your avatar icon to open
+        the user menu and select <guimenu>Admin Panel</guimenu>.
+      </para>
+    </step>
+    <step>
+      <para>
+        Click the <guimenu>Settings</guimenu> tab and select
+        <guimenu>Pipelines</guimenu> from the left menu.
+      </para>
+    </step>
+    <step>
+      <para>
+        In the <guimenu>Install from Github URL</guimenu> section, enter
+        <literal>https://raw.githubusercontent.com/SUSE/suse-ai-observability-extension/refs/heads/main/integrations/oi-filter/suse_ai_filter.py</literal>
+        and click the upload button on the right to upload the pipeline from the
+        URL.
+      </para>
+    </step>
+    <step>
+      <para>
+        After the upload is finished, you can review the configuration of the
+        pipeline. Confirm with <guimenu>Save</guimenu>.
+      </para>
+      <figure xml:id="fig-ai-monitoring-owui-pipelines-webui">
+        <title>Adding SUSE AI filter pipeline</title>
+        <mediaobject>
+          <imageobject role="fo">
+            <imagedata fileref="ai-observability-filter-pipeline.png" width="100%"/>
+          </imageobject>
+          <imageobject role="html">
+            <imagedata fileref="ai-observability-filter-pipeline.png" width="100%"/>
+          </imageobject>
+          <textobject role="description"><phrase>Screenshot showing the detailed configuration and code content for a SUSE AI filter pipeline</phrase>
+          </textobject>
+        </mediaobject>
+      </figure>
+    </step>
+  </procedure>
+  <procedure xml:id="ai-monitoring-owui-default-metrics">
+    <title>Configuring default Open WebUI metrics and traces (advanced)</title>
+    <para>
+      Open WebUI also offers certain built-in OpenTelemetry integration for traces
+      and metrics. These signals are related to the API consumption but do not
+      provide details about the GenAI monitoring. That is why we need to
+      configure the <phrase><phrase os="suseai">SUSE AI</phrase></phrase> filter as described in
+      <xref linkend="ai-monitoring-owui-pipelines-cmdline"/>.
+    </para>
+    <step>
+      <para>
+        Append the following environment variables to your
+        <literal>extraEnvVars</literal> section in the
+        <filename>owui_custom_overrides.yaml</filename> file mentioned in
+        <xref linkend="ai-monitoring-owui-pipelines-cmdline"/>.
+      </para>
+<screen>
+[...]
+extraEnvVars:
+- name: OPENAI_API_KEY
+  value: "0p3n-w3bu!"
+- name: ENABLE_OTEL
+  value: "true"
+- name: ENABLE_OTEL_METRICS
+  value: "true"
+- name: OTEL_EXPORTER_OTLP_INSECURE
+  value: "false" <co xml:id="co-otel-exporter-otlp-insecure"/>
+- name: OTEL_EXPORTER_OTLP_ENDPOINT
+  value: <replaceable>CUSTOM_OTEL_ENDPOINT</replaceable> <co xml:id="co-otel-exporter-otlp-endpoint"/>
+- name: OTEL_SERVICE_NAME
+  value: <replaceable>CUSTOM_OTEL_IDENTIFYER</replaceable> <co xml:id="co-otel-service-name"/></screen>
+      <calloutlist>
+        <callout arearefs="co-otel-exporter-otlp-insecure">
+          <para>
+            Set to <literal>"true"</literal> for testing or controlled
+            environments, and <literal>"false"</literal> for production
+            deployments with TLS communication.
+          </para>
+        </callout>
+        <callout arearefs="co-otel-exporter-otlp-endpoint">
+          <para>
+            Enter your custom OpenTelemetry collector endpoint URL, such as
+            <literal>"http://opentelemetry-collector.suse-observability.svc.cluster.local:4318"</literal>.
+          </para>
+        </callout>
+        <callout arearefs="co-otel-service-name">
+          <para>
+            Specify a custom identifier for the OpenTelemetry service, such as
+            <literal>"OI Core""</literal>.
+          </para>
+        </callout>
+      </calloutlist>
+    </step>
+    <step>
+      <para>
+        Save the enhanced override file and update Open WebUI:
+      </para>
+<screen><prompt>&gt; </prompt><command>helm upgrade \
+  --install open-webui oci://dp.apps.rancher.io/charts/open-webui \
+  -n suse-private-ai \
+  --create-namespace \
+  --version 7.2.0 \
+  -f owui_custom_overrides.yaml</command></screen>
+    </step>
+  </procedure>
+</section>
+  <section role="task" xml:lang="en" version="5.2" xml:id="ai-monitoring-milvus"><info>
+    <title xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">Monitoring Milvus</title>
+    <meta xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" name="maintainer" content="tbazant@suse.com" its:translate="no"/>
+    <abstract xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">
+      <para>
+        Milvus is monitored by scraping its Prometheus-compatible metrics
+        endpoint. The SUSE Observability Extension uses these metrics to visualize
+        Milvus's status and activity.
+      </para>
+    </abstract>
+  </info>
+  
+  <section xml:id="ai-monitoring-milvus-scraping-metrics">
+    <title>Scraping the metrics (recommended)</title>
+    <para>
+      Add the following job to the <literal>scrape_configs</literal> section of
+      your OpenTelemetry Collector's configuration. It instructs the collector to
+      scrape the <literal>/metrics</literal> endpoint of the Milvus service
+      every 15 seconds.
+    </para>
+<screen>config:
+  receivers:
+    prometheus:
+      config:
+        scrape_configs:
+          - job_name: 'milvus'
+            scrape_interval: 15s
+            metrics_path: '/metrics'
+ 
+            static_configs:
+            - targets: ['milvus.suse-private-ai.svc.cluster.local:9091'] <co xml:id="co-static-configs-targets"/></screen>
+    <calloutlist>
+      <callout arearefs="co-static-configs-targets">
+        <para>
+          Your Milvus service metrics endpoint. The example
+          <literal>milvus.suse-private-ai.svc.cluster.local:9091</literal> is a
+          common default, but you should verify that it matches your
+          installation service name and namespace.
+        </para>
+      </callout>
+    </calloutlist>
+  </section>
+  <section xml:id="ai-monitoring-milvus-tracing">
+    <title>Tracing (advanced)</title>
+    <para>
+      Milvus can also export detailed tracing data.
+    </para>
+    <important>
+      <title>High data volume</title>
+      <para>
+        Enabling tracing in Milvus can generate a large amount of data. We
+        recommend configuring sampling at the collector level to avoid
+        performance issues and high storage costs.
+      </para>
+    </important>
+    <para>
+      To enable tracing, configure the following settings in your Milvus
+      Helm chart values:
+    </para>
+<screen>extraConfigFiles:
+  user.yaml: |+
+    trace:
+      exporter: jaeger
+      sampleFraction: 1
+      jaeger: url: "http://opentelemetry-collector.observability.svc.cluster.local:14268/api/traces" <co xml:id="co-jaeger-url"/></screen>
+    <calloutlist>
+      <callout arearefs="co-jaeger-url">
+        <para>
+          The URL of the OpenTelemetry Collector installed by the user.
+        </para>
+      </callout>
+    </calloutlist>
+  </section>
+</section>
+  <section role="task" xml:lang="en" version="5.2" xml:id="ai-monitoring-vllm"><info>
+    <title xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">Monitoring vLLM</title>
+    <meta xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" name="maintainer" content="tbazant@suse.com" its:translate="no"/>
+    <abstract xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">
+      <para>
+        vLLM is monitored by scraping its Prometheus-compatible metrics
+        endpoints. The SUSE Observability Extension uses these metrics to
+        visualize vLLM's status and activity.
+      </para>
+    </abstract>
+  </info>
+  
+  <section xml:id="ai-monitoring-vllm-scraping">
+    <title>Metrics Scraping (recommended)</title>
+    <para>
+      Add the following job to the <literal>scrape_configs</literal> section of
+      your OpenTelemetry Collector's configuration. This configures the collector
+      to scrape the <filename>/metrics</filename> endpoint from all vLLM
+      services every 10 seconds. Remember that you can have several jobs
+      defined, so if you defined other jobs—such as Milvus—you can
+      just append the new job to your list. If you have deployed vLLM's
+      services with non-default values, you can easily change the service
+      discovery rules.
+    </para>
+    <tip>
+      <para>
+        Before using the following example, replace the
+        <replaceable>VLLM_NAMESPACE</replaceable> and
+        <replaceable>VLLM_RELEASE_NAME</replaceable> placeholders with the
+        actual values you used while deploying vLLM.
+      </para>
+    </tip>
+<screen>config:
+  receivers:
+    prometheus:
+      config:
+        scrape_configs:
+          - job_name: 'vllm'
+            scrape_interval: 10s
+            scheme: http
+            kubernetes_sd_configs:
+              - role: service
+            relabel_configs:
+              - source_labels: [__meta_kubernetes_namespace]
+                action: keep
+                regex: '<replaceable>VLLM_NAMESPACE</replaceable>'
+
+              - source_labels: [__meta_kubernetes_service_name]
+                action: keep
+                regex: '.*<replaceable>VLLM_RELEASE_NAME</replaceable>.*'</screen>
+    <warning version="5.2" xml:base="../snippets/observability-warning-262.xml">
+  <title>SUSE Observability version 2.6.2 and above</title>
+  <para>
+    With SUSE Observability version 2.6.2, a change of the standard behavior broke
+    the vLLM monitoring performed by the extension. To fix it, update
+    <filename>otel-values.yaml</filename> to include the following additions. No
+    changes are required for people using SUSE Observability version 2.6.1 and
+    below.
+  </para>
+  <itemizedlist>
+    <listitem>
+      <para>
+        Add a new processor.
+      </para>
+<screen>config:
+  processors:
+    ... # same as before
+    transform:
+      metric_statements:
+        - context: metric
+          statements:
+            - replace_pattern(name, "^vllm:", "vllm_")</screen>
+    </listitem>
+    <listitem>
+      <para>
+        Modify the metrics pipeline to perform the transformation defined above:
+      </para>
+<screen>config:
+  service:
+    pipelines:
+      ... # same as before
+      metrics:
+        receivers: [otlp, spanmetrics, prometheus]
+        processors: [transform, memory_limiter, resource, batch]
+        exporters: [debug, otlp]</screen>
+    </listitem>
+  </itemizedlist>
+</warning>
+  </section>
+</section>
+  <section role="concept" xml:lang="en" version="5.2" xml:id="ai-monitoring-user-apps"><info>
+    <title xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">Monitoring user-managed applications</title>
+    <meta xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" name="maintainer" content="tbazant@suse.com" its:translate="no"/>
+    <abstract xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">
+      <para>
+        To monitor other applications, you can utilize OpenTelemetry SDKs or any
+        other instrumentation provider compatible with OpenTelemetry's semantics,
+        for example, OpenLIT SDK. For more details, refer to
+        <xref linkend="ai-monitoring-instrument-openlit"/>.
+      </para>
+    </abstract>
+  </info>
+  
+  <para>
+    OpenTelemetry offers several instrumentation techniques for different
+    deployment scenarios and applications. You can instrument applications
+    either manually, with more detailed control, or automatically for an easier
+    starting point.
+  </para>
+  <tip>
+    <para>
+      One of the most straightforward ways of getting started with OpenTelemetry
+      is using the OpenTelemetry Operator for Kubernetes, which is available in the
+      SUSE Application Collection. Find more information in this
+      <link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://docs.apps.rancher.io/reference-guides/opentelemetry-operator/">extensive
+      guide</link> on how to use this operator for instrumenting your
+      applications.
+    </para>
+  </tip>
+  <section xml:id="ai-monitoring-telemetry-data-capture">
+    <title>Ensuring that the telemetry data is properly captured by the SUSE Observability Extension</title>
+    <para>
+      For the SUSE Observability Extension to acknowledge an application as a
+      GenAI application, it needs to have a meter configured. It must provide at
+      least the <literal>RequestsTotal</literal> metric with the following
+      attributes:
+    </para>
+    <itemizedlist>
+      <listitem>
+        <para>
+          <literal>TelemetrySDKLanguage</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <literal>ServiceName</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <literal>ServiceInstanceId</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <literal>ServiceNamespace</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <literal>GenAIEnvironment</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <literal>GenAiApplicationName</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <literal>GenAiSystem</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <literal>GenAiOperationName</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <literal>GenAiRequestModel</literal>
+        </para>
+      </listitem>
+    </itemizedlist>
+    <variablelist>
+      <para>
+        Both the meter and the tracer must contain the following resource
+        attributes:
+      </para>
+      <varlistentry>
+        <term>service.name</term>
+        <listitem>
+          <para>
+            The logical name of the service. Defaults to <literal>"My
+            App"</literal>.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>service.version</term>
+        <listitem>
+          <para>
+            The version of the service. Defaults to <literal>"1.0"</literal>.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>deployment.environment</term>
+        <listitem>
+          <para>
+            The name of the deployment environment, such as
+            <literal>"production"</literal> or <literal>"staging"</literal>.
+            Defaults to <literal>"default""</literal>.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>telemetry.sdk.name</term>
+        <listitem>
+          <para>
+            The value must be <literal>"openlit"</literal>.
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <variablelist>
+      <para>
+        The following metrics are utilized in the graphs of the SUSE Observability
+        Extension:
+      </para>
+      <varlistentry>
+        <term>gen_ai.client.token.usage</term>
+        <listitem>
+          <para>
+            Measures the number of used input and output tokens.
+          </para>
+          <para>
+            <emphasis role="bold">Type:</emphasis> histogram
+          </para>
+          <para>
+            <emphasis role="bold">Unit:</emphasis> token
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>gen_ai.total.requests</term>
+        <listitem>
+          <para>
+            Number of requests.
+          </para>
+          <para>
+            <emphasis role="bold">Type:</emphasis> counter
+          </para>
+          <para>
+            <emphasis role="bold">Unit:</emphasis> integer
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>gen_ai.usage.cost</term>
+        <listitem>
+          <para>
+            The distribution of GenAI request costs.
+          </para>
+          <para>
+            <emphasis role="bold">Type:</emphasis> histogram
+          </para>
+          <para>
+            <emphasis role="bold">Unit:</emphasis> USD
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>gen_ai.usage.input_tokens</term>
+        <listitem>
+          <para>
+            Number of prompt tokens processed.
+          </para>
+          <para>
+            <emphasis role="bold">Type:</emphasis> counter
+          </para>
+          <para>
+            <emphasis role="bold">Unit:</emphasis> integer
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>gen_ai.usage.output_tokens</term>
+        <listitem>
+          <para>
+            Number of completion tokens processed.
+          </para>
+          <para>
+            <emphasis role="bold">Type:</emphasis> counter
+          </para>
+          <para>
+            <emphasis role="bold">Unit:</emphasis> integer
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>gen_ai.client.token.usage</term>
+        <listitem>
+          <para>
+            Number of tokens processed.
+          </para>
+          <para>
+            <emphasis role="bold">Type:</emphasis> counter
+          </para>
+          <para>
+            <emphasis role="bold">Unit:</emphasis> integer
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </section>
+  <section xml:id="ai-monitoring-troubleshooting">
+    <title>Troubleshooting</title>
+    <qandaset>
+      <qandaentry>
+        <question>
+          <para>
+            No metrics received from any components.
+          </para>
+        </question>
+        <answer>
+          <itemizedlist>
+            <listitem>
+              <para>
+                Verify the OpenTelemetry Collector deployment.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                Check if the exporter is properly set to the SUSE Observability
+                collector and with the correct API key and endpoint specified.
+              </para>
+            </listitem>
+          </itemizedlist>
+        </answer>
+      </qandaentry>
+      <qandaentry>
+        <question>
+          <para>
+            No metrics received from the GPU.
+          </para>
+        </question>
+        <answer>
+          <itemizedlist>
+            <listitem>
+              <para>
+                Verify if the RBAC rules were applied.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                Verify if the metrics receiver scraper is configured.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                Check the NVIDIA DCGM Exporter for errors.
+              </para>
+            </listitem>
+          </itemizedlist>
+        </answer>
+      </qandaentry>
+      <qandaentry>
+        <question>
+          <para>
+            No metrics received from Milvus.
+          </para>
+        </question>
+        <answer>
+          <itemizedlist>
+            <listitem>
+              <para>
+                Verify if Milvus chart configuration is exposing the metrics
+                endpoint.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                Verify if the metrics receiver scraper is configured.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                For usage metrics, confirm that requests were actually made to
+                Milvus.
+              </para>
+            </listitem>
+          </itemizedlist>
+        </answer>
+      </qandaentry>
+      <qandaentry>
+        <question>
+          <para>
+            No metrics received from vLLM.
+          </para>
+        </question>
+        <answer>
+          <itemizedlist>
+            <listitem>
+              <para>
+                Verify if the vLLM chart configuration is exposing the metrics
+                endpoint.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                Verify if the metrics receiver scraper is properly configured,
+                in particular, the placeholders.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                If some metrics are present, but not usage-related ones, verify
+                if you actually made requests to vLLM.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                If vLLM was not identified and/or vLLM metrics have the
+                prefix <quote>vllm:</quote>, check the collector configuration.
+                You may be using SUSE Observability 2.6.2, which requires
+                additional configuration.
+              </para>
+            </listitem>
+          </itemizedlist>
+        </answer>
+      </qandaentry>
+      <qandaentry>
+        <question>
+          <para>
+            GPU nodes are stuck in <literal>NotReady</literal> status.
+          </para>
+        </question>
+        <answer>
+          <itemizedlist>
+            <listitem>
+              <para>
+                Verify if there is a driver version mismatch between the host
+                and the version that the GPU operator expects.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                You may need to reinstall the Kubernetes stackpack.
+              </para>
+            </listitem>
+          </itemizedlist>
+        </answer>
+      </qandaentry>
+      <qandaentry>
+        <question>
+          <para>
+            No tracing data received from any components.
+          </para>
+        </question>
+        <answer>
+          <itemizedlist>
+            <listitem>
+              <para>
+                Verify the OpenTelemetry Collector deployment.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                Check if the exporter is properly set to the SUSE Observability
+                collector, with the right API key and endpoint set.
+              </para>
+            </listitem>
+          </itemizedlist>
+        </answer>
+      </qandaentry>
+      <qandaentry>
+        <question>
+          <para>
+            No tracing data received from Open WebUI.
+          </para>
+        </question>
+        <answer>
+          <itemizedlist>
+            <listitem>
+              <para>
+                Verify if the SUSE AI Observability Filter was installed and
+                configured properly.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                Verify if chat requests actually happened.
+              </para>
+            </listitem>
+          </itemizedlist>
+        </answer>
+      </qandaentry>
+      <qandaentry>
+        <question>
+          <para>
+            Cost estimation is far from real values.
+          </para>
+        </question>
+        <answer>
+          <para>
+            Recalculate the multipliers for the <literal>PRICING_JSON</literal>
+            in the SUSE AI Observability Filter.
+          </para>
+        </answer>
+      </qandaentry>
+      <qandaentry>
+        <question>
+          <para>
+            There is high demand for storage volume.
+          </para>
+        </question>
+        <answer>
+          <para>
+            Verify if sampling is being applied in the OpenTelemetry Collector.
+          </para>
+        </answer>
+      </qandaentry>
+    </qandaset>
+  </section>
+</section>
+  <appendix role="concept" xml:lang="en" version="5.2" xml:id="ai-monitoring-cost-estimation"><info>
+        <title xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude">Cost estimation</title>
+      <meta xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" name="maintainer" content="tbazant@suse.com" its:translate="no"/></info>
+  
+  <para>
+    The cost estimation is calculated for every chat interaction between the
+    Open WebUI user and the AI model with the following formula:
+  </para>
+<screen>cost = (prompt_tokens / 1000) * model_prompt_multiplier + (completion_tokens / 1000) * model_completion_multiplier</screen>
+  <para>
+    Each multiplier comes from the <filename>pricing.json</filename> file, which
+    is structured in a way that each model has a multiplier for the prompt
+    tokens and completion tokens.
+  </para>
+  <para>
+    If the cost estimation deviates from the actual costs of your environment,
+    you can calculate new multipliers and update your
+    <filename>pricing.json</filename>.
+  </para>
+</appendix>
+  <appendix role="concept" xml:lang="en" version="5.2" xml:id="ai-monitoring-instrument-openlit"><info>
+        <title xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude">Instrument applications with OpenLIT SDK</title>
+      <meta xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" name="maintainer" content="tbazant@suse.com" its:translate="no"/><abstract xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">
+      <para>
+        OpenLIT has a Python and a Typescript SDK available. The following
+        procedures describe examples of instrumentation, one for each language.
+      </para>
+    </abstract></info>
+  
+  <tip>
+    <para>
+      For the full list of configuration options for OpenLIT SDKs, check
+      <link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://docs.openlit.io/latest/sdk-configuration">the
+      upstream documentation</link>.
+    </para>
+  </tip>
+  <procedure>
+    <title>Instrumenting using Python OpenLIT SDK</title>
+    <step>
+      <para>
+        Open terminal and add a OpenLIT dependency.
+      </para>
+<screen><prompt>&gt; </prompt><command>pip install openlit</command></screen>
+    </step>
+    <step>
+      <para>
+        Import OpenLIT and initialize it in your code, usually in the main
+        entrypoint. Remember to adjust the OpenTelemetry Protocol (OTLP)
+        endpoint.
+      </para>
+<screen>import openlit
+
+openlit.init(otlp_endpoint="http://otel-collector.observability.svc.cluster.local:4318")</screen>
+    </step>
+    <step>
+      <para>
+        With this code in place, you will start receiving telemetry data from
+        the libraries currently supported by OpenLIT. You can test it with
+        Ollama by following this example:
+      </para>
+<screen>import ollama
+import openlit
+
+openlit.init()
+
+response = ollama.chat(model='gemma:2b', messages=[
+  {
+    'role': 'user',
+    'content': 'Why is the sky blue?',
+  },
+])</screen>
+    </step>
+  </procedure>
+</appendix>
+  <appendix version="5.2" xml:id="legal-disclaimer"><info>
+    <title xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink">Legal Notice</title>
+  </info>
+  
+  <para> Copyright© 2006–<?dbtimestamp format="Y"?>
+ SUSE LLC and contributors.
+  All rights reserved. </para>
+  <para>
+    Permission is granted to copy, distribute and/or modify this document under the terms of the
+    GNU Free Documentation License, Version 1.2 or (at your option) version 1.3; with the Invariant
+    Section being this copyright notice and license. A copy of the license version 1.2 is included
+    in the section entitled <quote>GNU Free Documentation License</quote>.
+  </para>
+  <para>
+    For SUSE trademarks, see <link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://www.suse.com/company/legal/"/>. All other
+    third-party trademarks are the property of their respective owners. Trademark symbols (®, ™
+    etc.) denote trademarks of SUSE and its affiliates. Asterisks (*) denote third-party
+    trademarks.
+  </para>
+  <para>
+    All information found in this book has been compiled with utmost attention to detail. However,
+    this does not guarantee complete accuracy.  Neither SUSE LLC, its affiliates, the authors, nor
+    the translators shall be held liable for possible errors or the consequences thereof.
+  </para>
+</appendix>
+  <appendix xmlns:its="http://www.w3.org/2005/11/its" version="5.2" role="legal" its:translate="no" xml:id="doc-gfdl-license"><info>
+   <title xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink">GNU Free Documentation License</title>
+ </info>
+
+ 
+
+ <para>
+  Copyright (C) 2000, 2001, 2002 Free Software Foundation, Inc. 51 Franklin St,
+  Fifth Floor, Boston, MA 02110-1301 USA. Everyone is permitted to copy and
+  distribute verbatim copies of this license document, but changing it is not
+  allowed.
+ </para>
+
+ <bridgehead renderas="sect4">
+    0. PREAMBLE
+  </bridgehead>
+
+ <para>
+  The purpose of this License is to make a manual, textbook, or other
+  functional and useful document "free" in the sense of freedom: to assure
+  everyone the effective freedom to copy and redistribute it, with or without
+  modifying it, either commercially or non-commercially. Secondarily, this
+  License preserves for the author and publisher a way to get credit for their
+  work, while not being considered responsible for modifications made by
+  others.
+ </para>
+
+ <para>
+  This License is a kind of "copyleft", which means that derivative works of
+  the document must themselves be free in the same sense. It complements the
+  GNU General Public License, which is a copyleft license designed for free
+  software.
+ </para>
+
+ <para>
+  We have designed this License to use it for manuals for free software,
+  because free software needs free documentation: a free program should come
+  with manuals providing the same freedoms that the software does. But this
+  License is not limited to software manuals; it can be used for any textual
+  work, regardless of subject matter or whether it is published as a printed
+  book. We recommend this License principally for works whose purpose is
+  instruction or reference.
+ </para>
+
+ <bridgehead renderas="sect4">
+    1. APPLICABILITY AND DEFINITIONS
+  </bridgehead>
+
+ <para>
+  This License applies to any manual or other work, in any medium, that
+  contains a notice placed by the copyright holder saying it can be distributed
+  under the terms of this License. Such a notice grants a world-wide,
+  royalty-free license, unlimited in duration, to use that work under the
+  conditions stated herein. The "Document", below, refers to any such manual or
+  work. Any member of the public is a licensee, and is addressed as "you". You
+  accept the license if you copy, modify or distribute the work in a way
+  requiring permission under copyright law.
+ </para>
+
+ <para>
+  A "Modified Version" of the Document means any work containing the Document
+  or a portion of it, either copied verbatim, or with modifications and/or
+  translated into another language.
+ </para>
+
+ <para>
+  A "Secondary Section" is a named appendix or a front-matter section of the
+  Document that deals exclusively with the relationship of the publishers or
+  authors of the Document to the Document's overall subject (or to related
+  matters) and contains nothing that could fall directly within that overall
+  subject. (Thus, if the Document is in part a textbook of mathematics, a
+  Secondary Section may not explain any mathematics.) The relationship could be
+  a matter of historical connection with the subject or with related matters,
+  or of legal, commercial, philosophical, ethical or political position
+  regarding them.
+ </para>
+
+ <para>
+  The "Invariant Sections" are certain Secondary Sections whose titles are
+  designated, as being those of Invariant Sections, in the notice that says
+  that the Document is released under this License. If a section does not fit
+  the above definition of Secondary then it is not allowed to be designated as
+  Invariant. The Document may contain zero Invariant Sections. If the Document
+  does not identify any Invariant Sections then there are none.
+ </para>
+
+ <para>
+  The "Cover Texts" are certain short passages of text that are listed, as
+  Front-Cover Texts or Back-Cover Texts, in the notice that says that the
+  Document is released under this License. A Front-Cover Text may be at most 5
+  words, and a Back-Cover Text may be at most 25 words.
+ </para>
+
+ <para>
+  A "Transparent" copy of the Document means a machine-readable copy,
+  represented in a format whose specification is available to the general
+  public, that is suitable for revising the document straightforwardly with
+  generic text editors or (for images composed of pixels) generic paint
+  programs or (for drawings) some widely available drawing editor, and that is
+  suitable for input to text formatters or for automatic translation to a
+  variety of formats suitable for input to text formatters. A copy made in an
+  otherwise Transparent file format whose markup, or absence of markup, has
+  been arranged to thwart or discourage subsequent modification by readers is
+  not Transparent. An image format is not Transparent if used for any
+  substantial amount of text. A copy that is not "Transparent" is called
+  "Opaque".
+ </para>
+
+ <para>
+  Examples of suitable formats for Transparent copies include plain ASCII
+  without markup, Texinfo input format, LaTeX input format, SGML or XML using a
+  publicly available DTD, and standard-conforming simple HTML, PostScript or
+  PDF designed for human modification. Examples of transparent image formats
+  include PNG, XCF and JPG. Opaque formats include proprietary formats that can
+  be read and edited only by proprietary word processors, SGML or XML for which
+  the DTD and/or processing tools are not generally available, and the
+  machine-generated HTML, PostScript or PDF produced by some word processors
+  for output purposes only.
+ </para>
+
+ <para>
+  The "Title Page" means, for a printed book, the title page itself, plus such
+  following pages as are needed to hold, legibly, the material this License
+  requires to appear in the title page. For works in formats which do not have
+  any title page as such, "Title Page" means the text near the most prominent
+  appearance of the work's title, preceding the beginning of the body of the
+  text.
+ </para>
+
+ <para>
+  A section "Entitled XYZ" means a named subunit of the Document whose title
+  either is precisely XYZ or contains XYZ in parentheses following text that
+  translates XYZ in another language. (Here XYZ stands for a specific section
+  name mentioned below, such as "Acknowledgements", "Dedications",
+  "Endorsements", or "History".) To "Preserve the Title" of such a section when
+  you modify the Document means that it remains a section "Entitled XYZ"
+  according to this definition.
+ </para>
+
+ <para>
+  The Document may include Warranty Disclaimers next to the notice which states
+  that this License applies to the Document. These Warranty Disclaimers are
+  considered to be included by reference in this License, but only as regards
+  disclaiming warranties: any other implication that these Warranty Disclaimers
+  may have is void and has no effect on the meaning of this License.
+ </para>
+
+ <bridgehead renderas="sect4">
+    2. VERBATIM COPYING
+  </bridgehead>
+
+ <para>
+  You may copy and distribute the Document in any medium, either commercially
+  or non-commercially, provided that this License, the copyright notices, and
+  the license notice saying this License applies to the Document are reproduced
+  in all copies, and that you add no other conditions whatsoever to those of
+  this License. You may not use technical measures to obstruct or control the
+  reading or further copying of the copies you make or distribute. However, you
+  may accept compensation in exchange for copies. If you distribute a large
+  enough number of copies you must also follow the conditions in section 3.
+ </para>
+
+ <para>
+  You may also lend copies, under the same conditions stated above, and you may
+  publicly display copies.
+ </para>
+
+ <bridgehead renderas="sect4">
+    3. COPYING IN QUANTITY
+  </bridgehead>
+
+ <para>
+  If you publish printed copies (or copies in media that commonly have printed
+  covers) of the Document, numbering more than 100, and the Document's license
+  notice requires Cover Texts, you must enclose the copies in covers that
+  carry, clearly and legibly, all these Cover Texts: Front-Cover Texts on the
+  front cover, and Back-Cover Texts on the back cover. Both covers must also
+  clearly and legibly identify you as the publisher of these copies. The front
+  cover must present the full title with all words of the title equally
+  prominent and visible. You may add other material on the covers in addition.
+  Copying with changes limited to the covers, as long as they preserve the
+  title of the Document and satisfy these conditions, can be treated as
+  verbatim copying in other respects.
+ </para>
+
+ <para>
+  If the required texts for either cover are too voluminous to fit legibly, you
+  should put the first ones listed (as many as fit reasonably) on the actual
+  cover, and continue the rest onto adjacent pages.
+ </para>
+
+ <para>
+  If you publish or distribute Opaque copies of the Document numbering more
+  than 100, you must either include a machine-readable Transparent copy along
+  with each Opaque copy, or state in or with each Opaque copy a
+  computer-network location from which the general network-using public has
+  access to download using public-standard network protocols a complete
+  Transparent copy of the Document, free of added material. If you use the
+  latter option, you must take reasonably prudent steps, when you begin
+  distribution of Opaque copies in quantity, to ensure that this Transparent
+  copy will remain thus accessible at the stated location until at least one
+  year after the last time you distribute an Opaque copy (directly or through
+  your agents or retailers) of that edition to the public.
+ </para>
+
+ <para>
+  It is requested, but not required, that you contact the authors of the
+  Document well before redistributing any large number of copies, to give them
+  a chance to provide you with an updated version of the Document.
+ </para>
+
+ <bridgehead renderas="sect4">
+    4. MODIFICATIONS
+  </bridgehead>
+
+ <para>
+  You may copy and distribute a Modified Version of the Document under the
+  conditions of sections 2 and 3 above, provided that you release the Modified
+  Version under precisely this License, with the Modified Version filling the
+  role of the Document, thus licensing distribution and modification of the
+  Modified Version to whoever possesses a copy of it. In addition, you must do
+  these things in the Modified Version:
+ </para>
+
+ <orderedlist numeration="upperalpha" spacing="normal">
+  <listitem>
+   <para>
+    Use in the Title Page (and on the covers, if any) a title distinct from
+    that of the Document, and from those of previous versions (which should, if
+    there were any, be listed in the History section of the Document). You may
+    use the same title as a previous version if the original publisher of that
+    version gives permission.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    List on the Title Page, as authors, one or more persons or entities
+    responsible for authorship of the modifications in the Modified Version,
+    together with at least five of the principal authors of the Document (all
+    of its principal authors, if it has fewer than five), unless they release
+    you from this requirement.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    State on the Title page the name of the publisher of the Modified Version,
+    as the publisher.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Preserve all the copyright notices of the Document.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Add an appropriate copyright notice for your modifications adjacent to the
+    other copyright notices.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Include, immediately after the copyright notices, a license notice giving
+    the public permission to use the Modified Version under the terms of this
+    License, in the form shown in the Addendum below.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Preserve in that license notice the full lists of Invariant Sections and
+    required Cover Texts given in the Document's license notice.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Include an unaltered copy of this License.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Preserve the section Entitled "History", Preserve its Title, and add to it
+    an item stating at least the title, year, new authors, and publisher of the
+    Modified Version as given on the Title Page. If there is no section
+    Entitled "History" in the Document, create one stating the title, year,
+    authors, and publisher of the Document as given on its Title Page, then add
+    an item describing the Modified Version as stated in the previous sentence.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Preserve the network location, if any, given in the Document for public
+    access to a Transparent copy of the Document, and likewise the network
+    locations given in the Document for previous versions it was based on.
+    These may be placed in the "History" section. You may omit a network
+    location for a work that was published at least four years before the
+    Document itself, or if the original publisher of the version it refers to
+    gives permission.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    For any section Entitled "Acknowledgements" or "Dedications", Preserve the
+    Title of the section, and preserve in the section all the substance and
+    tone of each of the contributor acknowledgements and/or dedications given
+    therein.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Preserve all the Invariant Sections of the Document, unaltered in their
+    text and in their titles. Section numbers or the equivalent are not
+    considered part of the section titles.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Delete any section Entitled "Endorsements". Such a section may not be
+    included in the Modified Version.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Do not retitle any existing section to be Entitled "Endorsements" or to
+    conflict in title with any Invariant Section.
+   </para>
+  </listitem>
+  <listitem>
+   <para>
+    Preserve any Warranty Disclaimers.
+   </para>
+  </listitem>
+ </orderedlist>
+
+ <para>
+  If the Modified Version includes new front-matter sections or appendices that
+  qualify as Secondary Sections and contain no material copied from the
+  Document, you may at your option designate some or all of these sections as
+  invariant. To do this, add their titles to the list of Invariant Sections in
+  the Modified Version's license notice. These titles must be distinct from any
+  other section titles.
+ </para>
+
+ <para>
+  You may add a section Entitled "Endorsements", provided it contains nothing
+  but endorsements of your Modified Version by various parties--for example,
+  statements of peer review or that the text has been approved by an
+  organization as the authoritative definition of a standard.
+ </para>
+
+ <para>
+  You may add a passage of up to five words as a Front-Cover Text, and a
+  passage of up to 25 words as a Back-Cover Text, to the end of the list of
+  Cover Texts in the Modified Version. Only one passage of Front-Cover Text and
+  one of Back-Cover Text may be added by (or through arrangements made by) any
+  one entity. If the Document already includes a cover text for the same cover,
+  previously added by you or by arrangement made by the same entity you are
+  acting on behalf of, you may not add another; but you may replace the old
+  one, on explicit permission from the previous publisher that added the old
+  one.
+ </para>
+
+ <para>
+  The author(s) and publisher(s) of the Document do not by this License give
+  permission to use their names for publicity for or to assert or imply
+  endorsement of any Modified Version.
+ </para>
+
+ <bridgehead renderas="sect4">
+    5. COMBINING DOCUMENTS
+  </bridgehead>
+
+ <para>
+  You may combine the Document with other documents released under this
+  License, under the terms defined in section 4 above for modified versions,
+  provided that you include in the combination all of the Invariant Sections of
+  all of the original documents, unmodified, and list them all as Invariant
+  Sections of your combined work in its license notice, and that you preserve
+  all their Warranty Disclaimers.
+ </para>
+
+ <para>
+  The combined work need only contain one copy of this License, and multiple
+  identical Invariant Sections may be replaced with a single copy. If there are
+  multiple Invariant Sections with the same name but different contents, make
+  the title of each such section unique by adding at the end of it, in
+  parentheses, the name of the original author or publisher of that section if
+  known, or else a unique number. Make the same adjustment to the section
+  titles in the list of Invariant Sections in the license notice of the
+  combined work.
+ </para>
+
+ <para>
+  In the combination, you must combine any sections Entitled "History" in the
+  various original documents, forming one section Entitled "History"; likewise
+  combine any sections Entitled "Acknowledgements", and any sections Entitled
+  "Dedications". You must delete all sections Entitled "Endorsements".
+ </para>
+
+ <bridgehead renderas="sect4">
+    6. COLLECTIONS OF DOCUMENTS
+  </bridgehead>
+
+ <para>
+  You may make a collection consisting of the Document and other documents
+  released under this License, and replace the individual copies of this
+  License in the various documents with a single copy that is included in the
+  collection, provided that you follow the rules of this License for verbatim
+  copying of each of the documents in all other respects.
+ </para>
+
+ <para>
+  You may extract a single document from such a collection, and distribute it
+  individually under this License, provided you insert a copy of this License
+  into the extracted document, and follow this License in all other respects
+  regarding verbatim copying of that document.
+ </para>
+
+ <bridgehead renderas="sect4">
+    7. AGGREGATION WITH INDEPENDENT WORKS
+  </bridgehead>
+
+ <para>
+  A compilation of the Document or its derivatives with other separate and
+  independent documents or works, in or on a volume of a storage or
+  distribution medium, is called an "aggregate" if the copyright resulting from
+  the compilation is not used to limit the legal rights of the compilation's
+  users beyond what the individual works permit. When the Document is included
+  in an aggregate, this License does not apply to the other works in the
+  aggregate which are not themselves derivative works of the Document.
+ </para>
+
+ <para>
+  If the Cover Text requirement of section 3 is applicable to these copies of
+  the Document, then if the Document is less than one half of the entire
+  aggregate, the Document's Cover Texts may be placed on covers that bracket
+  the Document within the aggregate, or the electronic equivalent of covers if
+  the Document is in electronic form. Otherwise they must appear on printed
+  covers that bracket the whole aggregate.
+ </para>
+
+ <bridgehead renderas="sect4">
+    8. TRANSLATION
+  </bridgehead>
+
+ <para>
+  Translation is considered a kind of modification, so you may distribute
+  translations of the Document under the terms of section 4. Replacing
+  Invariant Sections with translations requires special permission from their
+  copyright holders, but you may include translations of some or all Invariant
+  Sections in addition to the original versions of these Invariant Sections.
+  You may include a translation of this License, and all the license notices in
+  the Document, and any Warranty Disclaimers, provided that you also include
+  the original English version of this License and the original versions of
+  those notices and disclaimers. In case of a disagreement between the
+  translation and the original version of this License or a notice or
+  disclaimer, the original version will prevail.
+ </para>
+
+ <para>
+  If a section in the Document is Entitled "Acknowledgements", "Dedications",
+  or "History", the requirement (section 4) to Preserve its Title (section 1)
+  will typically require changing the actual title.
+ </para>
+
+ <bridgehead renderas="sect4">
+    9. TERMINATION
+  </bridgehead>
+
+ <para>
+  You may not copy, modify, sublicense, or distribute the Document except as
+  expressly provided for under this License. Any other attempt to copy, modify,
+  sublicense or distribute the Document is void, and will automatically
+  terminate your rights under this License. However, parties who have received
+  copies, or rights, from you under this License will not have their licenses
+  terminated so long as such parties remain in full compliance.
+ </para>
+
+ <bridgehead renderas="sect4">
+    10. FUTURE REVISIONS OF THIS LICENSE
+  </bridgehead>
+
+ <para>
+  The Free Software Foundation may publish new, revised versions of the GNU
+  Free Documentation License from time to time. Such new versions will be
+  similar in spirit to the present version, but may differ in detail to address
+  new problems or concerns. See
+  <link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://www.gnu.org/copyleft/"/>.
+ </para>
+
+ <para>
+  Each version of the License is given a distinguishing version number. If the
+  Document specifies that a particular numbered version of this License "or any
+  later version" applies to it, you have the option of following the terms and
+  conditions either of that specified version or of any later version that has
+  been published (not as a draft) by the Free Software Foundation. If the
+  Document does not specify a version number of this License, you may choose
+  any version ever published (not as a draft) by the Free Software Foundation.
+ </para>
+
+ <bridgehead renderas="sect4">
+    ADDENDUM: How to use this License for your documents
+  </bridgehead>
+
+<screen>Copyright (c) YEAR YOUR NAME.
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.2
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+A copy of the license is included in the section entitled “GNU
+Free Documentation License”.</screen>
+
+ <para>
+  If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts,
+  replace the “with...Texts.” line with this:
+ </para>
+
+<screen>with the Invariant Sections being LIST THEIR TITLES, with the
+Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST.</screen>
+
+ <para>
+  If you have Invariant Sections without Cover Texts, or some other combination
+  of the three, merge those two alternatives to suit the situation.
+ </para>
+
+ <para>
+  If your document contains nontrivial examples of program code, we recommend
+  releasing these examples in parallel under your choice of free software
+  license, such as the GNU General Public License, to permit their use in free
+  software.
+</para>
+</appendix>
+</article>

@@ -1,0 +1,2751 @@
+<?xml version="1.0"?>
+<?asciidoc-toc?><?asciidoc-numbered?><book xmlns="http://docbook.org/ns/docbook" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
+<info>
+<title>Getting started with SUSE Private Registry</title>
+<date>2025-10-15</date>
+</info>
+<preface xml:id="pr-relnotes">
+<title>Release notes</title>
+<para>SUSE Private Registry is an on-premises container registry.
+It is designed for SUSE customers who need a container registry that works well with other SUSE services and products.</para>
+<para>This document provides a high-level overview of the features, capabilities and limitations of SUSE Private Registry, and highlights important product updates.</para>
+<section xml:id="pr-relnotes-10">
+<title>Release 1.0</title>
+<para>Key features:</para>
+<itemizedlist>
+<listitem>
+<para>SUSE Private Registry is based on Harbor 2.13.2</para>
+<itemizedlist>
+<listitem>
+<para>Integration with <link xl:href="https://github.com/goharbor/community/blob/main/proposals/new/AI-model-processor.md">Model Spec</link> for first-class handling of AI models</para>
+</listitem>
+<listitem>
+<para>Enhanced audit logging</para>
+</listitem>
+</itemizedlist>
+</listitem>
+<listitem>
+<para><link xl:href="https://www.suse.com/support/kb/doc/?id=000021405">Predictable release cycle</link> aligned with SUSE Rancher Prime. SUSE Private Registry will be updated every 4 months</para>
+</listitem>
+<listitem>
+<para>Each release is supported by SUSE for 18 months from the date of release</para>
+<itemizedlist>
+<listitem>
+<para>6 months of security and bug fix maintenance, followed by</para>
+</listitem>
+<listitem>
+<para>12 months of security-only maintenance</para>
+</listitem>
+</itemizedlist>
+</listitem>
+<listitem>
+<para>Can be used to mirror <link xl:href="https://docs.apps.rancher.io/howto-guides/mirror-with-harbor/">SUSE Application Collection</link></para>
+</listitem>
+<listitem>
+<para>Supports <link xl:href="https://documentation.suse.com/cloudnative/security/5.4/en/harbor.html">SUSE Security</link> as an external scanner</para>
+</listitem>
+</itemizedlist>
+<para>SUSE Private Registry includes all the features of Harbor:</para>
+<itemizedlist>
+<listitem>
+<para>On-premises private container image and OCI artifact registry</para>
+</listitem>
+<listitem>
+<para>Web interface for administration</para>
+</listitem>
+<listitem>
+<para>Role-based Access Control</para>
+</listitem>
+<listitem>
+<para>Fine-grained project configuration for image and artifact storage</para>
+</listitem>
+<listitem>
+<para>Mirroring and pull-through caching of upstream registries' artifacts</para>
+</listitem>
+<listitem>
+<para>Image retention and garbage collection controls</para>
+</listitem>
+<listitem>
+<para>Scanning images for security vulnerabilities with the Trivy scanner</para>
+</listitem>
+<listitem>
+<para>Generate SBOMs for stored images</para>
+</listitem>
+<listitem>
+<para>Content trust with Cosign (Notary is not included)</para>
+</listitem>
+</itemizedlist>
+</section>
+</preface>
+<preface xml:id="id-copyright">
+<title>Copyright</title>
+<para>Copyright © 20XX–2025-11-13 SUSE LLC and contributors.
+All rights reserved.</para>
+<para>Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.2 or (at your option) version 1.3; with the Invariant section being this copyright notice and license.
+A copy of the license version 1.2 is included in the section entitled 'GNU Free Documentation License'.</para>
+<para>For SUSE trademarks, see <link xl:href="https://www.suse.com/company/legal/">https://www.suse.com/company/legal/</link>.
+All third-party trademarks are the property of their respective owners.
+Trademark symbols (®, ™ etc.) denote trademarks of SUSE and its affiliates.
+Asterisks (*) denote third-party trademarks.</para>
+<para>All information found in this book has been compiled with utmost attention to detail.
+However, this does not guarantee complete accuracy.
+Neither SUSE LLC, its affiliates, the authors nor the translators shall be held liable for possible errors or the consequences thereof.</para>
+</preface>
+<chapter xml:id="pr-introduction">
+<title>Introduction</title>
+<section xml:id="pr-what-is-spr">
+<title>What is SUSE Private Registry?</title>
+<para>SUSE Private Registry (Private Registry) is an on-premises container registry.
+Private Registry is designed for SUSE customers who need a container registry that works well with other SUSE services and products.</para>
+</section>
+<section xml:id="pr-what-are-pr-benefits">
+<title>What are SUSE Private Registry benefits?</title>
+<para>Private Registry is based on the Harbor project and includes all its core features as well as added benefits. For example:</para>
+<itemizedlist>
+<listitem>
+<para><emphasis role="strong">On-premises container registry.</emphasis> Private Registry is a locally hosted container registry with access to online SUSE registry services.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">Security.</emphasis> Private Registry offers security considerations for containerized environments.
+It includes authentication, authorization and vulnerability scanning.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">Deployment flexibility.</emphasis> You can install Private Registry on a Kubernetes environment such as SUSE Rancher Prime: RKE2.
+You can also deploy Private Registry with High Availability setup.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">User management.</emphasis> Private Registry provides authentication and authorization mechanism with role-based access control (RBAC).</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">User interface.</emphasis> Besides a command-line interface, you can administer Private Registry via Web user interface.</para>
+</listitem>
+</itemizedlist>
+</section>
+<section xml:id="pr-how-does-pr-work">
+<title>How does SUSE Private Registry work?</title>
+<para>Private Registry is delivered as <emphasis>Open Container Initiative</emphasis> (OCI) containers and is expected to be deployed on a Kubernetes cluster.
+Private Registry consists of the following containers:</para>
+<itemizedlist>
+<listitem>
+<para><emphasis role="strong">harbor-core:</emphasis> the main component of the Harbor registry, responsible for handling core functionalities such as managing projects, repositories and user interactions.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">harbor-db:</emphasis> the database container that stores all metadata related to images, users and configurations for the Harbor registry.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">harbor-jobservice:</emphasis> a service that manages background jobs, such as image replication and scheduled tasks, ensuring efficient processing of operations within the registry.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">harbor-nginx:</emphasis> the reverse proxy and load balancer that routes incoming requests to the appropriate Harbor services, providing a single entry point for users.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">harbor-portal:</emphasis> the Web-based user interface that allows users to interact with the Harbor registry, manage images, and configure settings through a graphical interface.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">harbor-registry:</emphasis> the container that serves as the actual image storage back-end, handling the storage and retrieval of container images.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">harbor-registryctl:</emphasis> a command-line tool for managing the Harbor registry, allowing users to perform administrative tasks and configurations directly from the terminal.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">harbor-trivy-adapter:</emphasis> a container that integrates the Trivy vulnerability scanner with Harbor, enabling automated security scanning of container images for vulnerabilities.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">harbor-exporter:</emphasis> the container that exports Harbor metrics in a format that can be collected by Prometheus for monitoring and observability.</para>
+</listitem>
+<listitem>
+<para><emphasis role="strong">harbor-valkey:</emphasis> an in-memory key-value store.</para>
+</listitem>
+</itemizedlist>
+<para>After deployment, you can log in via Web user interface.
+After successful authentication and authorization, you can configure multiple aspects of the product, for example:</para>
+<itemizedlist>
+<listitem>
+<para>Configure <emphasis role="strong">global settings</emphasis>, such as setting the registry to read-only mode or restricting who can create projects.</para>
+</listitem>
+<listitem>
+<para>Select an <emphasis role="strong">authentication</emphasis> method.</para>
+</listitem>
+<listitem>
+<para>Add users when in database authentication mode and assign the system <emphasis role="strong">administrator role</emphasis> to other users.</para>
+</listitem>
+<listitem>
+<para>Apply resource <emphasis role="strong">quotas</emphasis> to projects.</para>
+</listitem>
+<listitem>
+<para>Set up the <emphasis role="strong">replication</emphasis> of images between Private Registry instances.</para>
+</listitem>
+</itemizedlist>
+</section>
+<section xml:id="pr-for-more-information">
+<title>For more information</title>
+<para>Refer to the following sources to obtain more details:</para>
+<itemizedlist>
+<listitem>
+<para>The Harbor project homepage is at <link xl:href="https://goharbor.io/">https://goharbor.io/</link>.</para>
+</listitem>
+<listitem>
+<para>Harbor usage is detailed in <link xl:href="https://goharbor.io/docs">https://goharbor.io/docs</link>.</para>
+</listitem>
+</itemizedlist>
+</section>
+</chapter>
+<chapter xml:id="pr-deployment">
+<title>Deployment</title>
+<para>The following procedures describe how to deploy SUSE Private Registry (Private Registry) on a Kubernetes cluster.</para>
+<section xml:id="pr-deployment-prerequisites">
+<title>Prerequisites</title>
+<itemizedlist>
+<listitem>
+<para>A Kubernetes cluster version 1.20 or higher</para>
+</listitem>
+<listitem>
+<para>Helm version 3.2.0 or higher</para>
+</listitem>
+<listitem>
+<para>Persistent Volume (PV) provisioner support in your infrastructure</para>
+</listitem>
+<listitem>
+<para>An active subscription for SUSE Private Registry</para>
+</listitem>
+</itemizedlist>
+</section>
+<section xml:id="pr-deployment-kube-secrets">
+<title>Obtaining Kubernetes secrets from the SUSE Customer Center</title>
+<para>To download and install the Private Registry images from SUSE Registry, you need a Kubernetes secret with SUSE Customer Center (SCC) mirroring credentials.
+To obtain the credentials from SCC, follow these steps:</para>
+<orderedlist numeration="arabic">
+<listitem>
+<para>Visit SUSE Customer Center at <link xl:href="https://scc.suse.com">https://scc.suse.com</link> and log in.</para>
+</listitem>
+<listitem>
+<para>Select the organization with an active Private Registry subscription from the left sidebar.</para>
+</listitem>
+<listitem>
+<para>Select <literal>Proxies</literal> in the top menu. The credentials are displayed in the top right corner.</para>
+</listitem>
+<listitem>
+<para>To see the password, click the 'eye' icon.</para>
+</listitem>
+<listitem>
+<para>Create a <literal>password.txt</literal> file containing the obtained password.</para>
+<screen linenumbering="unnumbered">  $ head -1 ./password.txt | helm registry login registry.suse.com \
+  --username &lt;PRIVATE_REGISTRY_USERNAME&gt; --password-stdin</screen>
+</listitem>
+<listitem>
+<para>Create a namespace for SUSE Registry.</para>
+<screen linenumbering="unnumbered">$ kubectl create namespace &lt;PRIVATE_REGISTRY_NAMESPACE&gt;</screen>
+</listitem>
+<listitem>
+<para>Store the mirroring credentials retrieved from SCC as Kubernetes secrets by running the following command:</para>
+<screen linenumbering="unnumbered">  $ kubectl create secret docker-registry suse-registry \
+  --namespace &lt;PRIVATE_REGISTRY_NAMESPACE&gt; \
+  --docker-server=registry.suse.com \
+  --docker-username=&lt;PRIVATE_REGISTRY_USERNAME&gt; \
+  --docker-password=$(head -1 ./password.txt)</screen>
+</listitem>
+<listitem>
+<para>Optionally, to use TLS encrypted communication, create a TLS secret from your private key and certificate files.</para>
+<screen linenumbering="unnumbered">  $ kubectl create secret tls suse-registry-tls \
+  --namespace &lt;PRIVATE_REGISTRY_NAMESPACE&gt; \
+  --cert=&lt;CERTIFICATE&gt;.pem \
+  --key=&lt;PRIVATE_KEY&gt;.pem</screen>
+</listitem>
+</orderedlist>
+</section>
+<section xml:id="pr-deployment-installing-and-running">
+<title>Installing and running Private Registry using Helm</title>
+<para>The following procedure describes how to install Private Registry using Helm.
+Replace <literal>&lt;RELEASE_NAME&gt;</literal> with your custom release name for the Helm chart deployment.</para>
+<orderedlist numeration="arabic">
+<listitem>
+<para>Log in to SUSE Registry using the obtained SCC mirroring credentials.</para>
+<screen language="bash" linenumbering="unnumbered">  $ head -1 ./password.txt | helm registry login registry.suse.com \
+  --username &lt;SUSE_REGISTRY_USERNAME&gt; --password-stdin</screen>
+</listitem>
+<listitem>
+<para>Install the latest version of the Private Registry Helm chart.</para>
+<screen language="bash" linenumbering="unnumbered">  $ helm install &lt;RELEASE_NAME&gt; \
+  oci://registry.suse.com/private-registry/private-registry-helm \
+  --namespace &lt;PRIVATE_REGISTRY_NAMESPACE&gt;</screen>
+</listitem>
+</orderedlist>
+<para>To override the default installation with custom values from the <literal>suse_registry_override.yaml</literal> file, refer to <xref linkend="pr-helm-chart-override"/>.</para>
+<para>The command starts deploying several related containers and may take several minutes to complete.
+It also prints a message with the URL to the Private Registry Web portal and commands to obtain the administrator credentials.</para>
+</section>
+<section xml:id="pr-deployment-upgrading">
+<title>Upgrading Private Registry</title>
+<para>To upgrade the release of the Helm chart to a specific newer version, run the following command:</para>
+<screen linenumbering="unnumbered">$ helm upgrade &lt;RELEASE_NAME&gt; \
+oci://registry.suse.com/private-registry/private-registry-helm --version &lt;NEW_VERSION_OF_HELM_CHART&gt;
+--namespace &lt;PRIVATE_REGISTRY_NAMESPACE&gt;</screen>
+</section>
+</chapter>
+<chapter xml:id="pr-deployment-ha">
+<title>Deployment with High Availability</title>
+<para>You can use Helm to deploy highly available (HA) Private Registry on a Kubernetes cluster.
+The HA setup ensures that users do not experience interruptions of service if one of the nodes on which Private Registry is running becomes unavailable.</para>
+<section xml:id="pr-deployment-ha-architecture">
+<title>Architecture of the HA setup</title>
+<para>Most of the Private Registry components are now stateless.
+Therefore, we can scale them by increasing pod replicas, ensuring they run on multiple worker nodes.
+Kubernetes services ensure connectivity between pods.</para>
+<para>For storage, users should provide an HA PostgreSQL and Valkey or Redis cluster for application data, along with PVCs or object storage for storing images and charts.</para>
+<informalfigure>
+<mediaobject>
+<imageobject>
+<imagedata fileref="private-registry-ha.png" width="100%"/>
+</imageobject>
+<textobject><phrase>Private Registry HA setup</phrase></textobject>
+</mediaobject>
+</informalfigure>
+<formalpara>
+<title>Private Registry HA setup</title>
+<para>Kubernetes cluster with Ingress in HA setup using HA PostgreSQL and HA Valkey.</para>
+</formalpara>
+</section>
+<section xml:id="pr-deployment-ha-prerequisites">
+<title>Prerequisites</title>
+<itemizedlist>
+<listitem>
+<para>A Kubernetes cluster version 1.20 or higher</para>
+</listitem>
+<listitem>
+<para>Helm version 3.2.0 or higher</para>
+</listitem>
+<listitem>
+<para>HA Ingress controller (Private Registry does not manage the external endpoint)</para>
+</listitem>
+<listitem>
+<para>HA PostgreSQL 9.6+ (Private Registry does not handle the deployment of HA database)</para>
+</listitem>
+<listitem>
+<para>HA Valkey or Redis (Private Registry does not handle the deployment of HA Valkey or Redis)</para>
+</listitem>
+<listitem>
+<para>Persistent Volume Claim (PVC) that can be shared across nodes or external object storage</para>
+</listitem>
+<listitem>
+<para>An active subscription for SUSE Private Registry</para>
+</listitem>
+</itemizedlist>
+</section>
+<section xml:id="pr-deployment-ha-procedure">
+<title>Deploying Private Registry with HA</title>
+<orderedlist numeration="arabic">
+<listitem>
+<para>Download the Private Registry Helm chart.</para>
+<screen linenumbering="unnumbered">  $ helm pull oci://registry.suse.com/private-registry/private-registry-helm --untar</screen>
+</listitem>
+<listitem>
+<para>Update the deployment parameters to match your requirements.
+Refer to <xref linkend="pr-ha-helm-chart-example"/> for an example Helm chart for Private Registry HA setup.
+Refer to <xref linkend="pr-helm-chart-override"/> for a complete list of values to specify or override.</para>
+</listitem>
+<listitem>
+<para>Install the Private Registry Helm chart.
+Replace <literal>&lt;RELEASE_NAME&gt;</literal> with your custom release name for the Helm chart deployment.</para>
+<screen linenumbering="unnumbered">  $ helm install &lt;RELEASE_NAME&gt; private-registry-helm/</screen>
+</listitem>
+</orderedlist>
+</section>
+</chapter>
+<appendix xml:id="pr-helm-chart-override">
+<title>Overriding the SUSE Private Registry Helm chart</title>
+<para>The SUSE Private Registry (Private Registry) Helm chart is delivered with default values.
+You can adjust the Helm chart installation in one of the following ways:</para>
+<itemizedlist>
+<listitem>
+<para>Append specific parameters to the <literal>--set</literal> flags on the <literal>helm install</literal> command line, for example:</para>
+<screen linenumbering="unnumbered">$ helm install &lt;RELEASE_NAME&gt; \
+oci://registry.suse.com/private-registry/private-registry-helm \
+--namespace &lt;PRIVATE_REGISTRY_NAMESPACE&gt; \
+--set harborAdminPassword=&lt;MY_PASSWORD&gt; \
+--set externalURL=https://&lt;PRIVATE_REGISTRY_FQDN&gt; \
+--set expose.ingress.hosts.core=&lt;PRIVATE_REGISTRY_FQDN&gt;</screen>
+</listitem>
+<listitem>
+<para>Create a SUSE custom <literal>suse_registry_override.yaml</literal> file and pass it to the <literal>--f</literal> flag, for example:</para>
+<screen linenumbering="unnumbered">  $ helm install &lt;RELEASE_NAME&gt; \
+  oci://registry.suse.com/private-registry/private-registry-helm \
+  --namespace &lt;PRIVATE_REGISTRY_NAMESPACE&gt;
+  -f suse_registry_override.yaml</screen>
+</listitem>
+</itemizedlist>
+<section xml:id="pr-helm-chart-override-examples">
+<title>Examples of SUSE Registry Helm override files</title>
+<example><title>Minimal deployment with Ingress</title><screen>expose:
+  type: ingress <co xml:id="CO1-1"/>
+  ingress:
+    hosts:
+      core: &lt;PRIVATE_REGISTRY_FQDN&gt; <co xml:id="CO1-2"/>
+
+externalURL: https://&lt;PRIVATE_REGISTRY_FQDN&gt; <co xml:id="CO1-3"/>
+
+harborAdminPassword: "&lt;MY_PASSWORD&gt;" <co xml:id="CO1-4"/>
+
+database:
+  internal:
+    password: "&lt;MY_PASSWORD_POSTGRESQL&gt;"
+
+redis:
+  internal:
+   password: "&lt;MY_PASSWORD_REDIS&gt;"</screen></example>
+<calloutlist>
+<callout arearefs="CO1-1">
+<para>How SUSE Registry is exposed. Can be <literal>ingress</literal>, <literal>loadBalancer</literal>, <literal>nodePort</literal> or <literal>clusterIPhis</literal>. Default is <literal>ingress</literal>.</para>
+</callout>
+<callout arearefs="CO1-2">
+<para>Host name for the Kubernetes internal networking configuration.</para>
+</callout>
+<callout arearefs="CO1-3">
+<para>URL where the SUSE Registry application runs. It is used to generate links in the user interface, redirects and also for API responses.</para>
+</callout>
+<callout arearefs="CO1-4">
+<para>The administrator password to the application.</para>
+</callout>
+</calloutlist>
+<example><title>Typical deployment with <literal>loadBalancer</literal></title><screen>expose:
+  type: loadBalancer <co xml:id="CO2-1"/>
+  tls:
+    enabled: true
+    certSource: secret <co xml:id="CO2-2"/>
+    secret:
+      secretName: &lt;SECRET_NAME&gt;
+
+    auto:
+      commonName: &lt;PRIVATE_REGISTRY_FQDN&gt; <co xml:id="CO2-3"/>
+
+externalURL: https://&lt;PRIVATE_REGISTRY_FQDN&gt; <co xml:id="CO2-4"/>
+
+harborAdminPassword: "&lt;MY_PASSWORD&gt;" <co xml:id="CO2-5"/>
+
+database:
+  internal:
+    password: "&lt;MY_PASSWORD_POSTGRESQL&gt;"
+
+redis:
+  internal:
+   password: "&lt;MY_PASSWORD_REDIS&gt;"</screen></example>
+<calloutlist>
+<callout arearefs="CO2-1">
+<para>How SUSE Registry is exposed. Can be <literal>ingress</literal>, <literal>loadBalancer</literal>, <literal>nodePort</literal> or <literal>clusterIP</literal>. Default is <literal>ingress</literal>.</para>
+</callout>
+<callout arearefs="CO2-2">
+<para>Can be <literal>auto</literal>, <literal>secret</literal> or <literal>none</literal>. Depending on the option, you may have to include additional values.</para>
+</callout>
+<callout arearefs="CO2-3">
+<para>When using TLS encryption, this field must match the <literal>externalURL</literal> value.</para>
+</callout>
+<callout arearefs="CO2-4">
+<para>URL where the SUSE Registry application runs. It is used to generate links in the user interface, redirects and also for API responses.</para>
+</callout>
+<callout arearefs="CO2-5">
+<para>The administrator password to the application.</para>
+</callout>
+</calloutlist>
+</section>
+<section xml:id="pr-helm-chart-override-parameters">
+<title>Overriding Helm chart parameters and values</title>
+<para>The following tables list all parameters with descriptions that you can use to override the default installation values.</para>
+<variablelist>
+<title>Global parameters</title>
+<varlistentry>
+<term><literal>global.imageRegistry</literal></term>
+<listitem>
+<para>Sets a global override for the container image registry used for all images.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>global.imagePullSecrets</literal></term>
+<listitem>
+<para>Sets global pull secrets for accessing the container image registry.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Common parameters</title>
+<varlistentry>
+<term><literal>harborAdminPassword</literal></term>
+<listitem>
+<para>Sets the initial password for Harbor administrator. Change it from portal after deployment. Default is <literal>Harbor12345</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>externalURL</literal></term>
+<listitem>
+<para>Specifies the external URL for <literal>harbor-core</literal> service. Default is <literal>https://core.harbor.domain</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>existingSecretAdminPasswordKey</literal></term>
+<listitem>
+<para>Sets the key name in the secret containing Harbor administrator password. Default is <literal>HARBOR_ADMIN_PASSWORD</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>imagePullSecrets</literal></term>
+<listitem>
+<para>Sets the <literal>imagePullSecrets</literal> names for all deployments.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>updateStrategy.type</literal></term>
+<listitem>
+<para>Sets the update strategy for deployments with persistent volumes. Accepts <literal>RollingUpdate</literal> or <literal>Recreate</literal>. Use <literal>Recreate</literal> when RWM for volumes is not supported. Default is <literal>RollingUpdate</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>logLevel</literal></term>
+<listitem>
+<para>Sets the log level for Harbor services. Accepts <literal>fatal</literal>, <literal>error</literal>, <literal>warn</literal>, <literal>info</literal>, <literal>debug</literal> or <literal>trace</literal>. Default is <literal>debug</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>enableMigratehelmHook</literal></term>
+<listitem>
+<para>Runs database migration job via Helm hook. When <literal>true</literal>, separates migration job from <literal>harbor-core</literal>. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>caSecretName</literal></term>
+<listitem>
+<para>Specifies the secret name containing the <literal>ca.crt</literal> key.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Proxy parameters</title>
+<varlistentry>
+<term><literal>proxy.httpProxy</literal></term>
+<listitem>
+<para>Specifies the HTTP proxy server URL. Default is <literal>""</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>proxy.httpsProxy</literal></term>
+<listitem>
+<para>Specifies the HTTPS proxy server URL. Default is <literal>""</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>proxy.noProxy</literal></term>
+<listitem>
+<para>Sets URLs that bypass the proxy configuration. Default is <literal>127.0.0.1,localhost,.local,.internal</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>proxy.components</literal></term>
+<listitem>
+<para>Sets components that use the proxy configuration. Default is <literal>["core","jobservice","trivy"]</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Expose parameters</title>
+<varlistentry>
+<term><literal>expose.type</literal></term>
+<listitem>
+<para>Specifies service exposure type: <literal>ingress</literal>, <literal>clusterIP</literal>, <literal>nodePort</literal> or <literal>loadBalancer</literal>. Default is <literal>ingress</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.tls.enabled</literal></term>
+<listitem>
+<para>Enables TLS. Default is <literal>true</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.tls.certSource</literal></term>
+<listitem>
+<para>Sets TLS certificate source as <literal>auto</literal>, <literal>secret</literal> or <literal>none</literal>. Default is <literal>auto</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.tls.auto.commonName</literal></term>
+<listitem>
+<para>Sets certificate common name when type is not <literal>ingress</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.tls.secret.secretName</literal></term>
+<listitem>
+<para>Specifies name of secret containing <literal>tls.crt</literal> (certificate) and <literal>tls.key</literal> (private key).</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.ingress.hosts.core</literal></term>
+<listitem>
+<para>Sets Harbor core service host in Ingress rule. Default is <literal>core.harbor.domain</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.ingress.controller</literal></term>
+<listitem>
+<para>Sets Ingress controller type. Supports <literal>default</literal>, <literal>gce</literal>, <literal>alb</literal>, <literal>f5-bigip</literal> and <literal>ncp</literal>. Default is <literal>default</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.ingress.kubeVersionOverride</literal></term>
+<listitem>
+<para>Overrides Kubernetes version for Ingress templating.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.ingress.annotations</literal></term>
+<listitem>
+<para>Sets Ingress annotations.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.ingress.labels</literal></term>
+<listitem>
+<para>Sets Ingress-specific labels. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.clusterIP.name</literal></term>
+<listitem>
+<para>Sets ClusterIP service name. Default is <literal>harbor</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.clusterIP.annotations</literal></term>
+<listitem>
+<para>Sets ClusterIP service annotations. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.clusterIP.ports.httpPort</literal></term>
+<listitem>
+<para>Sets HTTP service port. Default is <literal>80</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.clusterIP.ports.httpsPort</literal></term>
+<listitem>
+<para>Sets HTTPS service port. Default is <literal>443</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.clusterIP.labels</literal></term>
+<listitem>
+<para>Sets ClusterIP-specific labels. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.nodePort.name</literal></term>
+<listitem>
+<para>Sets NodePort service name. Default is <literal>harbor</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.nodePort.ports.http.port</literal></term>
+<listitem>
+<para>Sets HTTP service port. Default is <literal>80</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.nodePort.ports.http.nodePort</literal></term>
+<listitem>
+<para>Sets HTTP node port. Default is <literal>30002</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.nodePort.ports.https.port</literal></term>
+<listitem>
+<para>Sets HTTPS service port. Default is <literal>443</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.nodePort.ports.https.nodePort</literal></term>
+<listitem>
+<para>Sets HTTPS node port. Default is <literal>30003</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.nodePort.annotations</literal></term>
+<listitem>
+<para>Sets NodePort annotations.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.nodePort.labels</literal></term>
+<listitem>
+<para>Sets NodePort-specific labels. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.loadBalancer.name</literal></term>
+<listitem>
+<para>Sets service name. Default is <literal>harbor</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.loadBalancer.IP</literal></term>
+<listitem>
+<para>Sets loadBalancer IP when IP assignment is supported. Default is <literal>""</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.loadBalancer.ports.httpPort</literal></term>
+<listitem>
+<para>Sets HTTP service port. Default is <literal>80</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.loadBalancer.ports.httpsPort</literal></term>
+<listitem>
+<para>Sets HTTPS service port. Default is <literal>30002</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.loadBalancer.annotations</literal></term>
+<listitem>
+<para>Sets loadBalancer service annotations. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.loadBalancer.labels</literal></term>
+<listitem>
+<para>Sets loadBalancer-specific labels. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>expose.loadBalancer.sourceRanges</literal></term>
+<listitem>
+<para>Specifies IP address ranges for loadBalancerSourceRanges. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist xml:id="helm-persistence-parameters">
+<title>Persistence parameters</title>
+<varlistentry>
+<term><literal>persistence.enabled</literal></term>
+<listitem>
+<para>Enables or disables data persistence. Default is <literal>true</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.resourcePolicy</literal></term>
+<listitem>
+<para><literal>keep</literal> prevents removal of PVCs during a Helm delete operation. Empty value deletes PVCs after chart deletion. Default is <literal>keep</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.registry.existingClaim</literal></term>
+<listitem>
+<para>The existing PVC that must be created manually before binding. Requires a subPath specification if the PVC is shared with other components.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.registry.storageClass</literal></term>
+<listitem>
+<para>The <literal>storageClass</literal> that provisions the volume.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.registry.subPath</literal></term>
+<listitem>
+<para>The subpath in the volume.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.registry.accessMode</literal></term>
+<listitem>
+<para>The access mode of the volume. Default is <literal>ReadWriteOnce</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.registry.size</literal></term>
+<listitem>
+<para>The size of the volume. Default is <literal>5Gi</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.registry.annotations</literal></term>
+<listitem>
+<para>The annotations of the volume.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.jobservice.jobLog.existingClaim</literal></term>
+<listitem>
+<para>The existing PVC that must be created manually before binding. Requires a subPath specification if the PVC is shared with other components.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.jobservice.jobLog.storageClass</literal></term>
+<listitem>
+<para>The <literal>storageClass</literal> that provisions the volume.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.jobservice.jobLog.subPath</literal></term>
+<listitem>
+<para>The subpath in the volume.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.jobservice.jobLog.accessMode</literal></term>
+<listitem>
+<para>The access mode of the volume. Default is <literal>ReadWriteOnce</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.jobservice.jobLog.size</literal></term>
+<listitem>
+<para>The size of the volume. Default is <literal>1Gi</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.jobservice.jobLog.annotations</literal></term>
+<listitem>
+<para>The annotations of the volume.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.database.existingClaim</literal></term>
+<listitem>
+<para>The existing PVC that must be created manually before binding. Requires a subPath specification if the PVC is shared with other components.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.database.storageClass</literal></term>
+<listitem>
+<para>The <literal>storageClass</literal> that provisions the volume.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.database.subPath</literal></term>
+<listitem>
+<para>The subpath in the volume. Ignored when an external database is used.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.database.accessMode</literal></term>
+<listitem>
+<para>The access mode of the volume. Ignored when an external database is used. Default is <literal>ReadWriteOnce</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.database.size</literal></term>
+<listitem>
+<para>The size of the volume. Ignored when an external database is used. Default is <literal>1Gi</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.database.annotations</literal></term>
+<listitem>
+<para>The annotations of the volume.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.redis.existingClaim</literal></term>
+<listitem>
+<para>The existing PVC that must be created manually before binding. Requires a subPath specification if the PVC is shared with other components.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.redis.storageClass</literal></term>
+<listitem>
+<para>The <literal>storageClass</literal> that provisions the volume. Uses default StorageClass if not specified.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.redis.subPath</literal></term>
+<listitem>
+<para>The subpath in the volume. Ignored when an external Valkey is used.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.redis.accessMode</literal></term>
+<listitem>
+<para>The access mode of the volume. Ignored when an external Valkey is used. Default is <literal>ReadWriteOnce</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.redis.size</literal></term>
+<listitem>
+<para>The size of the volume. Ignored when an external Valkey is used. Default is <literal>1Gi</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.redis.annotations</literal></term>
+<listitem>
+<para>The annotations of the volume.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.trivy.existingClaim</literal></term>
+<listitem>
+<para>The existing PVC that must be created manually before binding. Requires a subPath specification if the PVC is shared with other components.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.trivy.storageClass</literal></term>
+<listitem>
+<para>The <literal>storageClass</literal> that provisions the volume. Uses default StorageClass if not specified.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.trivy.subPath</literal></term>
+<listitem>
+<para>The subpath in the volume.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.trivy.accessMode</literal></term>
+<listitem>
+<para>The access mode of the volume. Default is <literal>ReadWriteOnce</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.trivy.size</literal></term>
+<listitem>
+<para>The size of the volume. Default is <literal>1Gi</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.persistentVolumeClaim.trivy.annotations</literal></term>
+<listitem>
+<para>The annotations of the volume.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.imageChartStorage.disableredirect</literal></term>
+<listitem>
+<para>Controls redirect management from content back-ends. Set to true to disable redirects for unsupported back-ends. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.imageChartStorage.caBundleSecretName</literal></term>
+<listitem>
+<para>The name of secret containing CA bundle for self-signed storage service certificates.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.imageChartStorage.type</literal></term>
+<listitem>
+<para>The storage type for images and charts: <literal>filesystem</literal>, <literal>azure</literal>, <literal>gcs</literal>, <literal>s3</literal>, <literal>swift</literal>, or <literal>oss</literal>. Default is <literal>filesystem</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.imageChartStorage.gcs.existingSecret</literal></term>
+<listitem>
+<para>The name of existing secret containing the GCS service account JSON key. The key must be <literal>gcs-key.json</literal>. Default is <literal>""</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>persistence.imageChartStorage.gcs.useWorkloadIdentity</literal></term>
+<listitem>
+<para>Enables workload identity usage in a GKE cluster. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>nginx parameters</title>
+<varlistentry>
+<term><literal>nginx.image.repository</literal></term>
+<listitem>
+<para>The image repository for nginx. Default is <literal>private-registry/harbor-nginx</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>nginx.image.tag</literal></term>
+<listitem>
+<para>The image tag for nginx.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>nginx.replicas</literal></term>
+<listitem>
+<para>The number of replicas to run. Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>nginx.revisionHistoryLimit</literal></term>
+<listitem>
+<para>The maximum number of old <literal>ReplicaSet</literal> revisions to retain. Default is <literal>10</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>nginx.resources</literal></term>
+<listitem>
+<para>The compute resources allocated for the container. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>nginx.automountServiceAccountToken</literal></term>
+<listitem>
+<para>Controls automatic mounting of the service account token. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>nginx.nodeSelector</literal></term>
+<listitem>
+<para>The node labels used for pod assignment. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>nginx.tolerations</literal></term>
+<listitem>
+<para>The pod assignment tolerations. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>nginx.affinity</literal></term>
+<listitem>
+<para>The node or pod affinity rules. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>nginx.topologySpreadConstraints</literal></term>
+<listitem>
+<para>The rules for spreading pods across failure-domains such as regions or availability zones. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>nginx.podAnnotations</literal></term>
+<listitem>
+<para>The annotations added to the nginx pod. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Portal parameters</title>
+<varlistentry>
+<term><literal>portal.image.repository</literal></term>
+<listitem>
+<para>Repository location for the portal image. Default is <literal>private-registry/harbor-portal</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.image.tag</literal></term>
+<listitem>
+<para>Tag for the portal image. Default is <literal>3.11</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.replicas</literal></term>
+<listitem>
+<para>Number of replicas to create. Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.revisionHistoryLimit</literal></term>
+<listitem>
+<para>Maximum number of old <literal>ReplicaSet</literal> revisions to retain. Default is <literal>10</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.resources</literal></term>
+<listitem>
+<para>Resources allocated to the container. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.automountServiceAccountToken</literal></term>
+<listitem>
+<para>Controls automatic mounting of the service account token. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.nodeSelector</literal></term>
+<listitem>
+<para>Node labels used for pod assignment. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.tolerations</literal></term>
+<listitem>
+<para>Tolerations used for pod assignment. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.affinity</literal></term>
+<listitem>
+<para>Node and pod affinity settings. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.topologySpreadConstraints</literal></term>
+<listitem>
+<para>Defines pod distribution across failure-domains such as regions or availability zones. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.podAnnotations</literal></term>
+<listitem>
+<para>Annotations added to the portal pod. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.serviceAnnotations</literal></term>
+<listitem>
+<para>Annotations added to the portal service. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.priorityClassName</literal></term>
+<listitem>
+<para>Priority class name for pod execution.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>portal.initContainers</literal></term>
+<listitem>
+<para>Init containers to be run before the controller container starts. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Core parameters</title>
+<varlistentry>
+<term><literal>core.image.repository</literal></term>
+<listitem>
+<para>The repository for the Harbor core image. Default is <literal>private-registry/harbor-core</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.image.tag</literal></term>
+<listitem>
+<para>The tag for the Harbor core image. Default is <literal>2.11</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.replicas</literal></term>
+<listitem>
+<para>The number of replicas. Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.revisionHistoryLimit</literal></term>
+<listitem>
+<para>The revision history limit. Default is <literal>10</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.startupProbe.initialDelaySeconds</literal></term>
+<listitem>
+<para>The initial delay in seconds for the startup probe. Default is <literal>10</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.resources</literal></term>
+<listitem>
+<para>The resources to allocate for the container. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.automountServiceAccountToken</literal></term>
+<listitem>
+<para>Mounts the service account token. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.nodeSelector</literal></term>
+<listitem>
+<para>The node labels for pod assignment. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.tolerations</literal></term>
+<listitem>
+<para>The tolerations for pod assignment. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.affinity</literal></term>
+<listitem>
+<para>The node or pod affinities. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.topologySpreadConstraints</literal></term>
+<listitem>
+<para>The constraints that define how pods are spread across failure-domains like regions or availability zones. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.podAnnotations</literal></term>
+<listitem>
+<para>The annotations to add to the core pod. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.serviceAnnotations</literal></term>
+<listitem>
+<para>The annotations to add to the core service. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.configureUserSettings</literal></term>
+<listitem>
+<para>A JSON string in the environment variable CONFIG_OVERWRITE_JSON to configure user settings.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.quotaUpdateProvider</literal></term>
+<listitem>
+<para>The provider for updating project quota usage, options are <literal>redis</literal> or <literal>db</literal>. Default is <literal>db</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.secret</literal></term>
+<listitem>
+<para>Used when core server communicates with other components.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.secretName</literal></term>
+<listitem>
+<para>The name of a Kubernetes secret to use your own TLS certificate and private key for token encryption or decryption.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.tokenKey</literal></term>
+<listitem>
+<para>The PEM-formatted RSA private key used to sign service tokens.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.tokenCert</literal></term>
+<listitem>
+<para>The PEM-formatted certificate signed by <literal>core.tokenKey</literal> used to validate service tokens.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.xsrfKey</literal></term>
+<listitem>
+<para>The XSRF key, automatically generated if not specified.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.priorityClassName</literal></term>
+<listitem>
+<para>The priority class to run the pod as.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.artifactPullAsyncFlushDuration</literal></term>
+<listitem>
+<para>The time duration for asynchronously updating artifact pull time and repository pull count.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.gdpr.deleteUser</literal></term>
+<listitem>
+<para>Enables GDPR compliant user deletion. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.gdpr.auditLogsCompliant</literal></term>
+<listitem>
+<para>Enables GDPR compliance for audit logs by changing username to its CRC32 value if that user was deleted from the system. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>core.initContainers</literal></term>
+<listitem>
+<para>The init containers to run before the controller’s container starts. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Jobservice parameters</title>
+<varlistentry>
+<term><literal>jobservice.image.repository</literal></term>
+<listitem>
+<para>The repository for the jobservice image. Default is <literal>private-registry/harbor-jobservice</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.image.tag</literal></term>
+<listitem>
+<para>The tag for the jobservice image. Default is <literal>2.11</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.replicas</literal></term>
+<listitem>
+<para>The number of replicas. Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.revisionHistoryLimit</literal></term>
+<listitem>
+<para>The revision history limit. Default is <literal>10</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.maxJobWorkers</literal></term>
+<listitem>
+<para>The maximum number of job workers. Default is <literal>10</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.jobLoggers</literal></term>
+<listitem>
+<para>The loggers for jobs: <literal>file</literal>, <literal>database</literal> or <literal>stdout</literal>. Default is <literal>[file]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.loggerSweeperDuration</literal></term>
+<listitem>
+<para>The duration in days to keep job logs (ignored if <literal>jobLoggers</literal> is set to <literal>stdout</literal>). Default is <literal>14</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.notification.webhook_job_max_retry</literal></term>
+<listitem>
+<para>The maximum number of retries for webhook notification sending. Default is <literal>3</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.notification.webhook_job_http_client_timeout</literal></term>
+<listitem>
+<para>The HTTP client timeout in seconds for webhook notification sending. Default is <literal>3</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.reaper.max_update_hours</literal></term>
+<listitem>
+<para>The maximum time in hours to wait for a task to finish. If the task is not finished after the specified hours, it is marked as an error but continues to run. Default is <literal>24</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.reaper.max_dangling_hours</literal></term>
+<listitem>
+<para>The maximum time in hours for execution in running state without a new task created. Default is <literal>168</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.resources</literal></term>
+<listitem>
+<para>The [resources] to allocate for container. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.automountServiceAccountToken</literal></term>
+<listitem>
+<para>Mounts the service account token. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.nodeSelector</literal></term>
+<listitem>
+<para>The node labels for pod assignment. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.tolerations</literal></term>
+<listitem>
+<para>The tolerations for pod assignment. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.affinity</literal></term>
+<listitem>
+<para>The node or pod affinities. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.topologySpreadConstraints</literal></term>
+<listitem>
+<para>The constraints that define how pods are spread across failure-domains like regions or availability zones. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.podAnnotations</literal></term>
+<listitem>
+<para>The annotations to add to the jobservice pod. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.priorityClassName</literal></term>
+<listitem>
+<para>The priority class to run the pod as.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.secret</literal></term>
+<listitem>
+<para>The secret used when job service communicates with other components. If a secret key is not specified, Helm generates it. Must be a string of 16 characters.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>jobservice.initContainers</literal></term>
+<listitem>
+<para>The init containers to run before the controller’s container starts. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Registry parameters</title>
+<varlistentry>
+<term><literal>registry.registry.image.repository</literal></term>
+<listitem>
+<para>The repository location for the registry image. Default is <literal>private-registry/harbor-registry</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.registry.image.tag</literal></term>
+<listitem>
+<para>The tag for the registry image. Default is <literal>2.11</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.registry.resources</literal></term>
+<listitem>
+<para>The [resources] to allocate for container. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.controller.image.repository</literal></term>
+<listitem>
+<para>The repository location for the registry controller image. Default is <literal>private-registry/harbor-registryctl</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.controller.image.tag</literal></term>
+<listitem>
+<para>The tag for the registry controller image. Default is <literal>2.11</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.controller.resources</literal></term>
+<listitem>
+<para>The [resources] to allocate for container. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.replicas</literal></term>
+<listitem>
+<para>The number of replica instances. Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.revisionHistoryLimit</literal></term>
+<listitem>
+<para>The maximum number of revisions to maintain in history. Default is <literal>10</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.nodeSelector</literal></term>
+<listitem>
+<para>The node labels for pod assignment. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.automountServiceAccountToken</literal></term>
+<listitem>
+<para>Controls whether to mount the service account token. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.tolerations</literal></term>
+<listitem>
+<para>The tolerations for pod assignment. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.affinity</literal></term>
+<listitem>
+<para>The node or pod affinities. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.topologySpreadConstraints</literal></term>
+<listitem>
+<para>The constraints that define pod distribution across failure-domains such as regions or availability zones. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.middleware</literal></term>
+<listitem>
+<para>Middleware support for a CDN between back-end storage and Docker pull recipient.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.podAnnotations</literal></term>
+<listitem>
+<para>The annotations to add to the registry pod. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.priorityClassName</literal></term>
+<listitem>
+<para>The priority class for pod execution.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.secret</literal></term>
+<listitem>
+<para>The secret that secures the upload state between client and registry storage back-end.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.credentials.username</literal></term>
+<listitem>
+<para>The username for Harbor core’s internal registry access. Default is <literal>harbor_registry_user</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.credentials.password</literal></term>
+<listitem>
+<para>The password for Harbor core’s internal registry access. Default is <literal>harbor_registry_password</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.credentials.existingSecret</literal></term>
+<listitem>
+<para>An existing secret containing the password for registry instance access in htpasswd auth mode. Default is <literal>""</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.credentials.htpasswdString</literal></term>
+<listitem>
+<para>The login and password in htpasswd string format. Excludes <literal>registry.credentials.username</literal> and <literal>registry.credentials.password</literal>. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.relativeurls</literal></term>
+<listitem>
+<para>Returns relative URLs in Location headers when true. Required if Harbor is behind a reverse proxy. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.upload_purging.enabled</literal></term>
+<listitem>
+<para>Enables purging of upload directories. Default is <literal>true</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.upload_purging.age</literal></term>
+<listitem>
+<para>The time period after which files in upload directories are removed, default is one week. Default is <literal>168h</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.upload_purging.interval</literal></term>
+<listitem>
+<para>The time interval between purge operations. Default is <literal>24h</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.upload_purging.dryrun</literal></term>
+<listitem>
+<para>Enables dryrun mode for upload purging. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>registry.initContainers</literal></term>
+<listitem>
+<para>The init containers that run before the controller’s container starts. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Trivy parameters</title>
+<varlistentry>
+<term><literal>trivy.enabled</literal></term>
+<listitem>
+<para>Enables or disables the Trivy scanner. Default is <literal>true</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.image.repository</literal></term>
+<listitem>
+<para>The repository for the Trivy adapter image. Default is <literal>private-registry/harbor-trivy-adapter</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.image.tag</literal></term>
+<listitem>
+<para>The tag for the Trivy adapter image. Default is <literal>2.11</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.resources</literal></term>
+<listitem>
+<para>The resources to allocate for the Trivy adapter container. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.automountServiceAccountToken</literal></term>
+<listitem>
+<para>Whether to mount the service account token. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.replicas</literal></term>
+<listitem>
+<para>The number of Pod replicas. Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.debugMode</literal></term>
+<listitem>
+<para>Enables Trivy debug mode for troubleshooting. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.vulnType</literal></term>
+<listitem>
+<para>Comma-separated list of vulnerability types (<literal>os</literal> and <literal>library</literal>). Default is <literal>os,library</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.severity</literal></term>
+<listitem>
+<para>Comma-separated list of vulnerability severities to check. Default is <literal>UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.ignoreUnfixed</literal></term>
+<listitem>
+<para>Displays only fixed vulnerabilities. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.insecure</literal></term>
+<listitem>
+<para>Skips registry certificate verification. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.skipUpdate</literal></term>
+<listitem>
+<para>Disables Trivy database downloads from GitHub. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.skipJavaDBUpdate</literal></term>
+<listitem>
+<para>Requires manual download of the <literal>trivy-java.db</literal> file when enabled. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.offlineScan</literal></term>
+<listitem>
+<para>Prevents Trivy from sending API requests to identify dependencies. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.securityCheck</literal></term>
+<listitem>
+<para>Comma-separated list of security issues to detect. Default is <literal>vuln</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.timeout</literal></term>
+<listitem>
+<para>The duration to wait for scan completion. Default is <literal>5m0s</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.gitHubToken</literal></term>
+<listitem>
+<para>The GitHub access token required for database downloads. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.priorityClassName</literal></term>
+<listitem>
+<para>The priority class for running the pod. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.topologySpreadConstraints</literal></term>
+<listitem>
+<para>Defines pod distribution constraints across failure domains. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trivy.initContainers</literal></term>
+<listitem>
+<para>List of init containers to run before the main container starts. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Database parameters</title>
+<varlistentry>
+<term><literal>database.type</literal></term>
+<listitem>
+<para>The database type. Set to <literal>external</literal> when using an external database. Default is <literal>internal</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.image.repository</literal></term>
+<listitem>
+<para>The repository for the database image. Default is <literal>private-registry/harbor-db</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.image.tag</literal></term>
+<listitem>
+<para>The tag for the database image. Default is <literal>2.11</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.password</literal></term>
+<listitem>
+<para>The password for the internal database. Default is <literal>changeit</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.shmSizeLimit</literal></term>
+<listitem>
+<para>The shared memory size limit for PostgreSQL (typically 50% of the container memory limit). Default is <literal>512Mi</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.resources</literal></term>
+<listitem>
+<para>The resources allocated for the database container. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.automountServiceAccountToken</literal></term>
+<listitem>
+<para>Controls whether the service account token is mounted. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.initContainer.migrator.resources</literal></term>
+<listitem>
+<para>The resources allocated for the database migrator init container. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.initContainer.permissions.resources</literal></term>
+<listitem>
+<para>The resources allocated for the database permissions init container. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.nodeSelector</literal></term>
+<listitem>
+<para>The node labels for pod assignment. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.tolerations</literal></term>
+<listitem>
+<para>The tolerations for pod assignment. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.affinity</literal></term>
+<listitem>
+<para>The node or pod affinity settings. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.priorityClassName</literal></term>
+<listitem>
+<para>The priority class for running the pod. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.livenessProbe.timeoutSeconds</literal></term>
+<listitem>
+<para>The timeout in seconds for the liveness probe (range: 1-5s). Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.readinessProbe.timeoutSeconds</literal></term>
+<listitem>
+<para>The timeout in seconds for the readiness probe (range: 1-5s). Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.internal.extrInitContainers</literal></term>
+<listitem>
+<para>Additional init containers that run before the database container starts. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.external.host</literal></term>
+<listitem>
+<para>The host name of the external database. Default is <literal>192.168.0.1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.external.port</literal></term>
+<listitem>
+<para>The port number of the external database. Default is <literal>5432</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.external.username</literal></term>
+<listitem>
+<para>The username for the external database. Default is <literal>user</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.external.password</literal></term>
+<listitem>
+<para>The password for the external database. Default is <literal>password</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.external.coreDatabase</literal></term>
+<listitem>
+<para>The database name used by the core service. Default is <literal>registry</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.external.existingSecret</literal></term>
+<listitem>
+<para>The existing secret containing the database password. The key must be <literal>password</literal>. Default is <literal>""</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.external.sslmode</literal></term>
+<listitem>
+<para>The connection method for the external database. Options: <literal>require</literal>, <literal>verify-full</literal>, <literal>verify-ca</literal>, <literal>disable</literal>. Default is <literal>disable</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.maxIdleConns</literal></term>
+<listitem>
+<para>The maximum number of idle connections in the pool (0 or less means no idle connections are retained). Default is <literal>50</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.maxOpenConns</literal></term>
+<listitem>
+<para>The maximum number of open connections to the database (0 or less means unlimited). Default is <literal>100</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>database.podAnnotations</literal></term>
+<listitem>
+<para>The annotations to add to the database pod. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Valkey / Redis parameters</title>
+<varlistentry>
+<term><literal>redis.type</literal></term>
+<listitem>
+<para>The Redis deployment type. Set to <literal>external</literal> for external Redis. Default is <literal>internal</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.image.repository</literal></term>
+<listitem>
+<para>The repository for the Redis image. Default is <literal>private-registry/harbor-redis</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.image.tag</literal></term>
+<listitem>
+<para>The tag for the Redis image. Default is <literal>7.2</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.resources</literal></term>
+<listitem>
+<para>The resources allocated for the Redis container. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.automountServiceAccountToken</literal></term>
+<listitem>
+<para>Controls whether the service account token is mounted. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.nodeSelector</literal></term>
+<listitem>
+<para>The node labels for pod assignment. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.tolerations</literal></term>
+<listitem>
+<para>The tolerations for pod assignment. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.affinity</literal></term>
+<listitem>
+<para>The node or pod affinity settings. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.priorityClassName</literal></term>
+<listitem>
+<para>The priority class for running the Redis pod. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.jobserviceDatabaseIndex</literal></term>
+<listitem>
+<para>The database index for jobservice. Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.registryDatabaseIndex</literal></term>
+<listitem>
+<para>The database index for registry. Default is <literal>2</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.trivyAdapterIndex</literal></term>
+<listitem>
+<para>The database index for Trivy adapter. Default is <literal>5</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.harborDatabaseIndex</literal></term>
+<listitem>
+<para>The database index for miscellaneous Harbor business logic. Default is <literal>0</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.cacheLayerDatabaseIndex</literal></term>
+<listitem>
+<para>The database index for Harbor’s cache layer. Default is <literal>0</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.internal.initContainers</literal></term>
+<listitem>
+<para>The init containers that run before the Redis container starts. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.external.addr</literal></term>
+<listitem>
+<para>The address of the external Redis instance. Default is <literal>192.168.0.2:6379</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.external.sentinelMasterSet</literal></term>
+<listitem>
+<para>The name of the Redis Sentinel master set (if applicable). Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.external.coreDatabaseIndex</literal></term>
+<listitem>
+<para>The database index for core. Default is <literal>0</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.external.jobserviceDatabaseIndex</literal></term>
+<listitem>
+<para>The database index for jobservice. Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.external.registryDatabaseIndex</literal></term>
+<listitem>
+<para>The database index for registry. Default is <literal>2</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.external.trivyAdapterIndex</literal></term>
+<listitem>
+<para>The database index for Trivy adapter. Default is <literal>5</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.external.harborDatabaseIndex</literal></term>
+<listitem>
+<para>The database index for miscellaneous Harbor business logic. Default is <literal>0</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.external.cacheLayerDatabaseIndex</literal></term>
+<listitem>
+<para>The database index for Harbor’s cache layer. Default is <literal>0</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.external.username</literal></term>
+<listitem>
+<para>The username for external Redis authentication. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.external.password</literal></term>
+<listitem>
+<para>The password for external Redis authentication. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.external.existingSecret</literal></term>
+<listitem>
+<para>The existing secret containing the Redis password. The key must be <literal>REDIS_PASSWORD</literal>. Default is <literal>""</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>redis.podAnnotations</literal></term>
+<listitem>
+<para>The annotations to add to the Redis pod. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Exporter parameters</title>
+<varlistentry>
+<term><literal>exporter.replicas</literal></term>
+<listitem>
+<para>The number of replicas to run. Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.revisionHistoryLimit</literal></term>
+<listitem>
+<para>The revision history limit. Default is <literal>10</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.podAnnotations</literal></term>
+<listitem>
+<para>Annotations to add to the exporter pod. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.image.repository</literal></term>
+<listitem>
+<para>The repository for the exporter image. Default is <literal>private-registry/harbor-exporter</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.image.tag</literal></term>
+<listitem>
+<para>The tag for the exporter image. Default is <literal>2.11</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.nodeSelector</literal></term>
+<listitem>
+<para>Node labels for pod assignment. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.tolerations</literal></term>
+<listitem>
+<para>Tolerations for pod assignment. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.affinity</literal></term>
+<listitem>
+<para>Node or Pod affinities. Default is <literal>{}</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.topologySpreadConstraints</literal></term>
+<listitem>
+<para>Constraints that define how Pods spread across failure-domains like regions or availability zones. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.automountServiceAccountToken</literal></term>
+<listitem>
+<para>Controls whether to mount the serviceAccountToken. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.cacheDuration</literal></term>
+<listitem>
+<para>The cache duration for information collected by the exporter. Default is <literal>30</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.cacheCleanInterval</literal></term>
+<listitem>
+<para>The cache clean interval for information collected by the exporter. Default is <literal>14400</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>exporter.priorityClassName</literal></term>
+<listitem>
+<para>The priority class to run the pod as. Default is <literal>undefined</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Metrics parameters</title>
+<varlistentry>
+<term><literal>metrics.enabled</literal></term>
+<listitem>
+<para>Enables Harbor metrics. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>metrics.core.path</literal></term>
+<listitem>
+<para>The URL path for core metrics. Default is <literal>/metrics</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>metrics.core.port</literal></term>
+<listitem>
+<para>The port for core metrics. Default is <literal>8001</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>metrics.registry.path</literal></term>
+<listitem>
+<para>The URL path for registry metrics. Default is <literal>/metrics</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>metrics.registry.port</literal></term>
+<listitem>
+<para>The port for registry metrics. Default is <literal>8001</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>metrics.exporter.path</literal></term>
+<listitem>
+<para>The URL path for exporter metrics. Default is <literal>/metrics</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>metrics.exporter.port</literal></term>
+<listitem>
+<para>The port for exporter metrics. Default is <literal>8001</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>metrics.serviceMonitor.enabled</literal></term>
+<listitem>
+<para>Enables creation of a Prometheus ServiceMonitor (requirePrometheusus CRDs). Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>metrics.serviceMonitor.additionalLabels</literal></term>
+<listitem>
+<para>Additional labels to apply to the ServiceMonitor manifest. Default is <literal>""</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>metrics.serviceMonitor.interval</literal></term>
+<listitem>
+<para>The scrape interval for Harbor metrics. Default is <literal>""</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>metrics.serviceMonitor.metricRelabelings</literal></term>
+<listitem>
+<para>The relabeling rules for metrics before ingestion. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>metrics.serviceMonitor.relabelings</literal></term>
+<listitem>
+<para>The relabeling rules for metrics before scraping. Default is <literal>[]</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Trace parameters</title>
+<varlistentry>
+<term><literal>trace.enabled</literal></term>
+<listitem>
+<para>Enables tracing functionality. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.provider</literal></term>
+<listitem>
+<para>The tracing provider (<literal>jaeger</literal> or <literal>otel</literal>). Jaeger version should be 1.26+. Default is <literal>jaeger</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.sample_rate</literal></term>
+<listitem>
+<para>The sampling rate for trace data. <literal>1</literal> samples 100%, <literal>0.5</literal> samples 50%. Default is <literal>1</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.namespace</literal></term>
+<listitem>
+<para>The namespace to differentiate different Harbor services.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.attributes</literal></term>
+<listitem>
+<para>A key-value dictionary for user-defined attributes in trace provider initialization.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.jaeger.endpoint</literal></term>
+<listitem>
+<para>The endpoint for Jaeger tracing. Default is <literal>http://hostname:14268/api/traces</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.jaeger.username</literal></term>
+<listitem>
+<para>The username for Jaeger authentication.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.jaeger.password</literal></term>
+<listitem>
+<para>The password for Jaeger authentication.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.jaeger.agent_host</literal></term>
+<listitem>
+<para>The agent host for Jaeger.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.jaeger.agent_port</literal></term>
+<listitem>
+<para>The agent port for Jaeger. Default is <literal>6831</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.otel.endpoint</literal></term>
+<listitem>
+<para>The endpoint for OpenTelemetry tracing. Default is <literal>hostname:4318</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.otel.url_path</literal></term>
+<listitem>
+<para>The URL path for OpenTelemetry. Default is <literal>/v1/traces</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.otel.compression</literal></term>
+<listitem>
+<para>Enables compression for OpenTelemetry. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.otel.insecure</literal></term>
+<listitem>
+<para>Establishes an insecure connection for OpenTelemetry. Default is <literal>true</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>trace.otel.timeout</literal></term>
+<listitem>
+<para>The timeout in seconds for OpenTelemetry. Default is <literal>10</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<variablelist>
+<title>Cache parameters</title>
+<varlistentry>
+<term><literal>cache.enabled</literal></term>
+<listitem>
+<para>Enables the cache layer. Default is <literal>false</literal>.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term><literal>cache.expireHours</literal></term>
+<listitem>
+<para>The expiration time in hours for the cache layer. Default is <literal>24</literal>.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+</section>
+</appendix>
+<appendix xml:id="pr-ha-helm-chart-example">
+<title>Example of a Private Registry HA setup Helm chart</title>
+<para>The following example values file illustrates parameters that are required for the minimal Private Registry HA setup.</para>
+<screen language="yaml" linenumbering="unnumbered">expose:
+  ingress:
+    hosts:
+      core: core.harbor.domain <co xml:id="CO3-1"/>
+
+externalURL: https://core.harbor.domain <co xml:id="CO3-2"/>
+
+portal:
+  replicas: 2 <co xml:id="CO3-3"/>
+
+core:
+  replicas: 2 <co xml:id="CO3-4"/>
+
+jobservice:
+  replicas: 2 <co xml:id="CO3-5"/>
+
+registry:
+  replicas: 2 <co xml:id="CO3-6"/>
+
+database:
+  type: external
+  external: <co xml:id="CO3-7"/>
+    host: "192.168.0.1"
+    port: "5432"
+    username: "user"
+    password: "password"
+    coreDatabase: "registry"
+    existingSecret: "" <co xml:id="CO3-8"/>
+    sslmode: "disable" <co xml:id="CO3-9"/>
+
+redis:
+  type: external
+  external: <co xml:id="CO3-10"/>
+    addr: "192.168.0.2:6379" <co xml:id="CO3-11"/>
+    sentinelMasterSet: "" <co xml:id="CO3-12"/>
+    coreDatabaseIndex: "0" <co xml:id="CO3-13"/>
+    jobserviceDatabaseIndex: "1"
+    registryDatabaseIndex: "2"
+    trivyAdapterIndex: "5"
+    harborDatabaseIndex: "6" <co xml:id="CO3-14"/>
+    cacheLayerDatabaseIndex: "7"<co xml:id="CO3-15"/>
+    username: "" <co xml:id="CO3-16"/>
+    password: ""
+    existingSecret: "" <co xml:id="CO3-17"/>
+
+persistence:
+  enabled: true <co xml:id="CO3-18"/></screen>
+<calloutlist>
+<callout arearefs="CO3-1">
+<para>Core service host name in Ingress rule.</para>
+</callout>
+<callout arearefs="CO3-2">
+<para>The external URL for the harbor-core service.</para>
+</callout>
+<callout arearefs="CO3-3 CO3-4 CO3-5 CO3-6">
+<para>Number of replicas to create. Specify two or more.</para>
+</callout>
+<callout arearefs="CO3-7">
+<para>Fill the database connection details in the <literal>external</literal> section.</para>
+</callout>
+<callout arearefs="CO3-8">
+<para>If using an existing secret, the value must be <literal>password</literal>.</para>
+</callout>
+<callout arearefs="CO3-9">
+<para>Accepts one of the following values:</para>
+<variablelist>
+<varlistentry>
+<term>disable</term>
+<listitem>
+<para>Do not use SSL.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>require</term>
+<listitem>
+<para>Always use SSL and skip verification.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>verify-ca</term>
+<listitem>
+<para>Always use SSL. Verify that the certificate presented by the server was signed by a trusted CA.</para>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>verify-full</term>
+<listitem>
+<para>Always use SSL. Verify that the certificate presented by the server was signed by a trusted CA and the server host name matches the one in the certificate.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+</callout>
+<callout arearefs="CO3-10">
+<para>Fill the connection information in the <literal>external</literal> section.</para>
+</callout>
+<callout arearefs="CO3-11">
+<para>Supports redis and redis+sentinel.<?asciidoc-br?>
+Address for redis is <literal>&lt;redis_host&gt;:&lt;redis_port&gt;</literal>.<?asciidoc-br?>
+Address for redis+sentinel is <literal>&lt;sentinel1_host&gt;:&lt;sentinel1_port&gt;</literal>,<literal>&lt;sentinel2_host&gt;:&lt;sentinel2_port&gt;</literal>…​</para>
+</callout>
+<callout arearefs="CO3-12">
+<para>The name of the set of Valkey instances to monitor. It must be set to support redis+sentinel.</para>
+</callout>
+<callout arearefs="CO3-13">
+<para>Must be <literal>0</literal> as the library that Harbor uses does not support configurations.</para>
+</callout>
+<callout arearefs="CO3-14">
+<para>Optional. Defaults to <literal>0</literal> but can be configured to <literal>6</literal>.</para>
+</callout>
+<callout arearefs="CO3-15">
+<para>Optional. Defaults to <literal>0</literal> but can be configured to <literal>7</literal>.</para>
+</callout>
+<callout arearefs="CO3-16">
+<para>If empty, it is authenticated against the default user.</para>
+</callout>
+<callout arearefs="CO3-17">
+<para>If used, the key must be &lt;REDIS_PASSWORD&gt;.</para>
+</callout>
+<callout arearefs="CO3-18">
+<para>To store all the images, metadata and scans, ensure that the persistence-related settings (<xref linkend="helm-persistence-parameters"/>) are properly configured.</para>
+</callout>
+</calloutlist>
+</appendix>
+<appendix xml:id="id-gnu-free-documentation-license">
+<title>GNU Free Documentation License</title>
+<para>Copyright © 2000, 2001, 2002 Free Software Foundation, Inc. 51 Franklin St,
+Fifth Floor, Boston, MA 02110-1301 USA. Everyone is permitted to copy and
+distribute verbatim copies of this license document, but changing it is not
+allowed.</para>
+<section xml:id="id-0-preamble">
+<title>0. PREAMBLE</title>
+<para>The purpose of this License is to make a manual, textbook, or other
+functional and useful document "free" in the sense of freedom: to assure
+everyone the effective freedom to copy and redistribute it, with or without
+modifying it, either commercially or non-commercially. Secondarily, this
+License preserves for the author and publisher a way to get credit for their
+work, while not being considered responsible for modifications made by
+others.</para>
+<para>This License is a kind of "copyleft", which means that derivative works of
+the document must themselves be free in the same sense. It complements the
+GNU General Public License, which is a copyleft license designed for free
+software.</para>
+<para>We have designed this License to use it for manuals for free software,
+because free software needs free documentation: a free program should come
+with manuals providing the same freedoms that the software does. But this
+License is not limited to software manuals; it can be used for any textual
+work, regardless of subject matter or whether it is published as a printed
+book. We recommend this License principally for works whose purpose is
+instruction or reference.</para>
+</section>
+<section xml:id="id-1-applicability-and-definitions">
+<title>1. APPLICABILITY AND DEFINITIONS</title>
+<para>This License applies to any manual or other work, in any medium, that
+contains a notice placed by the copyright holder saying it can be distributed
+under the terms of this License. Such a notice grants a world-wide,
+royalty-free license, unlimited in duration, to use that work under the
+conditions stated herein. The "Document", below, refers to any such manual or
+work. Any member of the public is a licensee, and is addressed as "you". You
+accept the license if you copy, modify or distribute the work in a way
+requiring permission under copyright law.</para>
+<para>A "Modified Version" of the Document means any work containing the Document
+or a portion of it, either copied verbatim, or with modifications and/or
+translated into another language.</para>
+<para>A "Secondary Section" is a named appendix or a front-matter section of the
+Document that deals exclusively with the relationship of the publishers or
+authors of the Document to the Document’s overall subject (or to related
+matters) and contains nothing that could fall directly within that overall
+subject. (Thus, if the Document is in part a textbook of mathematics, a
+Secondary Section may not explain any mathematics.) The relationship could be
+a matter of historical connection with the subject or with related matters,
+or of legal, commercial, philosophical, ethical or political position
+regarding them.</para>
+<para>The "Invariant Sections" are certain Secondary Sections whose titles are
+designated, as being those of Invariant Sections, in the notice that says
+that the Document is released under this License. If a section does not fit
+the above definition of Secondary then it is not allowed to be designated as
+Invariant. The Document may contain zero Invariant Sections. If the Document
+does not identify any Invariant Sections then there are none.</para>
+<para>The "Cover Texts" are certain short passages of text that are listed, as
+Front-Cover Texts or Back-Cover Texts, in the notice that says that the
+Document is released under this License. A Front-Cover Text may be at most 5
+words, and a Back-Cover Text may be at most 25 words.</para>
+<para>A "Transparent" copy of the Document means a machine-readable copy,
+represented in a format whose specification is available to the general
+public, that is suitable for revising the document straightforwardly with
+generic text editors or (for images composed of pixels) generic paint
+programs or (for drawings) some widely available drawing editor, and that is
+suitable for input to text formatters or for automatic translation to a
+variety of formats suitable for input to text formatters. A copy made in an
+otherwise Transparent file format whose markup, or absence of markup, has
+been arranged to thwart or discourage subsequent modification by readers is
+not Transparent. An image format is not Transparent if used for any
+substantial amount of text. A copy that is not "Transparent" is called
+"Opaque".</para>
+<para>Examples of suitable formats for Transparent copies include plain ASCII
+without markup, Texinfo input format, LaTeX input format, SGML or XML using a
+publicly available DTD, and standard-conforming simple HTML, PostScript or
+PDF designed for human modification. Examples of transparent image formats
+include PNG, XCF and JPG. Opaque formats include proprietary formats that can
+be read and edited only by proprietary word processors, SGML or XML for which
+the DTD and/or processing tools are not generally available, and the
+machine-generated HTML, PostScript or PDF produced by some word processors
+for output purposes only.</para>
+<para>The "Title Page" means, for a printed book, the title page itself, plus such
+following pages as are needed to hold, legibly, the material this License
+requires to appear in the title page. For works in formats which do not have
+any title page as such, "Title Page" means the text near the most prominent
+appearance of the work’s title, preceding the beginning of the body of the
+text.</para>
+<para>A section "Entitled XYZ" means a named subunit of the Document whose title
+either is precisely XYZ or contains XYZ in parentheses following text that
+translates XYZ in another language. (Here XYZ stands for a specific section
+name mentioned below, such as "Acknowledgements", "Dedications",
+"Endorsements", or "History".) To "Preserve the Title" of such a section when
+you modify the Document means that it remains a section "Entitled XYZ"
+according to this definition.</para>
+<para>The Document may include Warranty Disclaimers next to the notice which states
+that this License applies to the Document. These Warranty Disclaimers are
+considered to be included by reference in this License, but only as regards
+disclaiming warranties: any other implication that these Warranty Disclaimers
+may have is void and has no effect on the meaning of this License.</para>
+</section>
+<section xml:id="id-2-verbatim-copying">
+<title>2. VERBATIM COPYING</title>
+<para>You may copy and distribute the Document in any medium, either commercially
+or non-commercially, provided that this License, the copyright notices, and
+the license notice saying this License applies to the Document are reproduced
+in all copies, and that you add no other conditions whatsoever to those of
+this License. You may not use technical measures to obstruct or control the
+reading or further copying of the copies you make or distribute. However, you
+may accept compensation in exchange for copies. If you distribute a large
+enough number of copies you must also follow the conditions in section 3.</para>
+<para>You may also lend copies, under the same conditions stated above, and you may
+publicly display copies.</para>
+</section>
+<section xml:id="id-3-copying-in-quantity">
+<title>3. COPYING IN QUANTITY</title>
+<para>If you publish printed copies (or copies in media that commonly have printed
+covers) of the Document, numbering more than 100, and the Document’s license
+notice requires Cover Texts, you must enclose the copies in covers that
+carry, clearly and legibly, all these Cover Texts: Front-Cover Texts on the
+front cover, and Back-Cover Texts on the back cover. Both covers must also
+clearly and legibly identify you as the publisher of these copies. The front
+cover must present the full title with all words of the title equally
+prominent and visible. You may add other material on the covers in addition.
+Copying with changes limited to the covers, as long as they preserve the
+title of the Document and satisfy these conditions, can be treated as
+verbatim copying in other respects.</para>
+<para>If the required texts for either cover are too voluminous to fit legibly, you
+should put the first ones listed (as many as fit reasonably) on the actual
+cover, and continue the rest onto adjacent pages.</para>
+<para>If you publish or distribute Opaque copies of the Document numbering more
+than 100, you must either include a machine-readable Transparent copy along
+with each Opaque copy, or state in or with each Opaque copy a
+computer-network location from which the general network-using public has
+access to download using public-standard network protocols a complete
+Transparent copy of the Document, free of added material. If you use the
+latter option, you must take reasonably prudent steps, when you begin
+distribution of Opaque copies in quantity, to ensure that this Transparent
+copy will remain thus accessible at the stated location until at least one
+year after the last time you distribute an Opaque copy (directly or through
+your agents or retailers) of that edition to the public.</para>
+<para>It is requested, but not required, that you contact the authors of the
+Document well before redistributing any large number of copies, to give them
+a chance to provide you with an updated version of the Document.</para>
+</section>
+<section xml:id="id-4-modifications">
+<title>4. MODIFICATIONS</title>
+<para>You may copy and distribute a Modified Version of the Document under the
+conditions of sections 2 and 3 above, provided that you release the Modified
+Version under precisely this License, with the Modified Version filling the
+role of the Document, thus licensing distribution and modification of the
+Modified Version to whoever possesses a copy of it. In addition, you must do
+these things in the Modified Version:</para>
+<orderedlist numeration="arabic">
+<listitem>
+<para>Use in the Title Page (and on the covers, if any) a title distinct from
+that of the Document, and from those of previous versions (which should, if
+there were any, be listed in the History section of the Document). You may
+use the same title as a previous version if the original publisher of that
+version gives permission.</para>
+</listitem>
+<listitem>
+<para>List on the Title Page, as authors, one or more persons or entities
+responsible for authorship of the modifications in the Modified Version,
+together with at least five of the principal authors of the Document (all
+of its principal authors, if it has fewer than five), unless they release
+you from this requirement.</para>
+</listitem>
+<listitem>
+<para>State on the Title page the name of the publisher of the Modified Version,
+as the publisher.</para>
+</listitem>
+<listitem>
+<para>Preserve all the copyright notices of the Document.</para>
+</listitem>
+<listitem>
+<para>Add an appropriate copyright notice for your modifications adjacent to the
+other copyright notices.</para>
+</listitem>
+<listitem>
+<para>Include, immediately after the copyright notices, a license notice giving
+the public permission to use the Modified Version under the terms of this
+License, in the form shown in the Addendum below.</para>
+</listitem>
+<listitem>
+<para>Preserve in that license notice the full lists of Invariant Sections and
+required Cover Texts given in the Document’s license notice.</para>
+</listitem>
+<listitem>
+<para>Include an unaltered copy of this License.</para>
+</listitem>
+<listitem>
+<para>Preserve the section Entitled "History", Preserve its Title, and add to it
+an item stating at least the title, year, new authors, and publisher of the
+Modified Version as given on the Title Page. If there is no section
+Entitled "History" in the Document, create one stating the title, year,
+authors, and publisher of the Document as given on its Title Page, then add
+an item describing the Modified Version as stated in the previous sentence.</para>
+</listitem>
+<listitem>
+<para>Preserve the network location, if any, given in the Document for public
+access to a Transparent copy of the Document, and likewise the network
+locations given in the Document for previous versions it was based on.
+These may be placed in the "History" section. You may omit a network
+location for a work that was published at least four years before the
+Document itself, or if the original publisher of the version it refers to
+gives permission.</para>
+</listitem>
+<listitem>
+<para>For any section Entitled "Acknowledgements" or "Dedications", Preserve the
+Title of the section, and preserve in the section all the substance and
+tone of each of the contributor acknowledgements and/or dedications given
+therein.</para>
+</listitem>
+<listitem>
+<para>Preserve all the Invariant Sections of the Document, unaltered in their
+text and in their titles. Section numbers or the equivalent are not
+considered part of the section titles.</para>
+</listitem>
+<listitem>
+<para>Delete any section Entitled "Endorsements". Such a section may not be
+included in the Modified Version.</para>
+</listitem>
+<listitem>
+<para>Do not retitle any existing section to be Entitled "Endorsements" or to
+conflict in title with any Invariant Section.</para>
+</listitem>
+<listitem>
+<para>Preserve any Warranty Disclaimers.</para>
+</listitem>
+</orderedlist>
+<para>If the Modified Version includes new front-matter sections or appendices that
+qualify as Secondary Sections and contain no material copied from the
+Document, you may at your option designate some or all of these sections as
+invariant. To do this, add their titles to the list of Invariant Sections in
+the Modified Version’s license notice. These titles must be distinct from any
+other section titles.</para>
+<para>You may add a section Entitled "Endorsements", provided it contains nothing
+but endorsements of your Modified Version by various parties—​for example,
+statements of peer review or that the text has been approved by an
+organization as the authoritative definition of a standard.</para>
+<para>You may add a passage of up to five words as a Front-Cover Text, and a
+passage of up to 25 words as a Back-Cover Text, to the end of the list of
+Cover Texts in the Modified Version. Only one passage of Front-Cover Text and
+one of Back-Cover Text may be added by (or through arrangements made by) any
+one entity. If the Document already includes a cover text for the same cover,
+previously added by you or by arrangement made by the same entity you are
+acting on behalf of, you may not add another; but you may replace the old
+one, on explicit permission from the previous publisher that added the old
+one.</para>
+<para>The author(s) and publisher(s) of the Document do not by this License give
+permission to use their names for publicity for or to assert or imply
+endorsement of any Modified Version.</para>
+</section>
+<section xml:id="id-5-combining-documents">
+<title>5. COMBINING DOCUMENTS</title>
+<para>You may combine the Document with other documents released under this
+License, under the terms defined in section 4 above for modified versions,
+provided that you include in the combination all of the Invariant Sections of
+all of the original documents, unmodified, and list them all as Invariant
+Sections of your combined work in its license notice, and that you preserve
+all their Warranty Disclaimers.</para>
+<para>The combined work need only contain one copy of this License, and multiple
+identical Invariant Sections may be replaced with a single copy. If there are
+multiple Invariant Sections with the same name but different contents, make
+the title of each such section unique by adding at the end of it, in
+parentheses, the name of the original author or publisher of that section if
+known, or else a unique number. Make the same adjustment to the section
+titles in the list of Invariant Sections in the license notice of the
+combined work.</para>
+<para>In the combination, you must combine any sections Entitled "History" in the
+various original documents, forming one section Entitled "History"; likewise
+combine any sections Entitled "Acknowledgements", and any sections Entitled
+"Dedications". You must delete all sections Entitled "Endorsements".</para>
+</section>
+<section xml:id="id-6-collections-of-documents">
+<title>6. COLLECTIONS OF DOCUMENTS</title>
+<para>You may make a collection consisting of the Document and other documents
+released under this License, and replace the individual copies of this
+License in the various documents with a single copy that is included in the
+collection, provided that you follow the rules of this License for verbatim
+copying of each of the documents in all other respects.</para>
+<para>You may extract a single document from such a collection, and distribute it
+individually under this License, provided you insert a copy of this License
+into the extracted document, and follow this License in all other respects
+regarding verbatim copying of that document.</para>
+</section>
+<section xml:id="id-7-aggregation-with-independent-works">
+<title>7. AGGREGATION WITH INDEPENDENT WORKS</title>
+<para>A compilation of the Document or its derivatives with other separate and
+independent documents or works, in or on a volume of a storage or
+distribution medium, is called an "aggregate" if the copyright resulting from
+the compilation is not used to limit the legal rights of the compilation’s
+users beyond what the individual works permit. When the Document is included
+in an aggregate, this License does not apply to the other works in the
+aggregate which are not themselves derivative works of the Document.</para>
+<para>If the Cover Text requirement of section 3 is applicable to these copies of
+the Document, then if the Document is less than one half of the entire
+aggregate, the Document’s Cover Texts may be placed on covers that bracket
+the Document within the aggregate, or the electronic equivalent of covers if
+the Document is in electronic form. Otherwise they must appear on printed
+covers that bracket the whole aggregate.</para>
+</section>
+<section xml:id="id-8-translation">
+<title>8. TRANSLATION</title>
+<para>Translation is considered a kind of modification, so you may distribute
+translations of the Document under the terms of section 4. Replacing
+Invariant Sections with translations requires special permission from their
+copyright holders, but you may include translations of some or all Invariant
+Sections in addition to the original versions of these Invariant Sections.
+You may include a translation of this License, and all the license notices in
+the Document, and any Warranty Disclaimers, provided that you also include
+the original English version of this License and the original versions of
+those notices and disclaimers. In case of a disagreement between the
+translation and the original version of this License or a notice or
+disclaimer, the original version will prevail.</para>
+<para>If a section in the Document is Entitled "Acknowledgements", "Dedications",
+or "History", the requirement (section 4) to Preserve its Title (section 1)
+will typically require changing the actual title.</para>
+</section>
+<section xml:id="id-9-termination">
+<title>9. TERMINATION</title>
+<para>You may not copy, modify, sublicense, or distribute the Document except as
+expressly provided for under this License. Any other attempt to copy, modify,
+sublicense or distribute the Document is void, and will automatically
+terminate your rights under this License. However, parties who have received
+copies, or rights, from you under this License will not have their licenses
+terminated so long as such parties remain in full compliance.</para>
+</section>
+<section xml:id="id-1-future-revisions-of-this-license">
+<title>1. FUTURE REVISIONS OF THIS LICENSE</title>
+<para>The Free Software Foundation may publish new, revised versions of the GNU
+Free Documentation License from time to time. Such new versions will be
+similar in spirit to the present version, but may differ in detail to address
+new problems or concerns. See <link xl:href="https://www.gnu.org/copyleft/">https://www.gnu.org/copyleft/</link>.</para>
+<para>Each version of the License is given a distinguishing version number. If the
+Document specifies that a particular numbered version of this License "or any
+later version" applies to it, you have the option of following the terms and
+conditions either of that specified version or of any later version that has
+been published (not as a draft) by the Free Software Foundation. If the
+Document does not specify a version number of this License, you may choose
+any version ever published (not as a draft) by the Free Software Foundation.</para>
+</section>
+<section xml:id="id-addendum-how-to-use-this-license-for-your-documents">
+<title>ADDENDUM: How to use this License for your documents</title>
+<screen linenumbering="unnumbered">  Copyright (c) YEAR YOUR NAME.
+  Permission is granted to copy, distribute and/or modify this document
+  under the terms of the GNU Free Documentation License, Version 1.2
+  or any later version published by the Free Software Foundation;
+  with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+  A copy of the license is included in the section entitled "GNU
+  Free Documentation License".</screen>
+<para>If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts,
+replace the "with…​Texts."" line with this:</para>
+<screen linenumbering="unnumbered">  with the Invariant Sections being LIST THEIR TITLES, with the
+  Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST.</screen>
+<para>If you have Invariant Sections without Cover Texts, or some other combination
+of the three, merge those two alternatives to suit the situation.</para>
+<para>If your document contains nontrivial examples of program code, we recommend
+releasing these examples in parallel under your choice of free software
+license, such as the GNU General Public License, to permit their use in free
+software.</para>
+</section>
+</appendix>
+</book>

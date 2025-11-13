@@ -1,0 +1,73 @@
+include::generic-attributes.adoc[]
+
+[#pr-deployment]
+== Deployment
+:revdate: 2025-10-15
+:page-revdate: {revdate}
+
+The following procedures describe how to deploy {productname} ({productnameshort}) on a {kube} cluster.
+
+[#pr-deployment-prerequisites]
+=== Prerequisites
+* A {kube} cluster version 1.20 or higher
+* {helm} version 3.2.0 or higher
+* Persistent Volume (PV) provisioner support in your infrastructure
+* An active subscription for {productname}
+
+[#pr-deployment-kube-secrets]
+=== Obtaining {kube} secrets from the {scc}
+To download and install the {productnameshort} images from {sregistry}, you need a {kube} secret with {scc} ({scca}) mirroring credentials.
+To obtain the credentials from {scca}, follow these steps:
+
+. Visit {scc} at https://scc.suse.com and log in.
+. Select the organization with an active {productnameshort} subscription from the left sidebar.
+. Select `Proxies` in the top menu. The credentials are displayed in the top right corner.
+. To see the password, click the 'eye' icon.
+. Create a `password.txt` file containing the obtained password.
+[source]
+  $ head -1 ./password.txt | helm registry login registry.suse.com \
+  --username <PRIVATE_REGISTRY_USERNAME> --password-stdin
+. Create a namespace for {sregistry}.
+[source]
+$ kubectl create namespace <PRIVATE_REGISTRY_NAMESPACE>
+. Store the mirroring credentials retrieved from {scca} as {kube} secrets by running the following command:
+[source]
+  $ kubectl create secret docker-registry suse-registry \
+  --namespace <PRIVATE_REGISTRY_NAMESPACE> \
+  --docker-server=registry.suse.com \
+  --docker-username=<PRIVATE_REGISTRY_USERNAME> \
+  --docker-password=$(head -1 ./password.txt)
+. Optionally, to use TLS encrypted communication, create a TLS secret from your private key and certificate files.
+[source]
+  $ kubectl create secret tls suse-registry-tls \
+  --namespace <PRIVATE_REGISTRY_NAMESPACE> \
+  --cert=<CERTIFICATE>.pem \
+  --key=<PRIVATE_KEY>.pem
+
+[#pr-deployment-installing-and-running]
+=== Installing and running {productnameshort} using {helm}
+The following procedure describes how to install {productnameshort} using {helm}.
+Replace `<RELEASE_NAME>` with your custom release name for the {helm} chart deployment.
+
+. Log in to {sregistry} using the obtained {scca} mirroring credentials.
+[source, bash]
+  $ head -1 ./password.txt | helm registry login registry.suse.com \
+  --username <SUSE_REGISTRY_USERNAME> --password-stdin
+. Install the latest version of the {productnameshort} {helm} chart.
+[source, bash]
+  $ helm install <RELEASE_NAME> \
+  oci://registry.suse.com/private-registry/private-registry-helm \
+  --namespace <PRIVATE_REGISTRY_NAMESPACE>
+
+To override the default installation with custom values from the `suse_registry_override.yaml` file, refer to <<pr-helm-chart-override>>.
+
+The command starts deploying several related containers and may take several minutes to complete.
+It also prints a message with the URL to the {productnameshort} Web portal and commands to obtain the administrator credentials.
+
+[#pr-deployment-upgrading]
+=== Upgrading {productnameshort}
+To upgrade the release of the {helm} chart to a specific newer version, run the following command:
+[source]
+$ helm upgrade <RELEASE_NAME> \
+oci://registry.suse.com/private-registry/private-registry-helm --version <NEW_VERSION_OF_HELM_CHART>
+--namespace <PRIVATE_REGISTRY_NAMESPACE>
