@@ -754,6 +754,12 @@ function activate(context) {
 			noReplaceRanges.push({ start: urlMatch.index, end: urlMatch.index + urlMatch[0].length });
 		}
 
+		// 7. Find attribute definitions and add the entire definition line to the no-replace ranges.
+		const attributeDefinitionRegex = /^:([^:]+):\s+(.*)$/gm;
+		let attrDefMatch;
+		while ((attrDefMatch = attributeDefinitionRegex.exec(text)) !== null) {
+			noReplaceRanges.push({ start: attrDefMatch.index, end: attrDefMatch.index + attrDefMatch[0].length });
+		}
 
 		if (noReplaceRanges.length > 0) {
 			dbg(`Found ${noReplaceRanges.length} no-replace AsciiDoc blocks.`);
