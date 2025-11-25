@@ -697,12 +697,20 @@ function activate(context) {
 
 		// 1. Find content of no-replace blocks (e.g., source, literal).
 		// This regex finds both styled blocks like `[source]` and simple delimited blocks `----`.
-		// It also finds command prompts ($) that might be part of a command block.
-		const blockRegex = new RegExp(`^\\[(${noReplaceBlocks.join('|')})\\]\\n((?:.*\\\\\\n)*.*[^\\\\]\\n)`, 'gm');
+		const styledBlockRegex = new RegExp(`^\\[(${noReplaceBlocks.join('|')})\\]\\n((?:.|\\n)*?)(?=\\n\\S|$)`, 'gm');
 		let noReplaceMatch;
-
-		while ((noReplaceMatch = blockRegex.exec(text)) !== null) {
+		while ((noReplaceMatch = styledBlockRegex.exec(text)) !== null) {
 			noReplaceRanges.push({ start: noReplaceMatch.index, end: noReplaceMatch.index + noReplaceMatch[0].length });
+		}
+
+		// Regex for delimited blocks like ----, ...., etc.
+		const delimitedBlockRegex = /^(----|....)\n([\s\S]*?)\n\1$/gm;
+		let delimitedMatch;
+		while ((delimitedMatch = delimitedBlockRegex.exec(text)) !== null) {
+			noReplaceRanges.push({
+				start: delimitedMatch.index,
+				end: delimitedMatch.index + delimitedMatch[0].length
+			});
 		}
 
 		// 2. Find content of inline monospace/literal text (e.g., `text` or ``text``).

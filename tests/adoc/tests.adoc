@@ -9,3 +9,13 @@ include::generic-attributes.adoc[]
 Kubernetes is a cluster solution.
 {kube} is a great cluster solution.
 
+vLLM takes too much time.
+
+.Testing entity replacement in verbatim blocks
+[example]
+----
+type: ingress
+ingress:
+  hosts: <HOST_URL>
+----
+
