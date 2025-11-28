@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<article xmlns="http://docbook.org/ns/docbook" xml:base="tests-db.xml" version="5.2" xml:id="tests" xml:lang="en"><info>
+      <title xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude">Tests for vscode-daps</title>
+    </info><section role="concept" xml:lang="en" version="5.2" xml:id="test-db"><info>
+    <title xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">Testing file</title>
+    <meta xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" name="maintainer" content="tbazant@suse.com" its:translate="no"/>
+    <abstract xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">
+      <para>
+        This document provides space for testing vscode-daps extension on a
+        docbook file.
+      </para>
+    </abstract>
+  </info>
+  
+  <variablelist>
+    <varlistentry>
+      <term>Entity replacement</term>
+      <listitem>
+        <para>
+          vLLM is not replaced by entity?
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Reference codelens</term>
+      <listitem>
+        <para>
+          <xref linkend="ref-db"/>
+        </para>
+        <para version="5.2" xml:base="../snippets/inc.xml">
+  Open WebUI is a Web-based user interface designed for interacting with AI
+  models.
+</para>
+      </listitem>
+    </varlistentry>
+  </variablelist>
+</section><section role="concept" xml:lang="en" version="5.2" xml:id="ref-db"><info>
+    <title xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion">Testing referred file</title>
+    <meta xmlns:its="http://www.w3.org/2005/11/its" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:trans="http://docbook.org/ns/transclusion" name="maintainer" content="tbazant@suse.com" its:translate="no"/>
+  </info>
+  
+  <section xml:id="ref-db-s1">
+    <title>Referred section 1</title>
+    <para>
+      Test, yeah!
+    </para>
+  </section>
+</section></article>

@@ -17,11 +17,13 @@
           xmlns="http://docbook.org/ns/docbook">
   <resources>
     <resource xml:id="_test" href="../concepts/test.xml"/>
+    <resource xml:id="_ref" href="../concepts/ref.xml"/>
   </resources>
   <structure renderas="article" xml:id="tests" xml:lang="en">
     <merge>
       <title>Tests for vscode-daps</title>
     </merge>
     <module renderas="section" resourceref="_test"/>
+    <module renderas="section" resourceref="_ref"/>
   </structure>
 </assembly>

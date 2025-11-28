@@ -1,0 +1,15 @@
+:doctype: book
+:experimental:
+
+include::generic-attributes.adoc[]
+
+[chapter]
+[#entity-replacement]
+== Entity replacement
+
+This is an included file.
+
+[[second-entity-replacement]]
+== Entity replacement
+
+This is an included file.

@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.8.5
+- improved detection of verbatim blocks in AsciiDoc files
+- introduced codelens for peeking into include and xref files
+- added new option `daps.showXIncludeCodelens` to control peeking behavior
 ## 0.8.4
 - improved entity matching by including stripped entities with XML markup
 - streamlined process for executing daps commands

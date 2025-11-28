@@ -6,7 +6,7 @@
   <!ENTITY % entities SYSTEM "../common/generic-entities.ent">
     %entities;
 ]>
-<topic xml:id="ai-monitoring-concept"
+<topic xml:id="test-db"
  role="concept" xml:lang="en"
  xmlns="http://docbook.org/ns/docbook" version="5.2"
  xmlns:its="http://www.w3.org/2005/11/its"
@@ -14,15 +14,32 @@
  xmlns:xlink="http://www.w3.org/1999/xlink"
  xmlns:trans="http://docbook.org/ns/transclusion">
   <info>
-    <title>Monitoring &productname;</title>
+    <title>Testing file</title>
     <meta name="maintainer" content="tbazant@suse.com" its:translate="no"/>
     <abstract>
       <para>
-        This document provides space for testing vscode-daps extension.
+        This document provides space for testing vscode-daps extension on a
+        docbook file.
       </para>
     </abstract>
   </info>
-  <para>
-    &vllm; is not replaced by entity?
-  </para>
+  <variablelist>
+    <varlistentry>
+      <term>Entity replacement</term>
+      <listitem>
+        <para>
+          &vllm; is not replaced by entity?
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Reference codelens</term>
+      <listitem>
+        <para>
+          <xref linkend="ref-db"/>
+        </para>
+        <xi:include href="../snippets/inc.xml"/>
+      </listitem>
+    </varlistentry>
+  </variablelist>
 </topic>

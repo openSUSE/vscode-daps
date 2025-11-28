@@ -3,8 +3,6 @@
 
 include::generic-attributes.adoc[]
 
-= Tests for vscode-daps features
-
 == Entity replacement
 Kubernetes is a cluster solution.
 {kube} is a great cluster solution.
@@ -12,10 +10,20 @@ Kubernetes is a cluster solution.
 vLLM takes too much time.
 
 .Testing entity replacement in verbatim blocks
-[example]
 ----
 type: ingress
 ingress:
   hosts: <HOST_URL>
 ----
 
+== include:: codelens
+include::included-file.adoc[]
+
+This is a reference xref:entity-replacement[Yes a reference]
+This is a reference xref:entity-replacement[]
+This is a reference <<entity-replacement>>
+This is a reference <<entity-replacement, Yes a reference>>
+This is a reference xref:second-entity-replacement[Yes a reference]
+This is a reference xref:second-entity-replacement[]
+This is a reference <<second-entity-replacement>>
+This is a reference <<second-entity-replacement, Yes a reference>>

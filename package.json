@@ -2,7 +2,7 @@
   "name": "dapsy",
   "displayName": "DAPSy",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "bazantici",
   "author": {
@@ -292,6 +292,29 @@
         },
         "daps.showXrefCodelens": {
           "description": "Show the link to the referenced section",
+          "type": "string",
+          "default": "disabled",
+          "enum": [
+            "peek",
+            "link",
+            "both",
+            "disabled"
+          ],
+          "enumDescriptions": [
+            "Peek into the linked file from the current editor",
+            "Open the linked file in a new tab",
+            "Show both the 'peek' and 'open in a new tab' links",
+            "Disable link parsing"
+          ],
+          "enumItemLabels": [
+            "Peek",
+            "Link",
+            "Both",
+            "Disabled"
+          ]
+        },
+        "daps.showXIncludeCodelens": {
+          "description": "Show links to XIncluded files",
           "type": "string",
           "default": "disabled",
           "enum": [
