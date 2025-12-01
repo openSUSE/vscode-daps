@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.9.0
+- introduced checking http(s) links with document
+- introduced option `daps.enableLinkCheck`
 ## 0.8.5
 - improved detection of verbatim blocks in AsciiDoc files
 - introduced codelens for peeking into include and xref files

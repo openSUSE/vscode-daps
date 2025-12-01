@@ -41,5 +41,23 @@
         <xi:include href="../snippets/inc.xml"/>
       </listitem>
     </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+      </listitem>
+    </varlistentry>
   </variablelist>
 </topic>

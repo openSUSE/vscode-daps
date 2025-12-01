@@ -2,7 +2,7 @@
   "name": "dapsy",
   "displayName": "DAPSy",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.8.5",
+  "version": "0.9.0",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "bazantici",
   "author": {
@@ -82,6 +82,10 @@
         {
           "command": "daps.validate",
           "when": "resourceFilename =~ /DC-*/"
+        },
+        {
+          "command": "daps.checkLinks",
+          "when": "config.daps.enableLinkCheck && (resourceExtname == .xml || resourceExtname == .adoc)"
         }
       ],
       "explorer/context": [
@@ -154,11 +158,22 @@
         "title": "Preview document",
         "category": "DAPS",
         "enablement": "resourceExtname == .xml"
+      },
+      {
+        "command": "daps.checkLinks",
+        "title": "Check for broken links",
+        "category": "DAPS",
+        "enablement": "config.daps.enableLinkCheck && (resourceExtname == .xml || resourceExtname == .adoc)"
       }
     ],
     "configuration": {
       "title": "DAPS",
       "properties": {
+        "daps.enableLinkCheck": {
+          "description": "Enable checking for broken links in DocBook and AsciiDoc files.",
+          "type": "boolean",
+          "default": false
+        },
         "daps.enableDbg": {
           "description": "Enable logging in a dedicated output channel.",
           "type": "string",

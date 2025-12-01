@@ -1,6 +1,8 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
+const https = require('https');
 const { exec } = require('child_process');
 const { DOMParser } = require('@xmldom/xmldom');
 const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
@@ -580,6 +582,14 @@ function activate(context) {
 			}
 			// refresh doc structure treeview
 			vscode.commands.executeCommand('docStructureTreeView.refresh');
+			// check for broken links on save
+			const dapsConfig = vscode.workspace.getConfiguration('daps');
+			if (dapsConfig.get('enableLinkCheck')) {
+				if (document.languageId === 'xml' || document.languageId === 'asciidoc') {
+					dbg(`onDidSaveTextDocument: Running link check on save for ${document.fileName}.`);
+					checkLinksInDocument(document, false); // Do not show notifications on save, only update problems panel.
+				}
+			}
 		}));
 	// when opening a document:
 	context.subscriptions.push(
@@ -633,6 +643,10 @@ function activate(context) {
 
 	const attributeDiagnostics = vscode.languages.createDiagnosticCollection("attributes");
 	context.subscriptions.push(attributeDiagnostics);
+
+	// Collection for link checking diagnostics
+	const linkDiagnostics = vscode.languages.createDiagnosticCollection("links");
+	context.subscriptions.push(linkDiagnostics);
 
 	// Initial check for documents that are already open when the extension activates
 	if (vscode.window.activeTextEditor) {
@@ -1054,6 +1068,25 @@ function activate(context) {
 			}
 		})
 	);
+	// Register a Code Actions Provider for the HTTPS upgrade suggestion.
+	context.subscriptions.push(
+		vscode.languages.registerCodeActionsProvider(['xml', 'asciidoc'], {
+			provideCodeActions(document, range, context, token) {
+				const codeActions = [];
+				context.diagnostics
+					.filter(diagnostic => diagnostic.code === 'upgradeToHttps')
+					.forEach(diagnostic => {
+						const action = new vscode.CodeAction('Upgrade to HTTPS', vscode.CodeActionKind.QuickFix);
+						action.edit = new vscode.WorkspaceEdit();
+						const newUrl = document.getText(diagnostic.range).replace('http://', 'https://');
+						action.edit.replace(document.uri, diagnostic.range, newUrl);
+						action.diagnostics = [diagnostic];
+						codeActions.push(action);
+					});
+				return codeActions;
+			}
+		})
+	);
 	/**
 	  * Focuses the active editor on the specified line number.
 	  * 
@@ -1454,6 +1487,212 @@ document.addEventListener('scroll', () => {
 			}
 		}
 	}));
+
+	/**
+	 * Command to check for broken links in the active DocBook or AsciiDoc file.
+	 */
+	if (vscode.workspace.getConfiguration('daps').get('enableLinkCheck')) {
+		context.subscriptions.push(vscode.commands.registerCommand('daps.checkLinks', () => {
+			const editor = vscode.window.activeTextEditor;
+			if (editor) {
+				checkLinksInDocument(editor.document, true); // Show notifications when run manually
+			} else {
+				vscode.window.showInformationMessage('No active editor to check for links.');
+			}
+		}));
+	}
+
+	async function checkLinksInDocument(document, showNotifications = false) {
+		const languageId = document.languageId;
+		if (languageId !== 'xml' && languageId !== 'asciidoc') {
+			if (showNotifications) {
+				vscode.window.showInformationMessage('Link checking is only supported for DocBook (XML) and AsciiDoc files.');
+			}
+			return;
+		}
+
+		const diagnostics = [];
+		linkDiagnostics.clear();
+
+		await vscode.window.withProgress({
+			location: showNotifications ? vscode.ProgressLocation.Notification : vscode.ProgressLocation.Window,
+			title: "DAPS: Checking links...",
+			cancellable: false
+		}, async (progress) => {
+			if (languageId === 'xml') {
+				await checkDocBookLinks(document, diagnostics, progress);
+			} else { // asciidoc
+				await checkAsciiDocLinks(document, diagnostics, progress);
+			}
+
+			linkDiagnostics.set(document.uri, diagnostics);
+
+			dbg(`checkLinksInDocument: Final diagnostics for ${document.uri.fsPath}: ${diagnostics.length} items.`);
+			diagnostics.forEach((d, i) => {
+				const { start, end } = d.range;
+				dbg(`  [${i}] Severity: ${vscode.DiagnosticSeverity[d.severity]}, Message: "${d.message}", Range: [L${start.line + 1}:${start.character}, L${end.line + 1}:${end.character}]`);
+			});
+
+			if (showNotifications) {
+				const allWarnings = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Warning);
+				const brokenLinkWarnings = allWarnings.filter(d => d.code !== 'upgradeToHttps');
+				const upgradeWarnings = allWarnings.filter(d => d.code === 'upgradeToHttps');
+				const hasIssues = allWarnings.length > 0;
+
+				if (hasIssues) {
+					let messageParts = [];
+					if (brokenLinkWarnings.length > 0) {
+						messageParts.push(`${brokenLinkWarnings.length} broken link(s)`);
+					}
+					if (upgradeWarnings.length > 0) {
+						messageParts.push(`${upgradeWarnings.length} HTTPS upgrade suggestion(s)`);
+					}
+					// Show a single, combined message. Use showWarningMessage if there are broken links, otherwise showInformationMessage.
+					const finalMessage = `Link check found: ${messageParts.join(' and ')}. See the Problems panel for details.`;
+					vscode.window.showWarningMessage(finalMessage);
+				} else {
+					vscode.window.showInformationMessage('No broken links or HTTPS upgrade suggestions found.');
+				}
+			}
+		});
+	}
+
+	/**
+	 * Checks if an external URL is valid by making a HEAD request.
+	 * @param {string} link - The URL to check.
+	 * @returns {Promise<{isValid: boolean, message: string}>} An object indicating if the link is valid and a status message.
+	 */
+	function checkExternalLink(link) {
+		return new Promise((resolve) => {
+			const protocol = link.startsWith('https') ? https : http;
+			const request = protocol.request(link, { method: 'HEAD', timeout: 5000 }, (res) => {
+				if (res.statusCode >= 200 && res.statusCode < 400) {
+					resolve({ isValid: true, message: `Status: ${res.statusCode}` });
+				} else {
+					resolve({ isValid: false, message: `Broken link (Status: ${res.statusCode})` });
+				}
+			});
+
+			request.on('timeout', () => {
+				request.destroy();
+				resolve({ isValid: false, message: 'Request timed out' });
+			});
+
+			request.on('error', (e) => {
+				// Handle common DNS errors
+				if (e.code === 'ENOTFOUND' || e.code === 'EAI_AGAIN') {
+					resolve({ isValid: false, message: `Broken link (DNS lookup failed for ${e.hostname})` });
+				} else {
+					resolve({ isValid: false, message: `Broken link (Error: ${e.message})` });
+				}
+			});
+
+			request.end();
+		});
+	}
+
+
+	async function checkDocBookLinks(document, diagnostics, progress) {
+		progress.report({ message: "Parsing DocBook file..." });
+		dbg('checkDocBookLinks: Starting to check DocBook links.');
+		const text = document.getText();
+		const docDir = path.dirname(document.uri.fsPath);
+		const linkRegex = /<link\s+xlink:href=("((?:https?):\/\/[^"]+)")/g;
+		dbg(`checkDocBookLinks: Using regex: ${linkRegex}`);
+		let match;
+		let linksFound = 0;
+
+		while ((match = linkRegex.exec(text)) !== null) {
+			linksFound++; // Increment linksFound for every match, regardless of validity
+			const linkTarget = match[1];
+			const url = match[2]; // The URL without quotes
+			dbg(`checkDocBookLinks: Found link target: ${url} at index ${match.index}`);
+			progress.report({ message: `Checking ${url}` });
+
+			// Correctly calculate the range for the URL value inside the quotes.
+			const rangeStartIndex = match.index + match[0].lastIndexOf(url);
+			const rangeEndIndex = rangeStartIndex + url.length;
+			const startPos = document.positionAt(rangeStartIndex);
+			const endPos = document.positionAt(rangeEndIndex);
+			const range = new vscode.Range(startPos, endPos);
+
+			dbg(`checkDocBookLinks: Checking external link: ${url}`);
+			const { isValid, message } = await checkExternalLink(url);
+			dbg(`checkDocBookLinks: Link ${url} is valid: ${isValid}, message: ${message}`);
+			if (!isValid) {
+				dbg(`checkDocBookLinks: Pushing diagnostic for broken link: ${url}`);
+				diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
+			} else if (url.startsWith('http://')) {
+				// If the HTTP link is valid, check if an HTTPS version exists.
+				const httpsLink = url.replace('http://', 'https://');
+				dbg(`checkDocBookLinks: Checking for HTTPS variant: ${httpsLink}`);
+				const { isValid: isHttpsValid } = await checkExternalLink(httpsLink);
+				if (isHttpsValid) {
+					dbg(`checkDocBookLinks: Found valid HTTPS variant for ${url}. Suggesting upgrade.`);
+					const diagnostic = new vscode.Diagnostic(range, 'Consider upgrading to HTTPS.', vscode.DiagnosticSeverity.Warning);
+					diagnostic.code = 'upgradeToHttps';
+					diagnostics.push(diagnostic);
+				}
+			}
+		}
+		if (linksFound === 0) {
+			dbg('checkDocBookLinks: No external links found in the document.');
+		}
+		dbg('checkDocBookLinks: Finished checking DocBook links.');
+	}
+
+	async function checkAsciiDocLinks(document, diagnostics, progress) {
+		progress.report({ message: "Parsing AsciiDoc file..." });
+		dbg('checkAsciiDocLinks: Starting to check AsciiDoc links.');
+		const text = document.getText();
+		const docDir = path.dirname(document.uri.fsPath);
+		// This regex captures three AsciiDoc link patterns for external URLs:
+		// 1. Bare URL: `https://...` (not preceded by a backslash).
+		// 2. Angle-bracketed URL: `<https://...>`
+		// 3. URL with link text: `https://...[text]`
+		const linkRegex = /(?<!\\)(https?:\/\/[^\s<\[\]]+)|<((?:https?):\/\/[^>]+)>|((?:https?):\/\/[^\s\[]+)\[[^\]]*\]/g;
+		dbg(`checkAsciiDocLinks: Using regex: ${linkRegex}`);
+		let match;
+		let linksFound = 0;
+
+		while ((match = linkRegex.exec(text)) !== null) {
+			linksFound++;
+			// The URL will be in one of the capture groups.
+			const url = match[1] || match[2] || match[3];
+			dbg(`checkAsciiDocLinks: Found link target: ${url} at index ${match.index}`);
+			progress.report({ message: `Checking ${url}` });
+
+			// Correctly calculate the range for the URL.
+			const rangeStartIndex = match.index + match[0].indexOf(url);
+			const rangeEndIndex = rangeStartIndex + url.length;
+			const startPos = document.positionAt(rangeStartIndex);
+			const endPos = document.positionAt(rangeEndIndex);
+			const range = new vscode.Range(startPos, endPos);
+
+			dbg(`checkAsciiDocLinks: Checking external link: ${url}`);
+			const { isValid, message } = await checkExternalLink(url);
+			dbg(`checkAsciiDocLinks: Link ${url} is valid: ${isValid}, message: ${message}`);
+			if (!isValid) {
+				dbg(`checkAsciiDocLinks: Pushing diagnostic for broken link: ${url}`);
+				diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
+			} else if (url.startsWith('http://')) {
+				// If the HTTP link is valid, check if an HTTPS version exists.
+				const httpsLink = url.replace('http://', 'https://');
+				dbg(`checkAsciiDocLinks: Checking for HTTPS variant: ${httpsLink}`);
+				const { isValid: isHttpsValid } = await checkExternalLink(httpsLink);
+				if (isHttpsValid) {
+					dbg(`checkAsciiDocLinks: Found valid HTTPS variant for ${url}. Suggesting upgrade.`);
+					const diagnostic = new vscode.Diagnostic(range, 'Consider upgrading to HTTPS.', vscode.DiagnosticSeverity.Warning);
+					diagnostic.code = 'upgradeToHttps';
+					diagnostics.push(diagnostic);
+				}
+			}
+		}
+		if (linksFound === 0) {
+			dbg('checkAsciiDocLinks: No external links found in the document.');
+		}
+		dbg('checkAsciiDocLinks: Finished checking AsciiDoc links.');
+	}
 
 	/**
 	 * @description validates documentation identified by DC file

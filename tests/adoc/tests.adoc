@@ -27,3 +27,25 @@ This is a reference xref:second-entity-replacement[Yes a reference]
 This is a reference xref:second-entity-replacement[]
 This is a reference <<second-entity-replacement>>
 This is a reference <<second-entity-replacement, Yes a reference>>
+
+== linkcheck
+
+Valid upgradable link: http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html
+
+Valid link: https://www.abicko.cz
+
+Broken link: https://documentation.suserere.com/suse-ai/1.0/
+
+Not a link: \https://www.abiiiiiicko.cz
+
+Valid upgradable link: <http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html>
+
+Valid link: <https://www.abicko.cz>
+
+Broken link: <https://documentation.suserere.com/suse-ai/1.0/>
+
+Valid upgradable link: http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html[custom text, attribute2]
+
+Valid link: https://www.abicko.cz[custom text, attribute2]
+
+Broken link: https://documentation.suserere.com/suse-ai/1.0/[custom text, attribute2]
