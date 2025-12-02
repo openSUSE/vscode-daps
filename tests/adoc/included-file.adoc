@@ -1,9 +1,5 @@
-:doctype: book
-:experimental:
-
 include::generic-attributes.adoc[]
 
-[chapter]
 [#entity-replacement]
 == Entity replacement
 

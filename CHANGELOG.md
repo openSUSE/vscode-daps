@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.9.1
+- maintenance release
+- improved validity of some options
+- added and simplifies comments
+- refactored sharable code
 ## 0.9.0
 - introduced checking http(s) links with document
 - introduced option `daps.enableLinkCheck`

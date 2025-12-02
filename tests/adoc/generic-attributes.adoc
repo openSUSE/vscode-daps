@@ -18,4 +18,5 @@
 include::product-attributes.adoc[]
 
 :vllm:                       vLLM
+:kube:                       Kubernetes
 :ingress:                    Ingress

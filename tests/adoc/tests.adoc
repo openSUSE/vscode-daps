@@ -17,7 +17,7 @@ ingress:
 ----
 
 == include:: codelens
-include::included-file.adoc[]
+include::included-file.adoc[leveloffset=+1]
 
 This is a reference xref:entity-replacement[Yes a reference]
 This is a reference xref:entity-replacement[]
@@ -29,7 +29,6 @@ This is a reference <<second-entity-replacement>>
 This is a reference <<second-entity-replacement, Yes a reference>>
 
 == linkcheck
-
 Valid upgradable link: http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html
 
 Valid link: https://www.abicko.cz

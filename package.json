@@ -2,7 +2,7 @@
   "name": "dapsy",
   "displayName": "DAPSy",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "bazantici",
   "author": {
@@ -77,11 +77,11 @@
         },
         {
           "command": "daps.docPreview",
-          "when": "resourceExtname == .xml"
+          "when": "resourceExtname == .xml && config.daps.previewLinkScrollBoth"
         },
         {
           "command": "daps.validate",
-          "when": "resourceFilename =~ /DC-*/"
+          "when": "resourceFilename =~ /DC-/"
         },
         {
           "command": "daps.checkLinks",
