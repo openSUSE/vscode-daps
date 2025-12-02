@@ -579,7 +579,7 @@ function activate(context) {
 			const dapsConfig = vscode.workspace.getConfiguration('daps');
 			if (dapsConfig.get('enableLinkCheck')) {
 				if (document.languageId === 'xml' || document.languageId === 'asciidoc') {
-					dbg(`onDidSaveTextDocument: Running link check on save for ${document.fileName}.`);
+					dbg(`linkcheck: onDidSaveTextDocument: Running link check on save for ${document.fileName}.`);
 					checkLinksInDocument(document, false); // Do not show notifications on save, only update problems panel.
 				}
 			}
@@ -1593,7 +1593,7 @@ document.addEventListener('scroll', () => {
 	 */
 	async function checkDocBookLinks(document, diagnostics, progress) {
 		progress.report({ message: "Parsing DocBook file..." });
-		dbg('checkDocBookLinks: Starting to check DocBook links.');
+		dbg('linkcheck: Starting to check DocBook links.');
 		const text = document.getText();
 		// Regex to find <link> tags with an http or https xlink:href attribute.
 		const linkRegex = /<link\s+xlink:href="((https?):\/\/[^"]+)"/g;
@@ -1631,8 +1631,7 @@ document.addEventListener('scroll', () => {
 			}
 		}
 		if (linksFound === 0) {
-			dbg('checkDocBookLinks: No external links found in the document.');
-// TODO: prepend all dbg messages with linkcheck:
+			dbg('linkcheck: No external links found in the document.');
 		}
 	}
 
@@ -1646,7 +1645,7 @@ document.addEventListener('scroll', () => {
 	 */
 	async function checkAsciiDocLinks(document, diagnostics, progress) {
 		progress.report({ message: "Parsing AsciiDoc file..." });
-		dbg('checkAsciiDocLinks: Starting to check AsciiDoc links.');
+		dbg('linkcheck: Starting to check AsciiDoc links.');
 		const text = document.getText();
 		/**
 		 * This regex captures three common AsciiDoc link patterns for external URLs:
@@ -1689,9 +1688,9 @@ document.addEventListener('scroll', () => {
 			}
 		}
 		if (linksFound === 0) {
-			dbg('checkAsciiDocLinks: No external links found in the document.');
+			dbg('linkcheck: No external links found in the document.');
 		}
-		dbg('checkAsciiDocLinks: Finished checking AsciiDoc links.');
+		dbg('linkcheck: Finished checking AsciiDoc links.');
 	}
 
 	// Validates documentation identified by a DC file.
