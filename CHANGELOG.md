@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.9.2
+- added support for extended validation
+- introduced option `daps.enableExtendedValidation`
 ## 0.9.1
 - maintenance release
 - improved validity of some options

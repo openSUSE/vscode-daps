@@ -2,7 +2,7 @@
   "name": "dapsy",
   "displayName": "DAPSy",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "bazantici",
   "author": {
@@ -433,6 +433,11 @@
           "description": "A list of phrases that will be skipped from replacing with an entity or attribute if matched.",
           "type": "array",
           "default": []
+        },
+        "daps.enableExtendedValidation": {
+          "description": "Additional validation. Leave empty to disable or specify comma-separated combination of  'ids', 'images', 'inlines' or 'tables'. 'all' includes all of them",
+          "type":"string",
+          "default": ""
         }
       }
     },

@@ -1669,7 +1669,15 @@ srcXMLfile: srcXMLfile
 		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		var DCfile = await getDCfile(contextDCfile);
 		if (DCfile) {
-			const dapsCmd = getDapsCmd({ DCfile: DCfile, cmd: 'validate' });
+			const dapsConfig = vscode.workspace.getConfiguration('daps');
+			var dapsCmd;
+			// if extended validation is not empty, add it as option to daps validate command
+			if (extendedValidation = dapsConfig.get('enableExtendedValidation')) {
+				let opts = [`--extended-validation=${extendedValidation}`]
+				dapsCmd = getDapsCmd({ DCfile: DCfile, cmd: 'validate', options: opts });
+			} else {
+				dapsCmd = getDapsCmd({ DCfile: DCfile, cmd: 'validate' });
+			}
 			const success = await executeDapsCommand(dapsCmd, 'Validation succeeded.');
 			if (success) {
 				return true;
