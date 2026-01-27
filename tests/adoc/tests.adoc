@@ -48,3 +48,9 @@ Valid upgradable link: http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihov
 Valid link: https://www.abicko.cz[custom text, attribute2]
 
 Broken link: https://documentation.suserere.com/suse-ai/1.0/[custom text, attribute2]
+
+Valid link: http://www.example.org/
+
+Valid link: link:https://www.example.org/[custom text]
+
+Broken link: link:https://documentation.suserere.com/suse-ai/1.0/[custom text, attribute2]

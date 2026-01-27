@@ -576,9 +576,10 @@ function activate(context) {
 			// refresh doc structure treeview
 			vscode.commands.executeCommand('docStructureTreeView.refresh');
 			// check for broken links on save
-			const dapsConfig = vscode.workspace.getConfiguration('daps');
-			if (dapsConfig.get('enableLinkCheck')) {
-				if (document.languageId === 'xml' || document.languageId === 'asciidoc') {
+			const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
+			const linkCheckOnSave = dapsConfig.get("linkCheckOnSave");
+			if (linkCheckOnSave === true) {
+				if (document.languageId === "xml" || document.languageId === "asciidoc") {
 					dbg(`linkcheck: onDidSaveTextDocument: Running link check on save for ${document.fileName}.`);
 					checkLinksInDocument(document, false); // Do not show notifications on save, only update problems panel.
 				}

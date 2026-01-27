@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.9.3
+- link check can be run on save
 ## 0.9.2
 - added support for extended validation
 - introduced option `daps.enableExtendedValidation`
