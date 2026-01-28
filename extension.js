@@ -351,7 +351,7 @@ class xrefCodeLensProvider {
 		if (fileType === "asciidoc") {
 			return `(?:\\[#(${xrefLinkend})(?:,[^\\]]*)?\\]|\\[\\[(${xrefLinkend})(?:,[^\\]]*)?\\]\\])`;
 		} else if (fileType === "xml") {
-			return `xml:id=\"${xrefLinkend}\"`;
+			return `xml:id="${xrefLinkend}"`;
 		}
 		return null;
 	}
@@ -417,7 +417,7 @@ class asciidocIncludeCodeLensProvider {
 	_computeCodeLenses(document) {
 		const text = document.getText();
 		const docDir = path.dirname(document.uri.fsPath);
-		const includeRegex = /^\s*include::([^\[]+)\[\]/gm; // Regex to find include::filename.adoc[] with optional leading whitespace
+		const includeRegex = /^\s*include::([^[]+)\[\]/gm; // Regex to find include::filename.adoc[] with optional leading whitespace
 		let match;
 		const codeLenses = [];
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
@@ -593,12 +593,6 @@ function activate(context) {
 			updateAttributeDiagnostics(document);
 		})
 	);
-	// when closing active editor:
-	context.subscriptions.push(
-		vscode.workspace.onDidCloseTextDocument(() => {
-			// clear the scroll map for HTML preview
-			let scrollMap = {};
-		}));
 	// when active editor is changed:
 	context.subscriptions.push(
 		vscode.window.onDidChangeActiveTextEditor((activeEditor) => {
@@ -775,7 +769,7 @@ function activate(context) {
 			// Escape special characters in the entity value for use in a regular expression.
 			// Then, replace spaces with `\s+` to match any whitespace sequence (including newlines) and wrap with word boundaries.
 			const pattern = `\\b(${entityValue
-				.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') // Escape regex special characters.
+				.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') // Escape regex special characters.
 				.replace(/\s+/g, '\\s+')})\\b`;
 			const regex = new RegExp(pattern, 'gi');
 			let match;
@@ -954,7 +948,7 @@ function activate(context) {
 			if (attrValue.trim().length < 2) return;
 
 			const pattern = `\\b(${attrValue
-				.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+				.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')
 				.replace(/\s+/g, '\\s+')})\\b`;
 			const regex = new RegExp(pattern, 'gi');
 			let match;
@@ -1017,7 +1011,7 @@ function activate(context) {
 	context.subscriptions.push(
 		vscode.languages.registerCodeActionsProvider('xml', {
 			// This function is called by VS Code when the user clicks the lightbulb icon.
-			provideCodeActions(document, range, context, token) {
+			provideCodeActions(document, range, context, _token) {
 				const codeActions = [];
 				// Filter the diagnostics at the cursor position to only include our entity replacement suggestions.
 				context.diagnostics
@@ -1044,7 +1038,7 @@ function activate(context) {
 	 */
 	context.subscriptions.push(
 		vscode.languages.registerCodeActionsProvider('asciidoc', {
-			provideCodeActions(document, range, context, token) {
+			provideCodeActions(document, range, context, _token) {
 				const codeActions = [];
 				context.diagnostics
 					.filter(diagnostic => diagnostic.code === 'replaceWithAttribute')
@@ -1068,7 +1062,7 @@ function activate(context) {
 	// This provider is responsible for suggesting and applying the upgrade from 'http://' to 'https://' for links.
 	context.subscriptions.push(
 		vscode.languages.registerCodeActionsProvider(['xml', 'asciidoc'], {
-			provideCodeActions(document, range, context, token) {
+			provideCodeActions(document, range, context, _token) {
 				const codeActions = [];
 				context.diagnostics
 					.filter(diagnostic => diagnostic.code === 'upgradeToHttps')
@@ -1276,9 +1270,8 @@ function activate(context) {
 			const imageRegex = /<img src="([^"]+)"/g;
 			// Replace all image src attributes
 			htmlContent = htmlContent.replace(imageRegex, (match, src) => {
-				var imgURI = undefined;
 				// For each image, create the path to the image
-				imgUri = vscode.Uri.file(path.join(activeEditorDir, docPreviewImgPath, src));
+				let imgUri = vscode.Uri.file(path.join(activeEditorDir, docPreviewImgPath, src));
 				dbg(`preview:imgUri ${imgUri}`);
 				// check if imgURI extsts and if not, check SVG variant
 				if (!fs.existsSync(imgUri.path)) {
@@ -1459,7 +1452,7 @@ srcXMLfile: srcXMLfile
 					let text = editor.document.getText();
 
 					entityValueMap.forEach((entityName, entityValue) => {
-						const regex = new RegExp(entityValue.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
+						const regex = new RegExp(entityValue.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
 						text = text.replace(regex, entityName);
 					});
 
@@ -1648,7 +1641,7 @@ srcXMLfile: srcXMLfile
 		progress.report({ message: "Parsing AsciiDoc file..." });
 		dbg('linkcheck: Starting to check AsciiDoc links.');
 
-		const linkRegex = /(?<!\\)(https?:\/\/[^\s<\[\]]+)|<((?:https?):\/\/[^>]+)>|((?:https?):\/\/[^\s\[]+)\[[^\]]*\]/g;
+		const linkRegex = /(?<!\\)(https?:\/\/[^\s<[\]]+)|<((?:https?):\/\/[^>]+)>|((?:https?):\/\/[^\s[]+)\[[^\]]*\]/g;
 		const urlExtractor = (match) => match[1] || match[2] || match[3];
 
 		const linksFound = await findAndCheckLinks(document, diagnostics, progress, linkRegex, urlExtractor);
@@ -1668,13 +1661,13 @@ srcXMLfile: srcXMLfile
 			vscode.window.showErrorMessage("Cannot run DAPS command: No workspace folder is open.");
 			return false;
 		}
-		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		var DCfile = await getDCfile(contextDCfile);
 		if (DCfile) {
-			const dapsConfig = vscode.workspace.getConfiguration('daps');
 			var dapsCmd;
+			const dapsConfig = vscode.workspace.getConfiguration('daps');
 			// if extended validation is not empty, add it as option to daps validate command
-			if (extendedValidation = dapsConfig.get('enableExtendedValidation')) {
+			const extendedValidation  = dapsConfig.get('enableExtendedValidation')
+			if (extendedValidation) {
 				let opts = [`--extended-validation=${extendedValidation}`]
 				dapsCmd = getDapsCmd({ DCfile: DCfile, cmd: 'validate', options: opts });
 			} else {
@@ -1700,7 +1693,8 @@ srcXMLfile: srcXMLfile
 		var DCfile = await getDCfile(contextDCfile);
 		// try if buildTarget is included in settings or get it from user
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
-		if (buildTarget = dapsConfig.get('buildTarget')) {
+		buildTarget = dapsConfig.get('buildTarget')
+		if (buildTarget) {
 			dbg(`buildTarget from config: ${buildTarget}`);
 		} else {
 			buildTarget = await vscode.window.showQuickPick(buildTargets);
@@ -1800,7 +1794,6 @@ srcXMLfile: srcXMLfile
 			vscode.window.showErrorMessage("Cannot run DAPS command: No workspace folder is open.");
 			return;
 		}
-		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		var buildTarget = await getBuildTarget();
 		var DCfile = await getDCfile();
 		var rootId = await getRootId(contextFileURI, DCfile);
@@ -1908,7 +1901,6 @@ srcXMLfile: srcXMLfile
 			vscode.window.showErrorMessage("Cannot get Root ID: No workspace folder is open.");
 			return;
 		}
-		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		var rootId;
 		const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
 		if (contextFileURI) { // check if rootId was passed as argument
@@ -1919,7 +1911,8 @@ srcXMLfile: srcXMLfile
 				rootId = editor.document.getText(selectionRange);
 			}
 			dbg(`rootId from context: ${rootId}`);
-		} else if (rootId = dapsConfig.get('buildRootId')) { // try if rootId is included in settings.json
+		} else if (dapsConfig.get('buildRootId')) { // try if rootId is included in settings.json
+			rootId = dapsConfig.get('buildRootId')
 			dbg(`rootId from config: ${rootId}`);
 		} else { // get rootId from picker
 			rootId = await vscode.window.showQuickPick(getRootIds(DCfile));
@@ -2028,11 +2021,13 @@ async function getDCfile() {
 	const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 	var DCfile;
 	const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
-	if (DCfile = arguments[0]) { // check if DCfile URI was passed as argument
+	if (arguments[0]) { // check if DCfile URI was passed as argument
+		DCfile = arguments[0]
 		// if yes, use only the base name from the full URI
 		DCfile = DCfile.path.split('/').pop();
 		dbg(`DCfile from context: ${DCfile}`);
-	} else if (DCfile = dapsConfig.get('DCfile')) { // try if DC file is included in settings.json
+	} else if (dapsConfig.get('DCfile')) { // try if DC file is included in settings.json
+		DCfile = dapsConfig.get('DCfile')
 		dbg(`DC file from config: ${DCfile}`);
 	} else { // get DC file from picker
 		DCfile = await vscode.window.showQuickPick(getDCfiles(workspaceFolderUri));
@@ -2046,8 +2041,8 @@ async function getDCfile() {
 async function getBuildTarget() {
 	// try if buildTarget is included in settings or get it from user
 	const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
-	var buildTarget;
-	if (buildTarget = dapsConfig.get('buildTarget')) {
+	var buildTarget = dapsConfig.get('buildTarget');
+	if (buildTarget) {
 		dbg(`buildTarget from config: ${buildTarget}`);
 	} else {
 		buildTarget = await vscode.window.showQuickPick(buildTargets);
@@ -2143,7 +2138,7 @@ function getADOCattributeFiles(docFileName, processedFiles = new Set()) {
 	// Get the directory of the current file to resolve relative paths.
 	const docDir = path.dirname(docFileName);
 	// Define a regular expression to find 'include::filename.adoc[]' statements at the beginning of a line.
-	const includeRegex = /^include::([^\[]+)\[\]/gm;
+	const includeRegex = /^include::([^[]+)\[\]/gm;
 	// Initialize an array to store the paths of found attribute files.
 	let attributeFiles = [];
 	// Variable to hold the result of the regex execution.
@@ -2273,14 +2268,6 @@ function getActiveFile(contextFileURI) {
 		return false;
 	}
 	return XMLfile;
-}
-
-// returns empty TreeItem with a specific message
-function emptyDocStructure(message) {
-	return [{
-		label: message,
-		collapsibleState: vscode.TreeItemCollapsibleState.None,
-	}]
 }
 
 /**
