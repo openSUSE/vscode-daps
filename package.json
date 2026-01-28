@@ -85,7 +85,7 @@
         },
         {
           "command": "daps.checkLinks",
-          "when": "config.daps.enableLinkCheck && (resourceExtname == .xml || resourceExtname == .adoc)"
+          "when": "resourceExtname == .xml || resourceExtname == .adoc"
         }
       ],
       "explorer/context": [
@@ -163,7 +163,7 @@
         "command": "daps.checkLinks",
         "title": "Check for broken links",
         "category": "DAPS",
-        "enablement": "config.daps.enableLinkCheck && (resourceExtname == .xml || resourceExtname == .adoc)"
+        "enablement": "resourceExtname == .xml || resourceExtname == .adoc"
       }
     ],
     "configuration": {

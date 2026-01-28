@@ -1467,16 +1467,14 @@ srcXMLfile: srcXMLfile
 	// Registers the 'daps.checkLinks' command, which allows users to manually
 	// trigger a check for broken links in the active DocBook or AsciiDoc file.
 	// This command is only available if 'daps.enableLinkCheck' is enabled.
-	if (vscode.workspace.getConfiguration('daps').get('enableLinkCheck')) {
-		context.subscriptions.push(vscode.commands.registerCommand('daps.checkLinks', () => {
-			const editor = vscode.window.activeTextEditor;
-			if (editor) {
-				checkLinksInDocument(editor.document, true); // Show notifications when run manually
-			} else {
-				vscode.window.showInformationMessage('No active editor to check for links.');
-			}
-		}));
-	}
+	context.subscriptions.push(vscode.commands.registerCommand('daps.checkLinks', () => {
+		const editor = vscode.window.activeTextEditor;
+		if (editor) {
+			checkLinksInDocument(editor.document, true); // Show notifications when run manually
+		} else {
+			vscode.window.showInformationMessage('No active editor to check for links.');
+		}
+	}));
 
 	/**
 	 * Orchestrates the link checking process for a given document.
@@ -1565,16 +1563,16 @@ srcXMLfile: srcXMLfile
 	 * @param {function(RegExpExecArray): string} urlExtractor A function to extract the URL from a regex match.
 	 * @returns {Promise<number>} A promise that resolves with the number of links found.
 	 */
-	async function findAndCheckLinks(document, diagnostics, progress, linkRegex, urlExtractor) {
+	async function findAndCheckLinks(document, diagnostics, progress, linkRegex) {
 		const text = document.getText();
 		let match;
 		let linksFound = 0;
 
 		while ((match = linkRegex.exec(text)) !== null) {
 			linksFound++;
-			const url = urlExtractor(match);
+			const url = match[1];
 			if (!url) continue;
-
+			dbg(`linkcheck: Checking ${url}`);
 			progress.report({ message: `Checking ${url}` });
 
 			// Calculate the exact range of the URL within the document for accurate underlining.
@@ -1582,22 +1580,26 @@ srcXMLfile: srcXMLfile
 			const rangeEndIndex = rangeStartIndex + url.length;
 			const startPos = document.positionAt(rangeStartIndex);
 			const endPos = document.positionAt(rangeEndIndex);
-			const range = new vscode.Range(startPos, endPos);
+			const range = new vscode.Range(startPos, endPos); // Underline the original URL from the text
 
 			// Validate the external link.
 			const { isValid, message } = await checkExternalLink(url);
 			if (!isValid) {
 				// If the link is broken, create a warning diagnostic.
+				dbg(`linkcheck: Broken link: ${url} (${message})`);
 				diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
-			} else if (url.startsWith('http://')) {
+			} else {
+				dbg(`linkcheck: Link OK: ${url}`);
 				// If a valid link uses HTTP, check if an HTTPS version is also available.
-				const httpsLink = url.replace('http://', 'https://');
-				const { isValid: isHttpsValid } = await checkExternalLink(httpsLink);
-				// If the HTTPS version is valid, suggest an upgrade.
-				if (isHttpsValid) {
+				if (url.startsWith('http://')) {
+					const httpsLink = url.replace('http://', 'https://');
+					const { isValid: isHttpsValid } = await checkExternalLink(httpsLink);
+					// If the HTTPS version is valid, suggest an upgrade.
+					if (isHttpsValid) {
 					const diagnostic = new vscode.Diagnostic(range, 'Consider upgrading to HTTPS.', vscode.DiagnosticSeverity.Warning);
 					diagnostic.code = 'upgradeToHttps';
 					diagnostics.push(diagnostic);
+					}
 				}
 			}
 		}
@@ -1619,9 +1621,7 @@ srcXMLfile: srcXMLfile
 		dbg('linkcheck: Starting to check DocBook links.');
 
 		const linkRegex = /<link\s+xlink:href="(https?:\/\/[^"]+)"/g;
-		const urlExtractor = (match) => match[1];
-
-		const linksFound = await findAndCheckLinks(document, diagnostics, progress, linkRegex, urlExtractor);
+		const linksFound = await findAndCheckLinks(document, diagnostics, progress, linkRegex);
 
 		if (linksFound === 0) {
 			dbg('linkcheck: No external links found in the document.');
@@ -1641,10 +1641,8 @@ srcXMLfile: srcXMLfile
 		progress.report({ message: "Parsing AsciiDoc file..." });
 		dbg('linkcheck: Starting to check AsciiDoc links.');
 
-		const linkRegex = /(?<!\\)(https?:\/\/[^\s<[\]]+)|<((?:https?):\/\/[^>]+)>|((?:https?):\/\/[^\s[]+)\[[^\]]*\]/g;
-		const urlExtractor = (match) => match[1] || match[2] || match[3];
-
-		const linksFound = await findAndCheckLinks(document, diagnostics, progress, linkRegex, urlExtractor);
+		const linkRegex = /(https?:\/\/[a-zA-Z0-9.\-_/]+)/g;
+		const linksFound = await findAndCheckLinks(document, diagnostics, progress, linkRegex);
 
 		if (linksFound === 0) {
 			dbg('linkcheck: No external links found in the document.');
@@ -1666,7 +1664,7 @@ srcXMLfile: srcXMLfile
 			var dapsCmd;
 			const dapsConfig = vscode.workspace.getConfiguration('daps');
 			// if extended validation is not empty, add it as option to daps validate command
-			const extendedValidation  = dapsConfig.get('enableExtendedValidation')
+			const extendedValidation = dapsConfig.get('enableExtendedValidation')
 			if (extendedValidation) {
 				let opts = [`--extended-validation=${extendedValidation}`]
 				dapsCmd = getDapsCmd({ DCfile: DCfile, cmd: 'validate', options: opts });
