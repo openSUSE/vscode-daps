@@ -582,7 +582,7 @@ function activate(context) {
 			if (linkCheckOnSave === true) {
 				if (document.languageId === "xml" || document.languageId === "asciidoc") {
 					dbg(`linkcheck: onDidSaveTextDocument: Running link check on save for ${document.fileName}.`);
-					checkLinksInDocument(document, false); // Do not show notifications on save, only update problems panel.
+					checkLinksInDocument(document); // Do not show notifications on save, only update problems panel.
 				}
 			}
 		}));
@@ -1470,7 +1470,7 @@ srcXMLfile: srcXMLfile
 	context.subscriptions.push(vscode.commands.registerCommand('daps.checkLinks', () => {
 		const editor = vscode.window.activeTextEditor;
 		if (editor) {
-			checkLinksInDocument(editor.document, true); // Show notifications when run manually
+			checkLinksInDocument(editor.document); // Show notifications when run manually
 		} else {
 			vscode.window.showInformationMessage('No active editor to check for links.');
 		}
@@ -1484,15 +1484,7 @@ srcXMLfile: srcXMLfile
 	 * @param {vscode.TextDocument} document The document to check for broken links.
 	 * @param {boolean} [showNotifications=false] Whether to display summary notifications to the user.
 	 */
-	async function checkLinksInDocument(document, showNotifications = false) {
-		const languageId = document.languageId;
-		if (languageId !== 'xml' && languageId !== 'asciidoc') {
-			if (showNotifications) {
-				vscode.window.showInformationMessage('Link checking is only supported for DocBook (XML) and AsciiDoc files.');
-			}
-			return;
-		}
-
+	async function checkLinksInDocument(document) {
 		// A collection to hold all found diagnostic items (problems).
 		const diagnostics = [];
 		// Clear previous diagnostics for this file to avoid stale results.
@@ -1503,11 +1495,15 @@ srcXMLfile: srcXMLfile
 			title: "DAPS: Checking links...",
 			cancellable: false
 		}, async (progress) => {
-			if (languageId === 'xml') {
-				await checkDocBookLinks(document, diagnostics, progress);
-			} else {
-				await checkAsciiDocLinks(document, diagnostics, progress);
+			// Use a generic regex to find all URL-like strings in the document.
+			const linkRegex = /(https?:\/\/[a-zA-Z0-9.?:\-_/]+(?<![?.:\-_]))/g;
+			const linksFound = await findAndCheckLinks(document, diagnostics, progress, linkRegex);
+
+			if (linksFound === 0) {
+				dbg('linkcheck: No external links found in the document.');
 			}
+			dbg(`linkcheck: Finished checking links.`);
+
 			// Update the "Problems" panel with the new diagnostics.
 			linkDiagnostics.set(document.uri, diagnostics);
 		});
@@ -1596,9 +1592,9 @@ srcXMLfile: srcXMLfile
 					const { isValid: isHttpsValid } = await checkExternalLink(httpsLink);
 					// If the HTTPS version is valid, suggest an upgrade.
 					if (isHttpsValid) {
-					const diagnostic = new vscode.Diagnostic(range, 'Consider upgrading to HTTPS.', vscode.DiagnosticSeverity.Warning);
-					diagnostic.code = 'upgradeToHttps';
-					diagnostics.push(diagnostic);
+						const diagnostic = new vscode.Diagnostic(range, 'Consider upgrading to HTTPS.', vscode.DiagnosticSeverity.Warning);
+						diagnostic.code = 'upgradeToHttps';
+						diagnostics.push(diagnostic);
 					}
 				}
 			}
@@ -1606,50 +1602,6 @@ srcXMLfile: srcXMLfile
 		return linksFound;
 	}
 
-
-	/**
-	 * Finds and checks all external links within a DocBook (XML) document.
-	 * It uses a regular expression to find `<link xlink:href="...">` elements
-	 * and validates each URL. It creates diagnostics for broken links and suggests
-	 * upgrading HTTP links to HTTPS where possible.
-	 * @param {vscode.TextDocument} document The DocBook document to check.
-	 * @param {vscode.Diagnostic[]} diagnostics An array to which found diagnostics will be added.
-	 * @param {vscode.Progress<{ message?: string; }>} progress A progress reporter to update the UI.
-	 */
-	async function checkDocBookLinks(document, diagnostics, progress) {
-		progress.report({ message: "Parsing DocBook file..." });
-		dbg('linkcheck: Starting to check DocBook links.');
-
-		const linkRegex = /<link\s+xlink:href="(https?:\/\/[^"]+)"/g;
-		const linksFound = await findAndCheckLinks(document, diagnostics, progress, linkRegex);
-
-		if (linksFound === 0) {
-			dbg('linkcheck: No external links found in the document.');
-		}
-		dbg('linkcheck: Finished checking DocBook links.');
-	}
-
-	/**
-	 * Finds and checks all external links within an AsciiDoc document.
-	 * It uses a regular expression to find URLs in various AsciiDoc formats (bare, angle-bracketed, and with link text).
-	 * It creates diagnostics for broken links and suggests upgrading HTTP links to HTTPS where possible.
-	 * @param {vscode.TextDocument} document The AsciiDoc document to check.
-	 * @param {vscode.Diagnostic[]} diagnostics An array to which found diagnostics will be added.
-	 * @param {vscode.Progress<{ message?: string; }>} progress A progress reporter to update the UI.
-	 */
-	async function checkAsciiDocLinks(document, diagnostics, progress) {
-		progress.report({ message: "Parsing AsciiDoc file..." });
-		dbg('linkcheck: Starting to check AsciiDoc links.');
-
-		const linkRegex = /(https?:\/\/[a-zA-Z0-9.\-_/]+)/g;
-		const linksFound = await findAndCheckLinks(document, diagnostics, progress, linkRegex);
-
-		if (linksFound === 0) {
-			dbg('linkcheck: No external links found in the document.');
-		}
-
-		dbg('linkcheck: Finished checking AsciiDoc links.');
-	}
 
 	// Validates documentation identified by a DC file.
 	// @param {string} contextDCfile - URI from context command (optional).

@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.9.4
+- improved and simplified link checking by merging docbook and adoc code
 ## 0.9.3
 - link check can be run on save
 ## 0.9.2
@@ -7,7 +9,7 @@
 - introduced option `daps.enableExtendedValidation`
 ## 0.9.1
 - maintenance release
-- improved validity of some options
+- improved validity of several options
 - added and simplifies comments
 - refactored sharable code
 ## 0.9.0
