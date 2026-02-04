@@ -1495,8 +1495,17 @@ srcXMLfile: srcXMLfile
 			title: "DAPS: Checking links...",
 			cancellable: false
 		}, async (progress) => {
-			// Use a generic regex to find all URL-like strings in the document.
-			const linkRegex = /(https?:\/\/[a-zA-Z0-9.?:\-_/]+(?<![?.:\-_]))/g;
+			const languageId = document.languageId;
+			let linkRegex;
+
+			if (languageId === 'xml') {
+				// For DocBook XML, we want only links that are inside an href attribute.
+				linkRegex = /href="(https?:\/\/[a-zA-Z0-9.?:\-_/#]+(?<![?.:\-_#]))"/g;
+			} else {
+				// For AsciiDoc, find all URL-like strings.
+				linkRegex = /(https?:\/\/[a-zA-Z0-9.?:\-_/#]+(?<![?.:\-_#]))/g;
+			}
+
 			const linksFound = await findAndCheckLinks(document, diagnostics, progress, linkRegex);
 
 			if (linksFound === 0) {
@@ -1561,13 +1570,44 @@ srcXMLfile: srcXMLfile
 	 */
 	async function findAndCheckLinks(document, diagnostics, progress, linkRegex) {
 		const text = document.getText();
+		const languageId = document.languageId;
+		const commentRanges = [];
+
+		if (languageId === 'xml') {
+			const commentRegex = /<!--[\s\S]*?-->/g;
+			let commentMatch;
+			while ((commentMatch = commentRegex.exec(text)) !== null) {
+				commentRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+			}
+		} else if (languageId === 'asciidoc') {
+			const singleLineCommentRegex = /^\/\/.*/gm;
+			let commentMatch;
+			while ((commentMatch = singleLineCommentRegex.exec(text)) !== null) {
+				commentRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+			}
+			const blockCommentRegex = /^\/{4,}\n[\s\S]*?\n\/{4,}$/gm;
+			while ((commentMatch = blockCommentRegex.exec(text)) !== null) {
+				commentRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+			}
+		}
+
 		let match;
 		let linksFound = 0;
 
 		while ((match = linkRegex.exec(text)) !== null) {
-			linksFound++;
 			const url = match[1];
 			if (!url) continue;
+
+			const inComment = commentRanges.some(range =>
+				match.index >= range.start && (match.index + match[0].length) <= range.end
+			);
+
+			if (inComment) {
+				dbg(`linkcheck: Ignoring commented out link: ${url}`);
+				continue;
+			}
+
+			linksFound++;
 			dbg(`linkcheck: Checking ${url}`);
 			progress.report({ message: `Checking ${url}` });
 

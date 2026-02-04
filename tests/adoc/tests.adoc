@@ -54,3 +54,11 @@ Valid link: http://www.example.org/
 Valid link: link:https://www.example.org/[custom text]
 
 Broken link: link:https://documentation.suserere.com/suse-ai/1.0/[custom text, attribute2]
+
+Valid: https://documentation.suse.com/suse-ai/1.0/html/openwebui-configuring/index.html#ai-prompt-answer
+
+Broken: https://documentation.suse.com/suse-ai/1.0/html/openwebuiii-configuring/index.html#ai-prompt-answer
+
+Not a valid link: https://documentation.suse.com/suse-ai/1.0/html/openwebui-configuring/index.html#ai-prompt-answer#
+
+// this one should not be checked https://documentation.suserere.com/suse-ai/1.0/

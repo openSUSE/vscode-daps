@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.9.5
+- improved link checking:
+  * XML link checking is restricted to `href` attributes
+  * URLs in comments are not checked
+  * added # as a valid character inside URL
 ## 0.9.4
 - improved and simplified link checking by merging docbook and adoc code
 ## 0.9.3

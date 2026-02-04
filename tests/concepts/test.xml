@@ -57,6 +57,9 @@
         <para>
           Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
         </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
       </listitem>
     </varlistentry>
   </variablelist>
