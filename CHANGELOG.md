@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.9.6
+- introduced `daps.linkCheckIgnoreList` option to specify URL phrases to ignore.
+  Defaults to `localhost` and `example`, override if needed.
 ## 0.9.5
 - improved link checking:
   * XML link checking is restricted to `href` attributes

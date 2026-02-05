@@ -1571,6 +1571,8 @@ srcXMLfile: srcXMLfile
 	async function findAndCheckLinks(document, diagnostics, progress, linkRegex) {
 		const text = document.getText();
 		const languageId = document.languageId;
+		const dapsConfig = vscode.workspace.getConfiguration('daps');
+		const ignoreList = dapsConfig.get('linkCheckIgnoreList');
 		const commentRanges = [];
 
 		if (languageId === 'xml') {
@@ -1597,6 +1599,12 @@ srcXMLfile: srcXMLfile
 		while ((match = linkRegex.exec(text)) !== null) {
 			const url = match[1];
 			if (!url) continue;
+
+			// Check if the URL should be ignored based on the user's ignore list.
+			if (ignoreList && ignoreList.some(phrase => url.includes(phrase))) {
+				dbg(`linkcheck: Ignoring URL due to ignore list: ${url}`);
+				continue;
+			}
 
 			const inComment = commentRanges.some(range =>
 				match.index >= range.start && (match.index + match[0].length) <= range.end

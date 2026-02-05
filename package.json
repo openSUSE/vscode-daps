@@ -2,7 +2,7 @@
   "name": "dapsy",
   "displayName": "DAPSy",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "bazantici",
   "author": {
@@ -169,6 +169,14 @@
     "configuration": {
       "title": "DAPS",
       "properties": {
+        "daps.linkCheckIgnoreList": {
+          "description": "Ignore checking URLs that include these phrases.",
+          "type": "array",
+          "default": [
+            "localhost",
+            "example"
+          ]
+        },
         "daps.linkCheckOnSave": {
           "description": "Check for broken links on file save.",
           "type": "boolean",
