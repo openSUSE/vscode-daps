@@ -1,5 +1,5 @@
 [#vscode-daps-commons]
-= Common commands
+= Markup-independent commands
 
 The following sections describe commands that you can perform on both DocBook and AsciiDoc documents.
 
@@ -11,7 +11,7 @@ include::attribute-replacement.adoc[leveloffset=+1]
 
 To validate a document, right-click the DC file in the Explorer view and select menu:DAPS[Validate].
 
-image::daps-validate-explorer-context.gif[width=800]
+image::daps-validate-explorer-context.png[width=350]
 
 Alternatively, you can specify the DC file manually from a drop-down list:
 
@@ -20,7 +20,7 @@ Alternatively, you can specify the DC file manually from a drop-down list:
 . Start typing `daps` and select `DAPS: Validate`.
 . From the populated drop-down list, select the DC file to validate.
 
-image::daps-validate-palette.gif[width=800]
+image::daps-valid1ate-palette.png[width=350]
 
 [#vscode-daps-commons-builddc]
 == Building a document with a DC file
