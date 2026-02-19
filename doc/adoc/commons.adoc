@@ -8,7 +8,7 @@ The following sections describe commands that you can perform on both DocBook an
 
 To validate a document, right-click the DC file in the Explorer view and select menu:DAPS[Validate].
 
-image::../media/daps-validate-explorer-context.gif[width=800]
+image::daps-validate-explorer-context.gif[width=800]
 
 Alternatively, you can specify the DC file manually from a drop-down list:
 
@@ -17,7 +17,7 @@ Alternatively, you can specify the DC file manually from a drop-down list:
 . Start typing `daps` and select `DAPS: Validate`.
 . From the populated drop-down list, select the DC file to validate.
 
-image::../media/daps-validate-palette.gif[width=800]
+image::daps-validate-palette.gif[width=800]
 
 [#vscode-daps-commons-builddc]
 == Building a document with a DC file
@@ -25,7 +25,7 @@ image::../media/daps-validate-palette.gif[width=800]
 To build a document specified by its DC file, right-click the DC file in the Explorer view and select menu:DAPS[Build with DC file].
 When asked, choose whether to build `pdf` or `html`.
 
-image::../media/build-html-explorer-context.gif[width=800]
+image::build-html-explorer-context.gif[width=800]
 
 If you prefer typing to mouse movements, you can run the build command from the Command Palette:
 
@@ -47,7 +47,7 @@ To achieve this, you need to specify a top-level element ID:
 . Select the DC file from the populated list, then the root ID to build.
 . Finally, choose whether to build `pdf` or `html`.
 
-image::../media/build-root-id-palette.gif[width=800]
+image::build-root-id-palette.gif[width=800]
 
 IMPORTANT: Populating the list of root IDs can take a few seconds.
 
@@ -57,4 +57,4 @@ Alternatively, you can select and build the root ID from the active editor:
 . Select menu:DAPS[Build with root ID].
 . Select the DC file from the populated list and choose whether to build `pdf` or `html`.
 
-image::../media/build-root-id-selection.gif[width=800]
+image::build-root-id-selection.gif[width=800]

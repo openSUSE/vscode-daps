@@ -1,0 +1,9 @@
+:doctype: book
+:toc:
+
+= DAPS extension for VSCode
+
+include::introduction.adoc[leveloffset=+1]
+include::configuration.adoc[leveloffset=+1]
+include::commons.adoc[leveloffset=+1]
+include::docbooks.adoc[leveloffset=+1]
