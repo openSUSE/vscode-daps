@@ -3,6 +3,9 @@
 
 The following sections describe commands that you can perform on both DocBook and AsciiDoc documents.
 
+include::attribute-autocomplete.adoc[leveloffset=+1]
+include::attribute-replacement.adoc[leveloffset=+1]
+
 [#vscode-daps-commons-validate]
 == Validating a document
 
