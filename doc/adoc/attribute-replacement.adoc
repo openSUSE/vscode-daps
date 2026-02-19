@@ -1,0 +1,103 @@
+[#vscode-daps-attribute-replacement]
+= Replacing entities/attributes
+
+For the replacement to work, the active document must include entity/attribute definitions such as
+
+----
+:osuse:   "openSUSE" # for AsciiDoc
+<!ENTITY osuse   "openSUSE"> # for DocBook
+----
+
+or include a file with entities/attributes similarly to
+
+----
+include::../common/attributes.adoc # for AsciiDoc
+<!ENTITY % entities SYSTEM "../common/generic-entities.ent"> # for DocBook
+----
+
+Snippets in the document's text that match one or more attribute/entity definitions are underlined.
+If you click inside such snippet and press kbd:[Ctrl+.], you can select the attribute/entity to replace the snippet with.
+
+image::attribute-replacement1.png[width=300]
+
+The replacement suggestions are also listed in the `PROBLEMS` panel and you can perform the replacement there.
+
+image::attribute-replacement2.png[width=300]
+
+== Options that affect the replacement
+
+daps.replaceWithXMLentity::
+  If enabled, automatically suggests to replace strings with their corresponding XML entities.
+  Default is `false`.
+
+daps.replaceWithADOCattribute::
+  If enabled, automatically suggests to replace strings with their corresponding AsciiDoc attributes.
+  Default is `false`.
+
+daps.autocompleteXMLentities::
+  If enabled, import XML entities from the active and externally referenced files.
+  Default is `true`.
+
+daps.excludeXMLentityFiles::
+  Exclude specified entity files from parsing.
+  For example:
+
+[source,json]
+----
+"daps.excludeXMLentityFiles": [
+  "network-entities.ent"
+]
+----
+
+daps.replaceWithIgnorePhrases::
+  A list of phrases that will be skipped from replacing with an entity or attribute if matched.
+  For example:
+
+[source,json]
+----
+"daps.replaceWithIgnorePhrases": [
+  "users",
+  "help",
+  "reference",
+  "article"
+]
+----
+
+daps.replaceWithXMLentityIgnoreTags::
+  A list of XML tags inside which entity replacement suggestions should be ignored.
+  For example:
+
+[source,json]
+----
+"daps.replaceWithXMLentityIgnoreTags": [
+  "screen",
+  "command",
+  "package",
+  "option",
+  "filename",
+  "systemitem",
+  "literal",
+  "guimenu",
+  "envar",
+  "remark",
+  "quote",
+  "replaceable"
+]
+----
+
+daps.replaceWithADOCattributeIgnoreBlocks::
+  A list of AsciiDoc block styles inside which attribute replacement suggestions should be ignored.
+  For example:
+
+[source,json]
+----
+"daps.replaceWithADOCattributeIgnoreBlocks": [
+  "source",
+  "literal",
+  "listing",
+  "passthrough",
+  "screen",
+  "code",
+  "console"
+]
+----

@@ -1,0 +1,5 @@
+[#vscode-daps-asciidocs]
+= AsciiDoc-specific commands
+
+The following sections describe commands that you can perform on asciiDoc documents.
+

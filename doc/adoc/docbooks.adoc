@@ -46,10 +46,6 @@ image::doc-structure-treeview.png[width=480]
 Navigate to a displayed section by clicking its title in the structure tree.
 ====
 
-== Autocompleting XML entities
-
-Start typing `&` and the editor tries to find the right entity as you type.
-
 == CodeLens support
 
 With the DocBook assembly XML file active, you can navigate to referenced files directly from the assembly `<strucure/>` code.
