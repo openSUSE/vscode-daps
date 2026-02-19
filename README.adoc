@@ -1,9 +1,47 @@
-:doctype: book
-:toc:
+= DAPSy extension for VSCode
 
-= DAPS extension for VSCode
+The SUSE Documentation Team <doc-team@suse.com>
 
-include::adoc/introduction.adoc[leveloffset=+1]
-include::adoc/configuration.adoc[leveloffset=+1]
-include::adoc/commons.adoc[leveloffset=+1]
-include::adoc/docbooks.adoc[leveloffset=+1]
+A VSCode extensions that makes use of DAPS (https://github.com/openSUSE/daps) to validate and build documents.
+
+[TIP]
+====
+Complete documentation is available at from https://opensuse.github.io/vscode-daps/doc/index.html.
+====
+
+`vscode-dapsy` is released under the GPL (version 2 or 3 at your choice).
+
+
+== Installation
+
+For this extension to work, meet the following requirements:
+
+* Install the `daps` binary
+* Install the VSCode extension either from the `Extensions` panel of VSCode, or manually:
+
+    code --install-extension bazantici.dapsy
+
+
+== Reporting Bugs
+
+To report bugs, use the bug tracker of this repository: https://github.com/openSUSE/vscode-daps/issues.
+
+
+== Contributing
+
+If you would like to contribute to the project, do the following:
+
+. Fork this project.
+
+. Clone the project:
++
+    git clone git@github.com:YOUR_USERNAME/vscode-daps.git
+
+. Create a new branch from the main branch.
+
+    git branch <BRANCH_NAME> main
+
+. Make your changes.
+
+. Send a pull request. Note that we will only accept pull requests against
+  the main branch.

@@ -11,5 +11,5 @@ Alternatively, customize the options directly in `settings.json`.
 If you work on a project and use the same DC file, target format or root ID over and over, you can specify options in the `.vscode/settings.json` file of your project.
 After you save the modified `.vscode/settings.json` file, you will not be asked by VSCode to specify the included options when validating or building running documentation.
 
-image::../media/daps-options.gif[width=800]
+image::daps-options.gif[width=800]
 ====

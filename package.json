@@ -266,7 +266,7 @@
         "daps.docPreviewImgPath": {
           "description": "Path to images relative to the document.",
           "type": "string",
-          "default": "../images/"
+          "default": ""
         },
         "daps.buildRootId": {
           "description": "Set the root ID of an XML element to build. If not specified, the user is asked to enter it.",
