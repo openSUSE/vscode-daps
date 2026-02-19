@@ -1,0 +1,15 @@
+[#vscode-daps-configuration]
+= Configuration
+
+The `vscode-daps` extension offers many options that you can specify in the `settings.json` file to customize and fine-tune its behavior.
+To view and modify all available options, press kbd:[Ctrl+,] and click menu:Extensions[DAPS].
+Alternatively, customize the options directly in `settings.json`.
+
+[TIP]
+.Making it quicker with options
+====
+If you work on a project and use the same DC file, target format or root ID over and over, you can specify options in the `.vscode/settings.json` file of your project.
+After you save the modified `.vscode/settings.json` file, you will not be asked by VSCode to specify the included options when validating or building running documentation.
+
+image::../media/daps-options.gif[width=800]
+====

@@ -1,10 +1,13 @@
+[#vscode-daps-introduction]
 = Introduction
 
+[#vscode-daps-features]
 == Features
 
 The DAPS tool helps you author and publish documentation written in DocBook XML and AsciiDoc.
 This extension makes it easier to run selected DAPS commands from the VSCode editor environment.
 
+[#vscode-daps-requirements]
 == Requirements
 
 This extension requires that you...
@@ -12,6 +15,7 @@ This extension requires that you...
 * install DAPS on your system. Refer to https://opensuse.github.io/daps/ for
   more details.
 
+[#vscode-knownissues]
 == Known Issues
 
 See our issue tracker at
