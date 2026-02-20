@@ -1,0 +1,51 @@
+[#vscode-daps-commons-export]
+= Exporting a document
+
+There are several ways to export a document:
+
+[#vscode-daps-commons-builddc-explorer]
+== By specifying a DC file from Explorer
+
+To build a document specified by its DC file, right-click the DC file in the Explorer view and select menu:DAPS[Build with DC file].
+When asked, choose whether to build `pdf` or `html`.
+
+image::build-html-explorer-context.gif[width=800]
+
+[#vscode-daps-commons-builddc-palette]
+== By specifying a DC file from the Command Palette
+
+If you prefer typing to mouse movements, you can run the build command from the Command Palette:
+
+. Press kbd:[Ctrl+Shift+P] and start typing `daps`.
+. When available, select the `DAPS: Build with DC file` command.
+. Select the DC file from the populated list and choose whether to build `pdf` or `html`.
+
+TIP: After the build is finished, you can directly open the resulting document or copy its path to a clipboard.
+
+[#vscode-daps-commons-buildroot-palette]
+== By specifying a document's top-level ID from the Command Palette
+
+
+Besides building a whole book, you can build only a part of it, for example, a chapter or a topic.
+To achieve this, you need to specify a top-level element ID:
+
+. Press kbd:[Ctrl+Shift+P] and start typing `daps`.
+. Select the `DAPS: Build with root ID` command.
+. Select the DC file from the populated list, then the root ID to build.
+. Finally, choose whether to build `pdf` or `html`.
+
+image::build-root-id-palette.gif[width=800]
+
+[IMPORTANT]
+====
+ Populating the list of root IDs can take a few seconds.
+====
+
+[#vscode-daps-commons-buildroot-editor]
+== By specifying a top-level ID from the active editor
+
+. Select the top-level ID by the mouse and right-click the selection.
+. Select menu:DAPS[Build with root ID].
+. Select the DC file from the populated list and choose whether to build `pdf` or `html`.
+
+image::build-root-id-selection.gif[width=800]

@@ -443,7 +443,7 @@
           "default": []
         },
         "daps.enableExtendedValidation": {
-          "description": "Additional validation. Leave empty to disable or specify comma-separated combination of  'ids', 'images', 'inlines' or 'tables'. 'all' includes all of them",
+          "description": "Additional validation. Leave empty to disable or specify comma-separated combination of  'ids', 'images', 'inlines' or 'tables'. 'all' includes all of them.",
           "type": "string",
           "default": ""
         }

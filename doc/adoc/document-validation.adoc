@@ -1,0 +1,32 @@
+[#vscode-daps-commons-validate]
+= Validating a document
+
+There are several ways to validate a document:
+
+== From the Explorer view
+
+Right-click the DC file in the Explorer view and select menu:DAPS[Validate].
+
+image::daps-validate-explorer-context.png[width=350]
+
+== From the Command Palette
+
+. Press kbd:[Ctrl+Shift+P] to open the command palette.
+. Start typing `daps` and select `DAPS: Validate`.
+. From the populated drop-down list, select the DC file to validate.
+
+image::daps-validate-palette.png[width=350]
+
+== From DC file's editor tab
+
+. Right-click the tab of the editor showing a DC file content.
+. Select menu:DAPS[Validate].
+
+image::daps-validate-editor-context.png[width=350]
+
+== Options that affect the validation
+
+daps.enableExtendedValidation::
+  Additional level of validation.
+  Leave empty to keep the default validation level, or specify comma-separated combination of `ids`, `images`, `inlines` or `tables`.
+  `all` enables full validation.
