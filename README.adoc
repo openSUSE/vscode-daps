@@ -11,7 +11,6 @@ Complete documentation is available at from https://opensuse.github.io/vscode-da
 
 `vscode-dapsy` is released under the GPL (version 2 or 3 at your choice).
 
-
 == Installation
 
 For this extension to work, meet the following requirements:
@@ -21,11 +20,9 @@ For this extension to work, meet the following requirements:
 
     code --install-extension bazantici.dapsy
 
-
 == Reporting Bugs
 
 To report bugs, use the bug tracker of this repository: https://github.com/openSUSE/vscode-daps/issues.
-
 
 == Contributing
 
@@ -43,5 +40,4 @@ If you would like to contribute to the project, do the following:
 
 . Make your changes.
 
-. Send a pull request. Note that we will only accept pull requests against
-  the main branch.
+. Send a pull request.
