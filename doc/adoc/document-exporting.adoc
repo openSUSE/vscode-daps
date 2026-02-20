@@ -23,7 +23,7 @@ If you prefer typing to mouse movements, you can run the build command from the 
 TIP: After the build is finished, you can directly open the resulting document or copy its path to a clipboard.
 
 [#vscode-daps-commons-buildroot-palette]
-== By specifying a document's top-level ID from the Command Palette
+== By specifying a top-level ID from the Command Palette
 
 
 Besides building a whole book, you can build only a part of it, for example, a chapter or a topic.
@@ -49,3 +49,17 @@ image::build-root-id-palette.gif[width=800]
 . Select the DC file from the populated list and choose whether to build `pdf` or `html`.
 
 image::build-root-id-selection.gif[width=800]
+
+== Relevant options
+
+daps.buildRootId::
+  Set the top-level ID of a document to build.
+  If not specified, the user is asked to enter it.
+
+daps.DCfile::
+  Set the DC file specific to the current workspace.
+  If not specified, the user is asked to select one.
+
+daps.buildTarget::
+  The output format (`html` or `pdf`)specific to the current workspace.
+  If not specified, the user is asked to select one.

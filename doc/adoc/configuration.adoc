@@ -6,6 +6,13 @@ To view and modify all available options, press kbd:[Ctrl+,] and click menu:Exte
 Alternatively, customize the options directly in `settings.json`.
 
 [TIP]
+.Task-specific options
+====
+Each relevant task in this guide has a section called `Relevant options`.
+It describes options that can affect performing the specific task.
+====
+
+[TIP]
 .Making it quicker with options
 ====
 If you work on a project and use the same DC file, target format or root ID over and over, you can specify options in the `.vscode/settings.json` file of your project.

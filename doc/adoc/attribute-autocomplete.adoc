@@ -19,7 +19,7 @@ Start typing `{` (AsciiDoc) or `&` (DocBook) and the editor tries to find the ri
 
 image::attribute-autocomplete.png[width=300]
 
-== Options that affect the autocomplete
+== Relevant options
 
 daps.autocompleteXMLentities::
   If enabled, import XML entities from the active and externally referenced files.
