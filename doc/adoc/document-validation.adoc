@@ -24,7 +24,7 @@ image::daps-validate-palette.png[width=350]
 
 image::daps-validate-editor-context.png[width=350]
 
-== Options that affect the validation
+== Relevant options
 
 daps.enableExtendedValidation::
   Additional level of validation.

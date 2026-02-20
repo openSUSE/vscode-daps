@@ -24,7 +24,7 @@ The replacement suggestions are also listed in the `PROBLEMS` panel and you can 
 
 image::attribute-replacement2.png[width=300]
 
-== Options that affect the replacement
+== Relevant options
 
 daps.replaceWithXMLentity::
   If enabled, automatically suggests to replace strings with their corresponding XML entities.
