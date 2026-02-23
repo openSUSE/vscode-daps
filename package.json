@@ -309,7 +309,7 @@
           "default": "daps-xmlformat"
         },
         "daps.XMLformatConfigFile": {
-          "description": "Specify the path to `xmlformat` configuration file",
+          "description": "Specify the path to `xmlformat` configuration file.",
           "type": "string",
           "default": null
         },
@@ -360,7 +360,7 @@
           ]
         },
         "daps.showAssemblyCodelens": {
-          "description": "Show links to inherited modules",
+          "description": "Whether and which links to display for DocBook assembly included files.",
           "type": "string",
           "default": "disabled",
           "enum": [
@@ -383,7 +383,7 @@
           ]
         },
         "daps.xrefCodelensExcludeDirs": {
-          "description": "Directories to exclude when searching for xref targets",
+          "description": "Directories to exclude when searching for xref targets.",
           "type": "array",
           "default": [
             "build",
@@ -393,7 +393,7 @@
           ]
         },
         "daps.previewLinkScrollBoth": {
-          "description": "Whether scrolling the preview scrolls the source editor as well",
+          "description": "Whether scrolling the preview scrolls the source editor as well.",
           "type": "boolean",
           "default": false
         },

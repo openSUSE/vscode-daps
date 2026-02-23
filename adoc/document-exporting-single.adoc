@@ -1,0 +1,8 @@
+[#vscode-daps-document-exporting-single]
+= Exporting a single file
+
+To build the document in the active editor, right-click its tab and select menu:DAPS[Build XML file].
+Finally, choose whether to build `pdf` or `html`.
+
+To build *any* (even closed) file, right-click its name in the Explorer and select menu:DAPS[Build XML file].
+Finally, choose whether to build `pdf` or `html`.

@@ -1,0 +1,44 @@
+[#vscode-daps-document-codelens]
+= Peeking into a referenced document
+
+You can peek into or open referenced files directly from the referencing file.
+
+image::codelens-asm.png[width=800]
+
+== Relevant options
+
+daps.dbAssemblyPattern::
+  A glob pattern to identify DocBook assembly files.
+  Default is "**/*.asm.xml"
+
+daps.openFileSplit::
+  Whether open a new file from CodeLens in a new tab or split window.
+  Default is `false`.
+
+daps.showAssemblyCodelens::
+  Whether and which links to display for DocBook assembly included files.
+  Can be one of `peek`, `link`, `both` or `disabled`.
+  Default is `disabled`.
+
+daps.showXIncludeCodelens::
+  Similar to `daps.showAssemblyCodelens` but for non-assembly files that include other files.
+  Default is `disabled`.
+
+daps.showXrefCodelens::
+  Similar to `daps.showAssemblyCodelens` but for files referenced by `<xref/>` links.
+  Default is `disabled`.
+
+daps.xrefCodelensExcludeDirs::
+  Directories to exclude when searching for targets used in codelens.
+  For example:
+
+[source,yaml]
+----
+"daps.xrefCodelensExcludeDirs":
+  [
+    "build",
+    "images",
+    "l10n",
+    "templates"
+  ]
+----

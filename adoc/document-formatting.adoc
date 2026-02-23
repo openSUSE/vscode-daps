@@ -1,0 +1,27 @@
+[#vscode-daps-document-formatting]
+= Formatting a document
+
+To format the document in the active editor, right-click its tab and select menu:DAPS[Format XML Document].
+
+image::format-xml-editor-tab.gif[width=800]
+
+[TIP]
+====
+Use the predefined kbd:[Ctrl+Shift+I]] shortcut to format a document.
+====
+
+[TIP]
+====
+To format *any* (even closed) document, right-click its name in Explorer and select menu:DAPS[Format XML Document].
+
+image::format-xml-explorer-context.gif[width=800]
+====
+
+== Relevant options
+
+daps.XMLformatExecutable::
+  Specify the path to the `xmlformat` executable.
+  Default is `daps-xmlformat`.
+
+daps.XMLformatConfigFile::
+  Specify the path to `xmlformat`'s configuration file.

@@ -1,0 +1,35 @@
+[#vscode-daps-document-outline]
+= Viewing a document outline
+
+You can view a document outline in the Explorer pane.
+
+image::doc-structure-treeview.png[width=480]
+
+[TIP]
+====
+Navigate to a displayed section by clicking its title in the structure tree.
+====
+
+== Relevant options
+
+daps.onClickedStructureItemMoveCursor::
+  After clicking an item in the document structure, whether to show the specific line only or move the cursor there as well.
+  Default is `true`.
+
+daps.structureElements::
+  Which elements should be included in the document outline.
+  For example:
+
+[source,yaml]
+----
+"daps.structureElements":
+  [
+    "section",
+    "sect1",
+    "sect2",
+    "sect3",
+    "sect4",
+    "procedure",
+    "example"
+  ]
+----

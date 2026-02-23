@@ -1,0 +1,34 @@
+[#vscode-daps-document-linkcheck]
+= Checking external links
+
+You can check whether external `http(s)` links in the active document are valid.
+If a link is not valid, it is reported in the `PROBLEMS` panel.
+If an `http` link has a valid `https` variant, it is suggested in the `PROBLEMS` panel as well.
+
+. Press kbd:[Ctrl+Shift+P] and start typing `daps`.
+. Select the `DAPS: Check for broken links` command.
+. Check the `PROBLEMS` panel for reports of broken links.
+  These are underlined within the open document.
+
+
+image::daps-linkcheck.png[Report of suspect links,width=40%]
+
+== Relevant options
+
+daps.linkCheckIgnoreList::
+  Ignore checking URLs that include these phrases.
+  For example:
+
+[source,yaml]
+----
+"daps.linkCheckIgnoreList":
+[
+  "localhost",
+  "example"
+]
+----
+
+daps.linkCheckOnSave::
+  Check for broken links when a file is saved.
+  If enabled, all links in the active document are check on each save which may waste system resources.
+  Default is `disabled` which means that you need to invoke the link check manually by running the `DAPS: Check for broken links` command.

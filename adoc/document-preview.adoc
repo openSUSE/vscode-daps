@@ -1,0 +1,21 @@
+[#vscode-daps-document-preview]
+= Previewing a document
+
+To preview the document in the active editor, right-click its editor tab and select menu:DAPS[Preview Document].
+A new tab opens to the right of the active editor with the preview.
+It is updated on each source editor change.
+
+== Relevant options
+
+daps.docPreviewImgPath::
+  Path to images relative to the document.
+  For example:
+
+[source,yaml]
+----
+"daps.docPreviewImgPath": "../images/",
+----
+
+daps.previewLinkScrollBoth::
+  Whether scrolling the preview scrolls the source editor as well.
+  Default is `false`.
