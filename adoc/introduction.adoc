@@ -15,7 +15,7 @@ This extension requires that you...
 * install DAPS on your system. Refer to https://opensuse.github.io/daps/ for
   more details.
 * install the `AsciiDoc` extension to VSCode
-* install this `DAPSy`` extension to VScode
+* install this `DAPS` extension to VScode
 
 [#vscode-knownissues]
 == Known Issues
