@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.9.7
+- added new documentation
+- added shortcuts to frequent commands
 ## 0.9.6
 - introduced `daps.linkCheckIgnoreList` option to specify URL phrases to ignore.
   Defaults to `localhost` and `example`, override if needed.
