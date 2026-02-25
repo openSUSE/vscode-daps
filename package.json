@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -117,25 +117,27 @@
       {
         "command": "daps.XMLformat",
         "key": "ctrl+shift+i",
-        "when": "resourceExtname == .xml"
+        "when": "resourceLangId == 'xml'"
       },
       {
         "key": "ctrl+shift+d v",
-        "command": "daps.validate"
+        "command": "daps.validate",
+        "when": "resourceLangId == 'xml' || resourceLangId == 'asciidoc' || resourceFilename =~ /DC-*/"
       },
       {
         "key": "ctrl+shift+d p",
         "command": "daps.docPreview",
-        "when": "resourceExtname == .xml"
+        "when": "resourceLangId == 'xml'"
       },
       {
         "key": "ctrl+shift+d b",
-        "command": "daps.buildDCfile"
+        "command": "daps.buildDCfile",
+        "when": "resourceLangId == 'xml' || resourceLangId == 'asciidoc' || resourceFilename =~ /DC-*/"
       },
       {
         "key": "ctrl+shift+d l",
         "command": "daps.checkLinks",
-        "when": "resourceExtname == '.adoc' || resourceExtname == '.xml'"
+        "when": "resourceLangId == 'asciidoc' || resourceLangId == 'xml'"
       }
     ],
     "commands": [
