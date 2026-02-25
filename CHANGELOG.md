@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.9.8
+- removed keybinding conditions that prevented DAPS commands from running
 ## 0.9.7
 - added new documentation
 - added shortcuts to frequent commands

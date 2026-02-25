@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -121,17 +121,16 @@
       },
       {
         "key": "ctrl+shift+d v",
-        "command": "daps.validate",
-        "when": "resourceExtname == '.adoc' || resourceExtname == '.xml'"
+        "command": "daps.validate"
       },
       {
         "key": "ctrl+shift+d p",
-        "command": "daps.docPreview"
+        "command": "daps.docPreview",
+        "when": "resourceExtname == .xml"
       },
       {
         "key": "ctrl+shift+d b",
-        "command": "daps.buildDCfile",
-        "when": "resourceExtname == '.adoc' || resourceExtname == '.xml'"
+        "command": "daps.buildDCfile"
       },
       {
         "key": "ctrl+shift+d l",
