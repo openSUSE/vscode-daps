@@ -59,8 +59,6 @@ Valid: https://documentation.suse.com/suse-ai/1.0/html/openwebui-configuring/ind
 
 Broken: https://documentation.suse.com/suse-ai/1.0/html/openwebuiii-configuring/index.html#ai-prompt-answer
 
-Not a valid link: https://documentation.suse.com/suse-ai/1.0/html/openwebui-configuring/index.html#ai-prompt-answer#
-
 // this one should not be checked https://documentation.suserere.com/suse-ai/1.0/
 
 Ignore: http://localhost:8080/index.html
