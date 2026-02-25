@@ -5,10 +5,7 @@ To format the document in the active editor, right-click its tab and select menu
 
 image::format-xml-editor-tab.gif[width=800]
 
-[TIP]
-====
-Use the predefined kbd:[Ctrl+Shift+I]] shortcut to format a document.
-====
+Default shortcut: kbd:[Ctrl+Shift+I]
 
 [TIP]
 ====

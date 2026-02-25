@@ -5,6 +5,8 @@ To preview the document in the active editor, right-click its editor tab and sel
 A new tab opens to the right of the active editor with the preview.
 It is updated on each source editor change.
 
+Default shortcut: kbd:[Ctrl+Shift+D P]
+
 == Relevant options
 
 daps.docPreviewImgPath::

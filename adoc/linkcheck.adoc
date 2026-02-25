@@ -10,8 +10,9 @@ If an `http` link has a valid `https` variant, it is suggested in the `PROBLEMS`
 . Check the `PROBLEMS` panel for reports of broken links.
   These are underlined within the open document.
 
-
 image::daps-linkcheck.png[Report of suspect links,width=40%]
+
+Default shortcut: kbd:[Ctrl+Shift+D L]
 
 == Relevant options
 

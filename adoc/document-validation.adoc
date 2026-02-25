@@ -9,6 +9,8 @@ Right-click the DC file in the Explorer view and select menu:DAPS[Validate].
 
 image::daps-validate-explorer-context.png[width=350]
 
+Default shortcut: kbd:[Ctrl+Shift+D V]
+
 == From the Command Palette
 
 . Press kbd:[Ctrl+Shift+P] to open the command palette.
@@ -16,6 +18,8 @@ image::daps-validate-explorer-context.png[width=350]
 . From the populated drop-down list, select the DC file to validate.
 
 image::daps-validate-palette.png[width=350]
+
+Default shortcut: kbd:[Ctrl+Shift+D V]
 
 == From DC file's editor tab
 
