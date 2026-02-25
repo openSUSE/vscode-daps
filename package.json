@@ -118,6 +118,23 @@
         "command": "daps.XMLformat",
         "key": "ctrl+shift+i",
         "when": "resourceExtname == .xml"
+      },
+      {
+        "key": "ctrl+shift+d v",
+        "command": "daps.validate"
+      },
+      {
+        "key": "ctrl+shift+d p",
+        "command": "daps.docPreview"
+      },
+      {
+        "key": "ctrl+shift+d b",
+        "command": "daps.buildDCfile"
+      },
+      {
+        "key": "ctrl+shift+d l",
+        "command": "daps.checkLinks",
+        "when": "resourceExtname == '.adoc' || resourceExtname == '.xml'"
       }
     ],
     "commands": [
@@ -467,4 +484,3 @@
     "globals": "^17.2.0"
   }
 }
-
