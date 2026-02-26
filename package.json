@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.9.9",
+  "version": "0.9.10",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -20,7 +20,7 @@
     "workspaceContains: **/DC-*",
     "onStartupFinished"
   ],
-  "main": "./extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "views": {
       "explorer": [
@@ -474,6 +474,8 @@
     }
   },
   "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "webpack --mode production",
     "lint": "eslint .",
     "pretest": "npm run lint",
     "test": "node ./test/runTest.js"
@@ -484,6 +486,8 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "eslint": "^9.39.2",
-    "globals": "^17.2.0"
+    "globals": "^17.2.0",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
   }
 }

@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.9.10
+- added webpack mechanism to automatically include required libraries
 ## 0.9.9
 - updated keybinding condition to better match activation events
 ## 0.9.8

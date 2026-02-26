@@ -700,6 +700,12 @@ function activate(context) {
 			entityDiagnostics.clear();
 			return;
 		}
+		// Do not run on virtual documents (e.g., from git)
+		if (document.uri.scheme !== 'file') {
+			dbg(`entity:diagnostics: Document is not a file, skipping entity diagnostics.`);
+			entityDiagnostics.clear();
+			return;
+		}
 
 		// Define tags inside which entity replacement should be skipped.
 		const noReplaceTags = dapsConfig.get('replaceWithXMLentityIgnoreTags');
@@ -845,6 +851,12 @@ function activate(context) {
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		const replaceWithADOCattribute = dapsConfig.get('replaceWithADOCattribute');
 		if (!replaceWithADOCattribute || document.languageId !== 'asciidoc') {
+			attributeDiagnostics.clear();
+			return;
+		}
+		// Do not run on virtual documents (e.g., from git)
+		if (document.uri.scheme !== 'file') {
+			dbg(`attribute:diagnostics: Document is not a file, skipping attribute diagnostics.`);
 			attributeDiagnostics.clear();
 			return;
 		}
@@ -1189,6 +1201,11 @@ function activate(context) {
 		context.subscriptions.push(vscode.languages.registerCompletionItemProvider('xml', {
 			provideCompletionItems(document, position, token, context) {
 				dbg(`entity:doc: ${document.fileName}, pos: ${position.line}, token: ${token.isCancellationRequested}, context: ${context.triggerKind}`);
+				// Do not provide completions for non-file documents (e.g. git diff)
+				if (document.uri.scheme !== 'file') {
+					dbg('entity:autocomplete: Document is not a file, skipping entity completion.');
+					return;
+				}
 
 				// Get array of entity files
 				let entityFiles = getXMLentityFiles(document.fileName);
