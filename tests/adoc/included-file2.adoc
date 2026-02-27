@@ -1,0 +1,9 @@
+include::generic-attributes.adoc[]
+
+== Entity replacement
+
+This is an included file.
+
+== Entity replacement
+
+This is an included file.

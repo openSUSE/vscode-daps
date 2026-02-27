@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.9.11
+- adoc: fixed codelens for include::..filename[attributes]
+- merged adoc and docbk include codelens code
+- added dbg messages to include codelens code
+- activate preview & scrollmap for adoc + docbk files only
 ## 0.9.10
 - added webpack mechanism to automatically include required libraries
 ## 0.9.9

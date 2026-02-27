@@ -132,14 +132,6 @@ class assemblyModulesCodeLensesProvider {
 		this._cachedCodeLenses = new Map();
 		this._onDidChangeCodeLensesEmitter = new vscode.EventEmitter();
 		this.onDidChangeCodeLenses = this._onDidChangeCodeLensesEmitter.event;
-
-		// Listen for save events to refresh the CodeLenses
-		vscode.workspace.onDidSaveTextDocument((document) => {
-			const pattern = vscode.workspace.getConfiguration('daps').get('dbAssemblyPattern');
-			if (vscode.languages.match({ pattern }, document)) {
-				this.refresh(document);
-			}
-		});
 	}
 
 	provideCodeLenses(document) {
@@ -220,21 +212,12 @@ class assemblyModulesCodeLensesProvider {
  * that allow the user to peek at or open the referenced content.
  */
 class xrefCodeLensProvider {
-	constructor(context) {
-		this.context = context;
+	constructor() {
 		this._cachedCodeLenses = new Map();
 
 		// Event emitter to trigger code lens updates
 		this._onDidChangeCodeLensesEmitter = new vscode.EventEmitter();
 		this.onDidChangeCodeLenses = this._onDidChangeCodeLensesEmitter.event;
-
-		// Listen for save events to refresh the CodeLenses
-		vscode.workspace.onDidSaveTextDocument((document) => {
-			const pattern = "**/*.{xml,adoc}";
-			if (vscode.languages.match({ pattern }, document)) {
-				this.refresh(document);
-			}
-		});
 	}
 
 	provideCodeLenses(document) {
@@ -382,33 +365,35 @@ class xrefCodeLensProvider {
 }
 
 /**
- * Provides CodeLens items for AsciiDoc include macros in the current document.
- * This class listens for save events on the active document and refreshes the CodeLenses when the document is saved.
- * The CodeLenses provide actions to peek into the referenced resources and open them in a new tab.
+ * A base class for providing CodeLens items for include directives in documents.
+ * This class handles the common logic for caching, refreshing on save, and creating CodeLenses.
+ * Subclasses must implement the `_getIncludeRegex` and `_getLanguageId` methods.
  */
-class asciidocIncludeCodeLensProvider {
+class includeCodeLensProviderBase {
 	constructor() {
 		this._cachedCodeLenses = new Map();
 		this._onDidChangeCodeLensesEmitter = new vscode.EventEmitter();
 		this.onDidChangeCodeLenses = this._onDidChangeCodeLensesEmitter.event;
-
-		// Listen for save events to refresh the CodeLenses
-		vscode.workspace.onDidSaveTextDocument((document) => {
-			if (document.languageId === 'asciidoc') {
-				this.refresh(document);
-			}
-		});
 	}
 
 	provideCodeLenses(document) {
-		// Return cached CodeLenses if available, otherwise compute them
-		return this._cachedCodeLenses.get(document.uri.toString()) || this._computeCodeLenses(document);
+		// Return cached CodeLenses if available
+		const cached = this._cachedCodeLenses.get(document.uri.toString());
+		if (cached) {
+			dbg(`${this._getLanguageId()}:include:codelens: Returning ${cached.length} cached lenses for ${document.uri.fsPath}.`);
+			return cached;
+		}
+		dbg(`${this._getLanguageId()}:include:codelens: No cached lenses for ${document.uri.fsPath}. Returning empty array. Lenses will be computed on save.`);
+		// If no cache is available, return an empty array. Lenses are computed on save.
+		return [];
 	}
 
 	refresh(document) {
+		dbg(`${this._getLanguageId()}:include:codelens: Refresh triggered for ${document.uri.fsPath}.`);
 		// Recompute CodeLenses and cache them
 		const codeLenses = this._computeCodeLenses(document);
 		this._cachedCodeLenses.set(document.uri.toString(), codeLenses);
+		dbg(`${this._getLanguageId()}:include:codelens: Caching ${codeLenses.length} new lenses.`);
 
 		// Notify VSCode to refresh CodeLenses
 		this._onDidChangeCodeLensesEmitter.fire();
@@ -417,24 +402,35 @@ class asciidocIncludeCodeLensProvider {
 	_computeCodeLenses(document) {
 		const text = document.getText();
 		const docDir = path.dirname(document.uri.fsPath);
-		const includeRegex = /^\s*include::([^[]+)\[\]/gm; // Regex to find include::filename.adoc[] with optional leading whitespace
+		const includeRegex = this._getIncludeRegex();
 		let match;
 		const codeLenses = [];
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		const showIncludeCodelens = dapsConfig.get('showXIncludeCodelens');
 
+		const langId = this._getLanguageId();
+		dbg(`${langId}:include:codelens: Starting computation for ${document.uri.fsPath}`);
+		dbg(`${langId}:include:codelens: Using regex: ${includeRegex}`);
+
 		while ((match = includeRegex.exec(text)) !== null) {
+			dbg(`${langId}:include:codelens: Found match: ${match[0]}`);
 			const includedPath = match[1];
+			dbg(`${langId}:include:codelens: Extracted path: ${includedPath}`);
 			const absoluteIncludedPath = path.resolve(docDir, includedPath);
+			dbg(`${langId}:include:codelens: Resolved absolute path: ${absoluteIncludedPath}`);
 			const lineNumber = document.positionAt(match.index).line;
-			const activeRange = new vscode.Range(lineNumber, 0, lineNumber, match[0].length); // Range of the include:: line
+			const activeRange = new vscode.Range(lineNumber, 0, lineNumber, match[0].length);
 
 			const includedUri = vscode.Uri.file(absoluteIncludedPath);
 
 			if (fs.existsSync(absoluteIncludedPath)) { // Only show CodeLens if the file actually exists
+				dbg(`${langId}:include:codelens: File exists. Creating CodeLens.`);
 				this._addCodeLensesForFile(codeLenses, document.uri, activeRange, includedUri, includedPath, showIncludeCodelens);
+			} else {
+				dbg(`${langId}:include:codelens: File does NOT exist. Skipping CodeLens.`);
 			}
 		}
+		dbg(`${langId}:include:codelens: Finished computation. Found ${codeLenses.length} lenses.`);
 		return codeLenses;
 	}
 
@@ -444,7 +440,7 @@ class asciidocIncludeCodeLensProvider {
 			codeLenses.push(new vscode.CodeLens(activeRange, {
 				title: `Peek into ${path.basename(targetPath)}`,
 				command: "editor.action.peekLocations",
-				arguments: [documentUri, activeRange.start, [new vscode.Location(targetUri, new vscode.Range(0, 0, 15, 0))]] // Peek first 15 lines
+				arguments: [documentUri, activeRange.start, [new vscode.Location(targetUri, new vscode.Range(0, 0, 15, 0))]]
 			}));
 		}
 
@@ -457,80 +453,40 @@ class asciidocIncludeCodeLensProvider {
 			}));
 		}
 	}
+
+	_getLanguageId() {
+		throw new Error("Method '_getLanguageId()' must be implemented.");
+	}
+
+	_getIncludeRegex() {
+		throw new Error("Method '_getIncludeRegex()' must be implemented.");
+	}
+}
+
+/**
+ * Provides CodeLens items for AsciiDoc include macros in the current document.
+ */
+class asciidocIncludeCodeLensProvider extends includeCodeLensProviderBase {
+	_getLanguageId() {
+		return 'asciidoc';
+	}
+
+	_getIncludeRegex() {
+		// Regex to find include::filename.adoc[attributes] with optional leading whitespace
+		return /^\s*include::([^[]+)\[[^\]]*\]/gm;
+	}
 }
 
 /**
  * Provides CodeLens items for DocBook XInclude elements in the current document.
- * This class listens for save events on the active document and refreshes the CodeLenses when the document is saved.
- * The CodeLenses provide actions to peek into the referenced resources and open them in a new tab.
  */
-class docbookXIncludeCodeLensProvider {
-	constructor() {
-		this._cachedCodeLenses = new Map();
-		this._onDidChangeCodeLensesEmitter = new vscode.EventEmitter();
-		this.onDidChangeCodeLenses = this._onDidChangeCodeLensesEmitter.event;
-
-		// Listen for save events to refresh the CodeLenses
-		vscode.workspace.onDidSaveTextDocument((document) => {
-			if (document.languageId === 'xml') {
-				this.refresh(document);
-			}
-		});
+class docbookXIncludeCodeLensProvider extends includeCodeLensProviderBase {
+	_getLanguageId() {
+		return 'xml';
 	}
 
-	provideCodeLenses(document) {
-		// Return cached CodeLenses if available, otherwise compute them
-		return this._cachedCodeLenses.get(document.uri.toString()) || this._computeCodeLenses(document);
-	}
-
-	refresh(document) {
-		// Recompute CodeLenses and cache them
-		const codeLenses = this._computeCodeLenses(document);
-		this._cachedCodeLenses.set(document.uri.toString(), codeLenses);
-
-		// Notify VSCode to refresh CodeLenses
-		this._onDidChangeCodeLensesEmitter.fire();
-	}
-
-	_computeCodeLenses(document) {
-		const text = document.getText();
-		const docDir = path.dirname(document.uri.fsPath);
-		const xincludeRegex = /<xi:include\s+href="([^"]+)"/g;
-		let match;
-		const codeLenses = [];
-		const dapsConfig = vscode.workspace.getConfiguration('daps');
-		const showXIncludeCodelens = dapsConfig.get('showXIncludeCodelens');
-
-		while ((match = xincludeRegex.exec(text)) !== null) {
-			const includedPath = match[1];
-			const absoluteIncludedPath = path.resolve(docDir, includedPath);
-			const lineNumber = document.positionAt(match.index).line;
-			const activeRange = new vscode.Range(lineNumber, 0, lineNumber, match[0].length);
-
-			const includedUri = vscode.Uri.file(absoluteIncludedPath);
-
-			if (fs.existsSync(absoluteIncludedPath)) { // Only show CodeLens if the file actually exists
-				this._addCodeLensesForFile(codeLenses, document.uri, activeRange, includedUri, includedPath, showXIncludeCodelens);
-			}
-		}
-		return codeLenses;
-	}
-
-	_addCodeLensesForFile(codeLenses, documentUri, activeRange, targetUri, targetPath, showOption) {
-		if (showOption === 'peek' || showOption === 'both') {
-			codeLenses.push(new vscode.CodeLens(activeRange, {
-				title: `Peek into ${path.basename(targetPath)}`,
-				command: "editor.action.peekLocations",
-				arguments: [documentUri, activeRange.start, [new vscode.Location(targetUri, new vscode.Range(0, 0, 15, 0))]]
-			}));
-		}
-		if (showOption === 'link' || showOption === 'both') {
-			codeLenses.push(new vscode.CodeLens(activeRange, {
-				title: "Open in a new tab",
-				command: 'daps.openFile',
-				arguments: [targetUri.fsPath]
-			}));
-		}
+	_getIncludeRegex() {
+		return /<xi:include\s+href="([^"]+)"/g;
 	}
 }
 
@@ -567,12 +523,14 @@ function activate(context) {
 	// when saving active editor:
 	context.subscriptions.push(
 		vscode.workspace.onDidSaveTextDocument((document) => {			// update scrollmap
-			const fileName = document.uri.path;
-			const scrollMap = createScrollMap(fileName);
-			// refresh HTML preview
-			if (fileName == getActiveFile() && previewManager.panel) {
-				vscode.commands.executeCommand('daps.docPreview');
-				previewManager.panel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+			if (document.languageId === 'xml') {
+				const fileName = document.uri.path;
+				const scrollMap = createScrollMap(fileName);
+				// refresh HTML preview
+				if (fileName == getActiveFile() && previewManager.panel) {
+					vscode.commands.executeCommand('daps.docPreview');
+					previewManager.panel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+				}
 			}
 			// refresh doc structure treeview
 			vscode.commands.executeCommand('docStructureTreeView.refresh');
@@ -600,8 +558,10 @@ function activate(context) {
 				const document = activeEditor.document;
 				// refresh doc structure treeview
 				vscode.commands.executeCommand('docStructureTreeView.refresh');
-				// create scroll map for HTML preview
-				createScrollMap(document.fileName);
+				if (document.languageId === 'xml') {
+					// create scroll map for HTML preview
+					createScrollMap(document.fileName);
+				}
 			}
 		}));
 	// when the visible editors change
@@ -1170,31 +1130,50 @@ function activate(context) {
 		}
 	});
 
-	// Registers a code lens provider for assembly modules in the DAPS extension.
-	// This provider displays code lens information for assembly modules in XML and Asciidoc files,
-	// allowing users to navigate to the referenced assembly modules.
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider({
-		pattern: vscode.workspace.getConfiguration('daps').get('dbAssemblyPattern')
-	}, new assemblyModulesCodeLensesProvider(context)));
+	// --- CodeLens Providers Setup ---
 
-	// Registers a code lens provider for XML and Asciidoc files in the DAPS extension.
-	// This provider displays code lens information for cross-references (xrefs),
-	// allowing users to navigate to the referenced content.
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider({
-		pattern: "**/*.{xml,adoc}"
-	}, new xrefCodeLensProvider(context)));
+	// Create instances of all CodeLens providers
+	const assemblyProvider = new assemblyModulesCodeLensesProvider();
+	const xrefProvider = new xrefCodeLensProvider();
+	const adocIncludeProvider = new asciidocIncludeCodeLensProvider();
+	const docbookIncludeProvider = new docbookXIncludeCodeLensProvider();
 
-	// Registers a code lens provider for AsciiDoc files to show links to included files.
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider({
-		language: 'asciidoc',
-		scheme: 'file'
-	}, new asciidocIncludeCodeLensProvider()));
+	// Register the providers
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider(
+		{ pattern: vscode.workspace.getConfiguration('daps').get('dbAssemblyPattern') },
+		assemblyProvider
+	));
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider(
+		{ pattern: "**/*.{xml,adoc}" },
+		xrefProvider
+	));
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider(
+		{ pattern: '**/*.{xml,adoc}', scheme: 'file' },
+		adocIncludeProvider
+	));
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider(
+		{ pattern: '**/*.{xml,adoc}', scheme: 'file' },
+		docbookIncludeProvider
+	));
 
-	// Registers a code lens provider for DocBook files to show links to XIncluded files.
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider({
-		language: 'xml',
-		scheme: 'file'
-	}, new docbookXIncludeCodeLensProvider()));
+	// Centralized onDidSaveTextDocument listener to refresh all providers
+	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
+		// Refresh assembly provider
+		const assemblyPattern = vscode.workspace.getConfiguration('daps').get('dbAssemblyPattern');
+		if (vscode.languages.match({ pattern: assemblyPattern }, document)) {
+			assemblyProvider.refresh(document);
+		}
+
+		// Refresh xref and include providers
+		if (document.languageId === 'asciidoc' || document.languageId === 'xml') {
+			if (document.languageId === 'asciidoc') {
+				adocIncludeProvider.refresh(document);
+			} else { // xml
+				docbookIncludeProvider.refresh(document);
+			}
+			xrefProvider.refresh(document);
+		}
+	}));
 
 	// Enable autocomplete for XML entities from external files.
 	if (vscode.workspace.getConfiguration('daps').get('autocompleteXMLentities')) {
@@ -2152,8 +2131,8 @@ function getADOCattributeFiles(docFileName, processedFiles = new Set()) {
 	const docContent = fs.readFileSync(docFileName, 'utf-8');
 	// Get the directory of the current file to resolve relative paths.
 	const docDir = path.dirname(docFileName);
-	// Define a regular expression to find 'include::filename.adoc[]' statements at the beginning of a line.
-	const includeRegex = /^include::([^[]+)\[\]/gm;
+	// Define a regular expression to find 'include::filename.adoc[...]' statements at the beginning of a line.
+	const includeRegex = /^\s*include::([^[]+)\[[^\]]*\]/gm;
 	// Initialize an array to store the paths of found attribute files.
 	let attributeFiles = [];
 	// Variable to hold the result of the regex execution.

@@ -1,6 +1,5 @@
 :doctype: book
 :experimental:
-
 include::generic-attributes.adoc[]
 
 == Entity replacement
@@ -18,6 +17,8 @@ ingress:
 
 == include:: codelens
 include::included-file.adoc[leveloffset=+1]
+include::included-file2.adoc[]
+
 
 This is a reference xref:entity-replacement[Yes a reference]
 This is a reference xref:entity-replacement[]
