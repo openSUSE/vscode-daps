@@ -21,3 +21,7 @@ daps.docPreviewImgPath::
 daps.previewLinkScrollBoth::
   Whether scrolling the preview scrolls the source editor as well.
   Default is `false`.
+
+daps.adocFallbackDoctype::
+  The `:doctype:` to use for previews when none is found within the current document.
+  Default is 'article'.

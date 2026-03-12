@@ -1425,47 +1425,47 @@ line: lineToScroll
 		previewManager.panel.webview.postMessage({ command: 'updateMap', map: scrollMap });
 		previewManager.panel.onDidDispose(() => {
 			previewManager.dispose();
-			previewManager.previewingFile = undefined;
+			previewManager.previewingFile = undefined; // Reset the previewing file
 		});
 
-		// Listen to scroll messages from the WebView
-		let previewLinkScrollBoth = vscode.workspace.getConfiguration('daps').get('previewLinkScrollBoth');
-		if (previewLinkScrollBoth) {
-			previewPanel.webview.onDidReceiveMessage(async (message) => {
-				switch (message.command) {
-					case 'scroll': {
-						const scrollPosition = message.position;
-						dbg(`preview:scrollPosition ${scrollPosition}`);
-
-						const lineToScroll = message.line;
-						dbg(`preview:scroll:lineToScroll ${lineToScroll}`);
-
-						if (lineToScroll !== undefined) {
-							// Ensure the correct editor is opened
-							const fileUri = vscode.Uri.file(srcFile);
-
-							// Check if the document is already open
-							let targetEditor = vscode.window.visibleTextEditors.find(editor =>
-								editor.document.uri.fsPath === fileUri.fsPath
-							);
-
-							if (!targetEditor) {
-								// Open the file if it is not already open
-								const document = await vscode.workspace.openTextDocument(fileUri);
-								targetEditor = await vscode.window.showTextDocument(document);
-							}
-
-							if (targetEditor) {
-								const position = new vscode.Position(lineToScroll - 1, 0); // Convert 1-based to 0-based
-								const range = new vscode.Range(position, position);
-								targetEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-							}
-						}
-						break;
+		// Listen for messages from the webview
+		previewManager.panel.webview.onDidReceiveMessage(async (message) => {
+			switch (message.command) {
+				case 'scroll': {
+					// Only process scroll messages if the setting is enabled
+					const previewLinkScrollBoth = vscode.workspace.getConfiguration('daps').get('previewLinkScrollBoth');
+					if (!previewLinkScrollBoth) {
+						return;
 					}
+
+					const lineToScroll = message.line;
+					dbg(`preview:scroll:lineToScroll ${lineToScroll}`);
+
+					if (lineToScroll !== undefined) {
+						// Ensure the correct editor is opened
+						const fileUri = vscode.Uri.file(srcFile);
+
+						// Check if the document is already open
+						let targetEditor = vscode.window.visibleTextEditors.find(editor =>
+							editor.document.uri.fsPath === fileUri.fsPath
+						);
+
+						if (!targetEditor) {
+							// Open the file if it is not already open
+							const document = await vscode.workspace.openTextDocument(fileUri);
+							targetEditor = await vscode.window.showTextDocument(document);
+						}
+
+						if (targetEditor) {
+							const position = new vscode.Position(lineToScroll - 1, 0); // Convert 1-based to 0-based
+							const range = new vscode.Range(position, position);
+							targetEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+						}
+					}
+					break;
 				}
-			}, undefined, context.subscriptions); // Listen to scroll messages from the WebView
-		}
+			}
+		}, undefined, context.subscriptions);
 	})); // Command to replace strings with their corresponding XML entities.
 
 	// Listen for scroll events in any visible text editor
