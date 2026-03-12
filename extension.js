@@ -514,6 +514,7 @@ function activate(context) {
 	// Manager for the HTML preview panel state
 	const previewManager = {
 		panel: undefined,
+		previewingFile: undefined,
 		dispose: function () {
 			this.panel = undefined;
 		}
@@ -543,7 +544,8 @@ function activate(context) {
 					checkLinksInDocument(document); // Do not show notifications on save, only update problems panel.
 				}
 			}
-		}));
+		})
+	);
 	// when opening a document:
 	context.subscriptions.push(
 		vscode.workspace.onDidOpenTextDocument((document) => {
@@ -572,15 +574,22 @@ function activate(context) {
 		})
 	);
 	// when the document is changed (with debounce)
-	let diagnosticUpdateTimeout;
+	let previewUpdateTimeout;
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeTextDocument(event => {
-			if (event.document.uri.scheme === 'file' && (event.document.languageId === 'xml' || event.document.languageId === 'asciidoc')) {
-				clearTimeout(diagnosticUpdateTimeout);
-				diagnosticUpdateTimeout = setTimeout(() => {
-					dbg('Running debounced diagnostic update.');
-					updateEntityDiagnostics(event.document);
-					updateAttributeDiagnostics(event.document);
+			const document = event.document;
+			if (document.uri.scheme === 'file' && (document.languageId === 'xml' || document.languageId === 'asciidoc')) {
+				clearTimeout(previewUpdateTimeout);
+				previewUpdateTimeout = setTimeout(() => {
+					dbg('Running debounced document update.');
+					updateEntityDiagnostics(document);
+					updateAttributeDiagnostics(document);
+
+					// Update preview if it is open for the changed document
+					if (previewManager.panel && document.uri.fsPath === getActiveFile()) {
+						dbg('Triggering preview update on document change.');
+						vscode.commands.executeCommand('daps.docPreview');
+					}
 				}, 500); // 500ms delay
 			}
 		})
@@ -1232,62 +1241,96 @@ function activate(context) {
 		}, '&'));
 	}
 
-	// Enables document HTML preview and a handler to update it when the source document changes.
-	if (vscode.workspace.getConfiguration('daps').get('previewLinkScrollBoth')) {
-		context.subscriptions.push(vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) {
-			// get img src path from config
-			const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
-			// path to images
-			let docPreviewImgPath = dapsConfig.get('docPreviewImgPath');
-			dbg(`preview:docPreviewImgPath ${docPreviewImgPath}`);
-			const activeEditorDir = getActiveEditorDir();
-			dbg(`preview:activeEditorDir ${activeEditorDir}`);
-			// create a new webView if it does not exist yet
-			if (previewManager.panel === undefined) {
-				previewManager.panel = vscode.window.createWebviewPanel(
-					'htmlPreview', // Identifies the type of the webview
-					'HTML Preview', // Title displayed in the panel
-					vscode.ViewColumn.Two, // Editor column to show the webview panel
-					{
-						enableScripts: true,
-						localResourceRoots: [vscode.Uri.file(path.join(activeEditorDir, docPreviewImgPath))]
-					}
-				);
-			}
-			// what is the document i want to preview?
-			let srcXMLfile = getActiveFile(contextFileURI);
-			dbg(`Source XML file: ${srcXMLfile}`);
-			// compile transform command
-			let transformCmd = `xsltproc --stringparam img.src.path ${docPreviewImgPath} ${extensionPath}/xslt/doc-preview.xsl ${srcXMLfile}`;
-			dbg(`xsltproc cmd: ${transformCmd}`);
-			// get its stdout into a variable
-			let htmlContent = execSync(transformCmd).toString();
-			// Update <img/> tags for webview, create a regex to match <img src="...">
-			const imageRegex = /<img src="([^"]+)"/g;
-			// Replace all image src attributes
-			htmlContent = htmlContent.replace(imageRegex, (match, src) => {
-				// For each image, create the path to the image
-				let imgUri = vscode.Uri.file(path.join(activeEditorDir, docPreviewImgPath, src));
-				dbg(`preview:imgUri ${imgUri}`);
-				// check if imgURI extsts and if not, check SVG variant
-				if (!fs.existsSync(imgUri.path)) {
-					const svgPath = imgUri.path.replace(/\.[^/.]+$/, ".svg");
-					dbg(`preview:svgPath: ${svgPath}`);
-					if (fs.existsSync(svgPath)) {
-						imgUri = vscode.Uri.file(svgPath);
-					} else {
-						dbg(`preview:imgUri: Neither ${imgUri.path} nor ${svgPath} exist`)
-					}
+	// Enables document HTML preview and a handler to update it
+	context.subscriptions.push(vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) { // get img src path from config
+		const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
+		// path to images
+		let docPreviewImgPath = dapsConfig.get('docPreviewImgPath');
+		dbg(`preview:docPreviewImgPath ${docPreviewImgPath}`);
+		const activeEditorDir = getActiveEditorDir();
+		dbg(`preview:activeEditorDir ${activeEditorDir}`);
+		// create a new webView if it does not exist yet
+		if (previewManager.panel === undefined) {
+			previewManager.panel = vscode.window.createWebviewPanel(
+				'htmlPreview', // Identifies the type of the webview
+				'HTML Preview', // Title displayed in the panel
+				vscode.ViewColumn.Two, // Editor column to show the webview panel
+				{
+					enableScripts: true,
+					localResourceRoots: [vscode.Uri.file(path.join(activeEditorDir, docPreviewImgPath))]
 				}
-				dbg(`preview:final imgUri: ${imgUri}`);
-				// create img URI that the webview can swollow
-				const imgWebviewUri = previewManager.panel.webview.asWebviewUri(imgUri);
-				dbg(`preview:imgWebviewUri ${imgWebviewUri}`);
-				// Return the updated <img> tag with the new src
-				return `<img src="${imgWebviewUri}"`;
-			});
-			//compile the whole HTML for webview
-			let html = `
+			);
+		}
+		previewManager.previewingFile = getActiveFile(contextFileURI);
+		const activeEditor = vscode.window.activeTextEditor;
+		if (!activeEditor) {
+			vscode.window.showErrorMessage("No active editor for preview.");
+			return;
+		}
+		const document = activeEditor.document;
+		const srcFile = document.fileName;
+		const docContent = document.getText();
+		dbg(`Source file for preview: ${srcFile}`);
+
+		let htmlContent;
+		let scrollMap;
+
+		if (path.extname(srcFile) === '.adoc') {
+			// Handle AsciiDoc
+			let transformCmd = `asciidoctor -o - -`;
+			// Check if the document has its own doctype. If not, use the fallback.
+			if (!hasAdocDoctype(srcFile)) {
+				const adocFallbackDoctype = dapsConfig.get('adocFallbackDoctype');
+				transformCmd = `asciidoctor -d ${adocFallbackDoctype} -o - -`;
+			}
+			dbg(`asciidoctor cmd: ${transformCmd}`);
+			htmlContent = execSync(transformCmd, { input: docContent, cwd: path.dirname(srcFile) }).toString();
+			scrollMap = createAdocScrollMap(srcFile);
+			scrollMap = createScrollMap(
+				srcFile,
+				/^(?:\[\[([^[\]]+)\]\]|\[#([^[\]]+)\])/, // Regex for AsciiDoc IDs
+				(match) => match[1] || match[2],       // Extractor for AsciiDoc
+				(index) => index + 2                    // Line calculator for AsciiDoc
+			);
+		} else {
+			// Handle XML
+			let transformCmd = `xsltproc --stringparam img.src.path ${docPreviewImgPath} ${extensionPath}/xslt/doc-preview.xsl -`;
+			dbg(`xsltproc cmd: ${transformCmd}`);
+			htmlContent = execSync(transformCmd, { input: docContent, cwd: path.dirname(srcFile) }).toString();
+			scrollMap = createScrollMap(
+				srcFile,
+				/xml:id="([^"]+)"/i,          // Regex for XML IDs
+				(match) => match[1],         // Extractor for XML
+				(index) => index + 1           // Line calculator for XML
+			);
+		}
+
+		// Update <img/> tags for webview, create a regex to match <img src="...">
+		const imageRegex = /<img src="([^"]+)"/g;
+		// Replace all image src attributes
+		htmlContent = htmlContent.replace(imageRegex, (match, src) => {
+			// For each image, create the path to the image
+			let imgUri = vscode.Uri.file(path.join(path.dirname(srcFile), docPreviewImgPath, src));
+			dbg(`preview:imgUri ${imgUri}`);
+			// check if imgURI extsts and if not, check SVG variant
+			if (!fs.existsSync(imgUri.path)) {
+				const svgPath = imgUri.path.replace(/\.[^/.]+$/, ".svg");
+				dbg(`preview:svgPath: ${svgPath}`);
+				if (fs.existsSync(svgPath)) {
+					imgUri = vscode.Uri.file(svgPath);
+				} else {
+					dbg(`preview:imgUri: Neither ${imgUri.path} nor ${svgPath} exist`)
+				}
+			}
+			dbg(`preview:final imgUri: ${imgUri}`);
+			// create img URI that the webview can swollow
+			const imgWebviewUri = previewManager.panel.webview.asWebviewUri(imgUri);
+			dbg(`preview:imgWebviewUri ${imgWebviewUri}`);
+			// Return the updated <img> tag with the new src
+			return `<img src="${imgWebviewUri}"`;
+		});
+		//compile the whole HTML for webview
+		let html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1302,7 +1345,7 @@ ${htmlContent}
 </div>
 <script>
 const vscode = acquireVsCodeApi();
-const srcXMLfile = "${srcXMLfile}";
+const srcFile = "${srcFile}";
 let scrollMap = []; // Scroll map sent from the extension
 let isProgrammaticScroll = false; // Flag to track programmatic scrolling
 
@@ -1363,14 +1406,12 @@ if (lineToScroll !== null) {
 console.log({
 command: 'scroll',
 position: scrollPosition,
-line: lineToScroll,
-srcXMLfile: srcXMLfile
+line: lineToScroll
 });
 vscode.postMessage({
 command: 'scroll',
 position: scrollPosition,
-line: lineToScroll,
-srcXMLfile: srcXMLfile
+line: lineToScroll
 });
 }
 });
@@ -1378,64 +1419,69 @@ srcXMLfile: srcXMLfile
 
 </body>
 </html>`;
-			const scrollMap = createScrollMap(vscode.window.activeTextEditor.document.fileName);
-			dbg(`preview:scrollmap:length ${scrollMap.length}`);
+		dbg(`preview:scrollmap:length ${scrollMap.length}`);
 
-			previewManager.panel.webview.html = html;
-			previewManager.panel.webview.postMessage({ command: 'updateMap', map: scrollMap });
-			previewManager.panel.onDidDispose(() => {
-				previewManager.dispose();
-			});
+		previewManager.panel.webview.html = html;
+		previewManager.panel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+		previewManager.panel.onDidDispose(() => {
+			previewManager.dispose();
+			previewManager.previewingFile = undefined;
+		});
 
-			// listen to scroll messages from the active editor
-			vscode.window.onDidChangeTextEditorVisibleRanges(event => {
-				const editor = event.textEditor;
-				const topLine = editor.visibleRanges[0].start.line;
-				previewManager.panel.webview.postMessage({ command: 'syncScroll', line: topLine });
-			});
-			// Listen to scroll messages from the WebView
-			let previewLinkScrollBoth = vscode.workspace.getConfiguration('daps').get('previewLinkScrollBoth');
-			if (previewLinkScrollBoth) {
-				previewPanel.webview.onDidReceiveMessage(async (message) => {
-					switch (message.command) {
-						case 'scroll': {
-							const scrollPosition = message.position;
-							dbg(`preview:scrollPosition ${scrollPosition}`);
+		// Listen to scroll messages from the WebView
+		let previewLinkScrollBoth = vscode.workspace.getConfiguration('daps').get('previewLinkScrollBoth');
+		if (previewLinkScrollBoth) {
+			previewPanel.webview.onDidReceiveMessage(async (message) => {
+				switch (message.command) {
+					case 'scroll': {
+						const scrollPosition = message.position;
+						dbg(`preview:scrollPosition ${scrollPosition}`);
 
-							const srcXMLfile = message.srcXMLfile;
-							dbg(`preview:srcXMLfile ${srcXMLfile}`);
+						const lineToScroll = message.line;
+						dbg(`preview:scroll:lineToScroll ${lineToScroll}`);
 
-							const lineToScroll = message.line;
-							dbg(`preview:scroll:lineToScroll ${lineToScroll}`);
+						if (lineToScroll !== undefined) {
+							// Ensure the correct editor is opened
+							const fileUri = vscode.Uri.file(srcFile);
 
-							if (lineToScroll !== undefined) {
-								// Ensure the correct editor is opened
-								const fileUri = vscode.Uri.file(srcXMLfile);
+							// Check if the document is already open
+							let targetEditor = vscode.window.visibleTextEditors.find(editor =>
+								editor.document.uri.fsPath === fileUri.fsPath
+							);
 
-								// Check if the document is already open
-								let targetEditor = vscode.window.visibleTextEditors.find(editor =>
-									editor.document.uri.fsPath === fileUri.fsPath
-								);
-
-								if (!targetEditor) {
-									// Open the file if it is not already open
-									const document = await vscode.workspace.openTextDocument(fileUri);
-									targetEditor = await vscode.window.showTextDocument(document);
-								}
-
-								if (targetEditor) {
-									const position = new vscode.Position(lineToScroll - 1, 0); // Convert 1-based to 0-based
-									const range = new vscode.Range(position, position);
-									targetEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-								}
+							if (!targetEditor) {
+								// Open the file if it is not already open
+								const document = await vscode.workspace.openTextDocument(fileUri);
+								targetEditor = await vscode.window.showTextDocument(document);
 							}
-							break;
+
+							if (targetEditor) {
+								const position = new vscode.Position(lineToScroll - 1, 0); // Convert 1-based to 0-based
+								const range = new vscode.Range(position, position);
+								targetEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+							}
 						}
+						break;
 					}
-				}, undefined, context.subscriptions);
+				}
+			}, undefined, context.subscriptions); // Listen to scroll messages from the WebView
+		}
+	})); // Command to replace strings with their corresponding XML entities.
+
+	// Listen for scroll events in any visible text editor
+	context.subscriptions.push(
+		vscode.window.onDidChangeTextEditorVisibleRanges(event => {
+			// Check if the preview panel is open and if the scrolled editor is the one being previewed.
+			if (previewManager.panel && event.textEditor.document.uri.fsPath === previewManager.previewingFile) {
+				// Get the top visible line number
+				const topLine = event.visibleRanges[0].start.line;
+				// Send a message to the webview to sync its scroll position
+				previewManager.panel.webview.postMessage({ command: 'syncScroll', line: topLine });
+				dbg(`preview:syncScroll: Sent line ${topLine} to webview.`);
 			}
-		}));
-	}
+		})
+	);
+
 
 	// Command to replace strings with their corresponding XML entities.
 	if (vscode.workspace.getConfiguration('daps').get('replaceWithXMLentity')) {
@@ -1972,6 +2018,41 @@ function createScrollMap(fileName) {
 		}
 	}
 	dbg(`scrollmap:length ${scrollMap.length}`);
+	return scrollMap;
+}
+
+/**
+ * Checks if an AsciiDoc file specifies a doctype attribute.
+ * @param {string} fileName The path to the AsciiDoc file.
+ * @returns {boolean} True if a doctype is found, false otherwise.
+ */
+function hasAdocDoctype(fileName) {
+	const docContent = fs.readFileSync(fileName, 'utf-8');
+	// A simple check for the doctype attribute at the beginning of a line,
+	// usually in the document header.
+	const doctypeRegex = /^:doctype:/m;
+	const hasDoctype = doctypeRegex.test(docContent);
+	dbg(`asciidoctor:doctype:check: Document ${fileName} has doctype: ${hasDoctype}`);
+	return hasDoctype;
+}
+
+/**
+ * Creates a scroll map for the HTML preview of an AsciiDoc document.
+ * @param {string} fileName The path to the AsciiDoc file.
+ * @returns {Array<{line: number, id: string}>} An array of objects, each representing a block ID and its line number.
+ */
+function createAdocScrollMap(fileName) {
+	const docContent = fs.readFileSync(fileName, 'utf-8');
+	dbg(`scrollmap:filename ${fileName}`);
+	let scrollMap = [];
+	const lines = docContent.split('\n');
+	for (let index = 0; index < lines.length; index++) {
+		let idMatch = lines[index].match(/^(?:\[\[([^[\]]+)\]\]|\[#([^[\]]+)\])/);
+		if (idMatch) {
+			let idValue = idMatch[1] || idMatch[2];
+			scrollMap.push({ line: index + 2, id: idValue });
+		}
+	}
 	return scrollMap;
 }
 

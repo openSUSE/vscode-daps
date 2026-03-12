@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.9.11",
+  "version": "0.9.12-beta",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -18,7 +18,9 @@
   ],
   "activationEvents": [
     "workspaceContains: **/DC-*",
-    "onStartupFinished"
+    "onStartupFinished",
+    "onLanguage:xml",
+    "onLanguage:asciidoc"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -77,7 +79,7 @@
         },
         {
           "command": "daps.docPreview",
-          "when": "resourceExtname == .xml && config.daps.previewLinkScrollBoth"
+          "when": "resourceExtname == .xml || resourceExtname == .adoc"
         },
         {
           "command": "daps.validate",
@@ -127,7 +129,7 @@
       {
         "key": "ctrl+shift+d p",
         "command": "daps.docPreview",
-        "when": "resourceLangId == 'xml'"
+        "when": "resourceLangId == 'xml' || resourceLangId == 'asciidoc'"
       },
       {
         "key": "ctrl+shift+d b",
@@ -177,7 +179,7 @@
         "command": "daps.docPreview",
         "title": "Preview document",
         "category": "DAPS",
-        "enablement": "resourceExtname == .xml"
+        "enablement": "resourceExtname == .xml || resourceExtname == .adoc"
       },
       {
         "command": "daps.checkLinks",
@@ -287,6 +289,12 @@
           "description": "Path to images relative to the document.",
           "type": "string",
           "default": ""
+        },
+        "daps.adocFallbackDoctype": {
+          "description": "Fallback doctype for AsciiDoc documents if not specified in the document itself.",
+          "type": "string",
+          "default": "article",
+          "enum": ["article", "book", "manpage", "inline"]
         },
         "daps.buildRootId": {
           "description": "Set the root ID of an XML element to build. If not specified, the user is asked to enter it.",
