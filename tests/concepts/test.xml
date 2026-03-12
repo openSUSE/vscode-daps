@@ -23,7 +23,7 @@
       </para>
     </abstract>
   </info>
-  <variablelist>
+  <variablelist xml:id="test-db-vl1">
     <varlistentry>
       <term>Entity replacement</term>
       <listitem>
@@ -39,6 +39,401 @@
           <xref linkend="ref-db"/>
         </para>
         <xi:include href="../snippets/inc.xml"/>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+  </variablelist>
+  <variablelist xml:id="test-db-vl2">
+    <varlistentry>
+      <term>Entity replacement</term>
+      <listitem>
+        <para>
+          &vllm; is not replaced by entity?
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Reference codelens</term>
+      <listitem>
+        <para>
+          <xref linkend="ref-db"/>
+        </para>
+        <xi:include href="../snippets/inc.xml"/>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+  </variablelist>
+  <variablelist xml:id="test-db-vl3">
+    <varlistentry>
+      <term>Entity replacement</term>
+      <listitem>
+        <para>
+          &vllm; is not replaced by entity?
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Reference codelens</term>
+      <listitem>
+        <para>
+          <xref linkend="ref-db"/>
+        </para>
+        <xi:include href="../snippets/inc.xml"/>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Checking links</term>
+      <listitem>
+        <para>
+          Broken:
+          <link xlink:href="https://documentation.suserere.com/suse-ai/1.0/"/>
+        </para>
+        <para>
+          Valid: <link xlink:href="https://www.abicko.cz/"/>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz">Abicko</link>
+        </para>
+        <para>
+          Valid but upgradable: <link xlink:href="http://www.abicko.cz/clanek/vystrihovanky/32694/vystrihovanky-pro-vsechny-v-casopisu-abc.html"/>
+        </para>
+        <para>
+          <!-- this one should not be checked https://documentation.suserere.com/suse-ai/1.0/ -->
+        </para>
       </listitem>
     </varlistentry>
     <varlistentry>

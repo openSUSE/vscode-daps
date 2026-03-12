@@ -2007,9 +2007,15 @@ function createScrollMap(fileName) {
 	const lines = docContent.split('\n');
 	dbg(`scrollmap:docContent:lines ${lines.length}`);
 	for (let index = 0; index < lines.length; index++) {
-		let idMatch = lines[index].match(/xml:id="([^"]+)"/i);
+		let idMatch;
+		if (path.extname(fileName) === '.adoc') {
+			idMatch = lines[index].match(/^(?:\[\[([^[\]]+)\]\]|\[#([^[\]]+)\])/);
+		} else {
+			idMatch = lines[index].match(/xml:id="([^"]+)"/i);
+		}
+
 		if (idMatch) {
-			let idValue = idMatch[1];
+			let idValue = idMatch[1] || idMatch[2];
 			dbg(`scrollmap:idValue ${idValue}`);
 			scrollMap.push({
 				line: index + 1, // Line number (1-based index)
