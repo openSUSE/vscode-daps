@@ -1,7 +1,7 @@
 # Change Log
 
 ## 0.9.12-beta
-- adde 
+- added preview to AsciiDoc files
 ## 0.9.11
 - adoc: fixed codelens for include::..filename[attributes]
 - merged adoc and docbk include codelens code
