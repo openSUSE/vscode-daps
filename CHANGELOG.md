@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.9.13-beta3
+- double check if the webview panel already exists before creating a new one
+- added a default value to the docPreviewImgPath option to prevent empty cmdline argument
+- escaped URLs with \ are skipped from being checked
+- added dbg messages to the docStructure
+- prevented the Doc Structure routine from being triggered twice
+- trim XML file before parsing to removed unwanted CDATA
 ## 0.9.12
 - added preview to AsciiDoc files
 ## 0.9.11

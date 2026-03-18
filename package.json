@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.9.12",
+  "version": "0.9.13-beta3",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -29,7 +29,7 @@
         {
           "id": "docbookFileStructure",
           "name": "Document Structure",
-          "when": "resourceExtname == .xml"
+          "when": "resourceLangId == xml"
         }
       ]
     },
@@ -286,9 +286,9 @@
           "default": true
         },
         "daps.docPreviewImgPath": {
-          "description": "Path to images relative to the document.",
+          "description": "Path to images relative to documents.",
           "type": "string",
-          "default": ""
+          "default": "../images/"
         },
         "daps.adocFallbackDoctype": {
           "description": "Fallback doctype for AsciiDoc documents if not specified in the document itself.",

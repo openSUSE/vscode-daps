@@ -33,26 +33,47 @@ class docStructureTreeDataProvider {
 	}
 
 	getChildren(element) {
+		dbg('docStructure: getChildren triggered');
+		// Do not run on virtual documents (e.g., from git or output channels)
+		if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.uri.scheme !== 'file') {
+			dbg(`docStructure: Active document is not a file, skipping.`);
+			return this._createEmptyStructure('No DocBook XML editor opened');
+		}
+
 		// Check if there are any open XML editors
 		const hasOpenXmlEditor = vscode.window.visibleTextEditors.some(
 			editor => editor.document.languageId === 'xml'
 		);
 		if (!hasOpenXmlEditor) {
+			dbg('docStructure: No XML editor opened, returning empty structure.');
 			return this._createEmptyStructure('No DocBook XML editor opened');
 		}
 
 		const filePath = this._getActiveFile();
 		if (!filePath) {
+			dbg('docStructure: No active file, returning empty structure.');
 			return this._createEmptyStructure('No DocBook XML editor opened');
 		}
+		dbg(`docStructure: Active file: ${filePath}`);
 
-		const xmlDoc = this._parseXmlDocument(filePath);
+		let xmlDoc;
+		try {
+			xmlDoc = this._parseXmlDocument(filePath);
+		} catch (e) {
+			dbg(`docStructure: Error parsing XML file: ${e.message}`);
+			return this._createEmptyStructure(`Error parsing XML: ${e.message}`);
+		}
+
 		const structureElements = this._getStructureElements();
-		const sectionElements = getElementsWithAllowedTagNames(xmlDoc, structureElements);
+		dbg(`docStructure: Structure elements from config: ${structureElements.join(', ')}`);
+
+		const sectionElements = getElementsWithAllowedTagNames(xmlDoc, structureElements);		
+		dbg(`docStructure: Found ${sectionElements.length} section elements.`);
 
 		if (sectionElements.length === 0) {
 			return this._createEmptyStructure('The current document has no structure');
 		}
+		dbg(`docStructure: Creating tree items...`);
 
 		return this._createTreeItems(element, sectionElements, structureElements);
 	}
@@ -62,7 +83,7 @@ class docStructureTreeDataProvider {
 	}
 
 	_parseXmlDocument(filePath) {
-		const docContent = fs.readFileSync(filePath, 'utf-8');
+		const docContent = fs.readFileSync(filePath, 'utf-8').trim();
 		return parser.parseFromString(docContent, 'text/xml');
 	}
 
@@ -529,8 +550,10 @@ function activate(context) {
 				const scrollMap = createScrollMap(fileName);
 				// refresh HTML preview
 				if (fileName == getActiveFile() && previewManager.panel) {
-					vscode.commands.executeCommand('daps.docPreview');
-					previewManager.panel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+					if (previewManager.panel.webview) {
+						vscode.commands.executeCommand('daps.docPreview');
+						previewManager.panel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+					}
 				}
 			}
 			// refresh doc structure treeview
@@ -566,13 +589,6 @@ function activate(context) {
 				}
 			}
 		}));
-	// when the visible editors change
-	context.subscriptions.push(
-		vscode.window.onDidChangeVisibleTextEditors(() => {
-			// ensure the tree view is cleared when the last XML editor is closed and updated 
-			vscode.commands.executeCommand('docStructureTreeView.refresh');
-		})
-	);
 	// when the document is changed (with debounce)
 	let previewUpdateTimeout;
 	context.subscriptions.push(
@@ -586,9 +602,11 @@ function activate(context) {
 					updateAttributeDiagnostics(document);
 
 					// Update preview if it is open for the changed document
-					if (previewManager.panel && document.uri.fsPath === getActiveFile()) {
-						dbg('Triggering preview update on document change.');
-						vscode.commands.executeCommand('daps.docPreview');
+					if (previewManager.panel && previewManager.panel.visible && document.uri.fsPath === getActiveFile()) {
+						if (previewManager.panel.webview) {
+							dbg('Triggering preview update on document change.');
+							vscode.commands.executeCommand('daps.docPreview');
+						}
 					}
 				}, 500); // 500ms delay
 			}
@@ -669,13 +687,6 @@ function activate(context) {
 			entityDiagnostics.clear();
 			return;
 		}
-		// Do not run on virtual documents (e.g., from git)
-		if (document.uri.scheme !== 'file') {
-			dbg(`entity:diagnostics: Document is not a file, skipping entity diagnostics.`);
-			entityDiagnostics.clear();
-			return;
-		}
-
 		// Define tags inside which entity replacement should be skipped.
 		const noReplaceTags = dapsConfig.get('replaceWithXMLentityIgnoreTags');
 		const noReplaceRanges = [];
@@ -820,12 +831,6 @@ function activate(context) {
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		const replaceWithADOCattribute = dapsConfig.get('replaceWithADOCattribute');
 		if (!replaceWithADOCattribute || document.languageId !== 'asciidoc') {
-			attributeDiagnostics.clear();
-			return;
-		}
-		// Do not run on virtual documents (e.g., from git)
-		if (document.uri.scheme !== 'file') {
-			dbg(`attribute:diagnostics: Document is not a file, skipping attribute diagnostics.`);
 			attributeDiagnostics.clear();
 			return;
 		}
@@ -1545,7 +1550,7 @@ line: lineToScroll
 				linkRegex = /href="(https?:\/\/[a-zA-Z0-9.?:\-_/#]+(?<![?.:\-_#]))"/g;
 			} else {
 				// For AsciiDoc, find all URL-like strings.
-				linkRegex = /(https?:\/\/[a-zA-Z0-9.?:\-_/#]+(?<![?.:\-_#]))/g;
+				linkRegex = /(?<!\\)(https?:\/\/[a-zA-Z0-9.?:\-_/#]+(?<![?.:\-_#]))/g;
 			}
 
 			const linksFound = await findAndCheckLinks(document, diagnostics, progress, linkRegex);
