@@ -1,6 +1,6 @@
 # Change Log
 
-## 0.9.13-beta3
+## 0.9.13
 - double check if the webview panel already exists before creating a new one
 - added a default value to the docPreviewImgPath option to prevent empty cmdline argument
 - escaped URLs with \ are skipped from being checked

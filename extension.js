@@ -1282,11 +1282,11 @@ function activate(context) {
 
 		if (path.extname(srcFile) === '.adoc') {
 			// Handle AsciiDoc
-			let transformCmd = `asciidoctor -o - -`;
+			let transformCmd = `asciidoctor -a stylesheet! -o - -`;
 			// Check if the document has its own doctype. If not, use the fallback.
 			if (!hasAdocDoctype(srcFile)) {
 				const adocFallbackDoctype = dapsConfig.get('adocFallbackDoctype');
-				transformCmd = `asciidoctor -d ${adocFallbackDoctype} -o - -`;
+				transformCmd = `asciidoctor -d ${adocFallbackDoctype} -a stylesheet! -o - -`;
 			}
 			dbg(`asciidoctor cmd: ${transformCmd}`);
 			htmlContent = execSync(transformCmd, { input: docContent, cwd: path.dirname(srcFile) }).toString();
