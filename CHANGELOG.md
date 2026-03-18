@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.9.14beta1
+- introduced options for `asciidoctor` and `xsltproc` executables
 ## 0.9.13
 - double check if the webview panel already exists before creating a new one
 - added a default value to the docPreviewImgPath option to prevent empty cmdline argument

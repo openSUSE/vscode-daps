@@ -1282,12 +1282,14 @@ function activate(context) {
 
 		if (path.extname(srcFile) === '.adoc') {
 			// Handle AsciiDoc
-			let transformCmd = `asciidoctor -a stylesheet! -o - -`;
+			const asciidoctorExecutable = dapsConfig.get('asciidoctorExecutable');
+			let transformCmd = `-a stylesheet! -o - -`;
 			// Check if the document has its own doctype. If not, use the fallback.
 			if (!hasAdocDoctype(srcFile)) {
 				const adocFallbackDoctype = dapsConfig.get('adocFallbackDoctype');
-				transformCmd = `asciidoctor -d ${adocFallbackDoctype} -a stylesheet! -o - -`;
+				transformCmd = `-d ${adocFallbackDoctype} ${transformCmd}`;
 			}
+			transformCmd = `${asciidoctorExecutable} ${transformCmd}`;
 			dbg(`asciidoctor cmd: ${transformCmd}`);
 			htmlContent = execSync(transformCmd, { input: docContent, cwd: path.dirname(srcFile) }).toString();
 			scrollMap = createAdocScrollMap(srcFile);
@@ -1299,7 +1301,8 @@ function activate(context) {
 			);
 		} else {
 			// Handle XML
-			let transformCmd = `xsltproc --stringparam img.src.path ${docPreviewImgPath} ${extensionPath}/xslt/doc-preview.xsl -`;
+			const xsltprocExecutable = dapsConfig.get('xsltprocExecutable');
+			let transformCmd = `${xsltprocExecutable} --stringparam img.src.path ${docPreviewImgPath} ${extensionPath}/xslt/doc-preview.xsl -`;
 			dbg(`xsltproc cmd: ${transformCmd}`);
 			htmlContent = execSync(transformCmd, { input: docContent, cwd: path.dirname(srcFile) }).toString();
 			scrollMap = createScrollMap(

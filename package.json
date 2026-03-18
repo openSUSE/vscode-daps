@@ -321,6 +321,16 @@
           "type": "string",
           "default": "/usr/bin/daps"
         },
+        "daps.asciidoctorExecutable": {
+          "description": "Specify the absolute path to `asciidoctor` executable.",
+          "type": "string",
+          "default": "/usr/bin/asciidoctor"
+        },
+        "daps.xsltprocExecutable": {
+          "description": "Specify the absolute path to `xsltproc` executable.",
+          "type": "string",
+          "default": "/usr/bin/xsltproc"
+        },
         "daps.styleRoot": {
           "description": "Specify the root directory of stylesheets to use.",
           "type": "string",
