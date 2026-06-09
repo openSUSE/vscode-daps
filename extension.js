@@ -4,9 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const https = require('https');
-const { exec } = require('child_process');
-const { DOMParser } = require('@xmldom/xmldom');
-const parser = new DOMParser({ errorHandler: { warning: null }, locator: {} }, { ignoreUndefinedEntities: true });
+const {exec} = require('child_process');
+const {DOMParser} = require('@xmldom/xmldom');
+const parser = new DOMParser({errorHandler: {warning: null}, locator: {}}, {ignoreUndefinedEntities: true});
 const execSync = require('child_process').execSync;
 const buildTargets = ['html', 'pdf'];
 
@@ -67,7 +67,7 @@ class docStructureTreeDataProvider {
 		const structureElements = this._getStructureElements();
 		dbg(`docStructure: Structure elements from config: ${structureElements.join(', ')}`);
 
-		const sectionElements = getElementsWithAllowedTagNames(xmlDoc, structureElements);		
+		const sectionElements = getElementsWithAllowedTagNames(xmlDoc, structureElements);
 		dbg(`docStructure: Found ${sectionElements.length} section elements.`);
 
 		if (sectionElements.length === 0) {
@@ -536,7 +536,7 @@ function activate(context) {
 	const previewManager = {
 		panel: undefined,
 		previewingFile: undefined,
-		dispose: function () {
+		dispose: function() {
 			this.panel = undefined;
 		}
 	};
@@ -552,7 +552,7 @@ function activate(context) {
 				if (fileName == getActiveFile() && previewManager.panel) {
 					if (previewManager.panel.webview) {
 						vscode.commands.executeCommand('daps.docPreview');
-						previewManager.panel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+						previewManager.panel.webview.postMessage({command: 'updateMap', map: scrollMap});
 					}
 				}
 			}
@@ -572,8 +572,12 @@ function activate(context) {
 	// when opening a document:
 	context.subscriptions.push(
 		vscode.workspace.onDidOpenTextDocument((document) => {
-			updateEntityDiagnostics(document);
-			updateAttributeDiagnostics(document);
+			if (document.uri.scheme === 'file' && (document.languageId === 'xml' || document.languageId === 'asciidoc')) {
+				if (isDocumentVisible(document)) {
+					updateEntityDiagnostics(document);
+					updateAttributeDiagnostics(document);
+				}
+			}
 		})
 	);
 	// when active editor is changed:
@@ -587,8 +591,19 @@ function activate(context) {
 					// create scroll map for HTML preview
 					createScrollMap(document.fileName);
 				}
+				if (document.uri.scheme === 'file' && (document.languageId === 'xml' || document.languageId === 'asciidoc')) {
+					updateEntityDiagnostics(document);
+					updateAttributeDiagnostics(document);
+				}
 			}
 		}));
+	// when closing a document:
+	context.subscriptions.push(
+		vscode.workspace.onDidCloseTextDocument((document) => {
+			entityDiagnostics.delete(document.uri);
+			attributeDiagnostics.delete(document.uri);
+		})
+	);
 	// when the document is changed (with debounce)
 	let previewUpdateTimeout;
 	context.subscriptions.push(
@@ -597,9 +612,11 @@ function activate(context) {
 			if (document.uri.scheme === 'file' && (document.languageId === 'xml' || document.languageId === 'asciidoc')) {
 				clearTimeout(previewUpdateTimeout);
 				previewUpdateTimeout = setTimeout(() => {
-					dbg('Running debounced document update.');
-					updateEntityDiagnostics(document);
-					updateAttributeDiagnostics(document);
+					if (isDocumentVisible(document)) {
+						dbg('Running debounced document update.');
+						updateEntityDiagnostics(document);
+						updateAttributeDiagnostics(document);
+					}
 
 					// Update preview if it is open for the changed document
 					if (previewManager.panel && previewManager.panel.visible && document.uri.fsPath === getActiveFile()) {
@@ -682,9 +699,9 @@ function activate(context) {
 		// Get the extension's configuration to check if the feature is enabled.
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		const replaceWithXMLentity = dapsConfig.get('replaceWithXMLentity');
-		if (!replaceWithXMLentity || document.languageId !== 'xml') {
-			// If the feature is disabled or the file is not XML, clear any existing diagnostics and exit.
-			entityDiagnostics.clear();
+		if (!replaceWithXMLentity || document.languageId !== 'xml' || document.uri.scheme !== 'file') {
+			// If the feature is disabled or the file is not XML, delete its diagnostics and exit.
+			entityDiagnostics.delete(document.uri);
 			return;
 		}
 		// Define tags inside which entity replacement should be skipped.
@@ -701,7 +718,7 @@ function activate(context) {
 		while ((noReplaceMatch = noReplaceRegex.exec(text)) !== null) {
 			const contentIndex = noReplaceMatch.index + noReplaceMatch[0].indexOf(noReplaceMatch[2]);
 			const contentEndIndex = contentIndex + noReplaceMatch[2].length;
-			noReplaceRanges.push({ start: contentIndex, end: contentEndIndex });
+			noReplaceRanges.push({start: contentIndex, end: contentEndIndex});
 		}
 
 		// Find XML comments and add them to the ignore ranges.
@@ -709,7 +726,7 @@ function activate(context) {
 		let commentMatch;
 		while ((commentMatch = commentRegex.exec(text)) !== null) {
 			// Add the entire comment block to the no-replace ranges.
-			noReplaceRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+			noReplaceRanges.push({start: commentMatch.index, end: commentMatch.index + commentMatch[0].length});
 		}
 
 		// 2. Find content inside double quotes.
@@ -717,7 +734,7 @@ function activate(context) {
 		let quoteMatch;
 		while ((quoteMatch = quoteRegex.exec(text)) !== null) {
 			const valueStartIndex = quoteMatch.index + 1;
-			noReplaceRanges.push({ start: valueStartIndex, end: valueStartIndex + quoteMatch[1].length });
+			noReplaceRanges.push({start: valueStartIndex, end: valueStartIndex + quoteMatch[1].length});
 		}
 
 		// 2. Find content of attributes that should not be replaced (e.g., xml:id, linkend).
@@ -728,7 +745,7 @@ function activate(context) {
 			// The start index of the value is the index of the full match plus the length of the attribute name part (e.g., 'linkend="').
 			const valueStartIndex = attrMatch.index + attrMatch[0].indexOf(attrMatch[1]);
 			const valueEndIndex = valueStartIndex + attrMatch[1].length;
-			noReplaceRanges.push({ start: valueStartIndex, end: valueEndIndex });
+			noReplaceRanges.push({start: valueStartIndex, end: valueEndIndex});
 		}
 
 		if (noReplaceRanges.length > 0) {
@@ -752,6 +769,7 @@ function activate(context) {
 		const sortedEntities = Array.from(entityValueMap.entries()).sort((a, b) => b[0].length - a[0].length);
 
 		sortedEntities.forEach(([entityValue, entityName]) => {
+			if (entityValue.trim().length < 2) return;
 			// Escape special characters in the entity value for use in a regular expression.
 			// Then, replace spaces with `\s+` to match any whitespace sequence (including newlines) and wrap with word boundaries.
 			const pattern = `\\b(${entityValue
@@ -816,6 +834,9 @@ function activate(context) {
 					// Store all possible replacements in the diagnostic object itself for the CodeActionProvider to use.
 					diagnostic.relatedInformation = entityName.map(name => new vscode.DiagnosticRelatedInformation(new vscode.Location(document.uri, range), name));
 				}
+				if (match[0].length === 0) {
+					regex.lastIndex++;
+				}
 			}
 		});
 
@@ -830,8 +851,8 @@ function activate(context) {
 	function updateAttributeDiagnostics(document) {
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		const replaceWithADOCattribute = dapsConfig.get('replaceWithADOCattribute');
-		if (!replaceWithADOCattribute || document.languageId !== 'asciidoc') {
-			attributeDiagnostics.clear();
+		if (!replaceWithADOCattribute || document.languageId !== 'asciidoc' || document.uri.scheme !== 'file') {
+			attributeDiagnostics.delete(document.uri);
 			return;
 		}
 
@@ -845,7 +866,7 @@ function activate(context) {
 		const styledBlockRegex = new RegExp(`^\\[(${noReplaceBlocks.join('|')})\\]\\n((?:.|\\n)*?)(?=\\n\\S|$)`, 'gm');
 		let noReplaceMatch;
 		while ((noReplaceMatch = styledBlockRegex.exec(text)) !== null) {
-			noReplaceRanges.push({ start: noReplaceMatch.index, end: noReplaceMatch.index + noReplaceMatch[0].length });
+			noReplaceRanges.push({start: noReplaceMatch.index, end: noReplaceMatch.index + noReplaceMatch[0].length});
 		}
 
 		// Regex for delimited blocks like ----, ...., etc.
@@ -864,32 +885,32 @@ function activate(context) {
 		let inlineMatch;
 		while ((inlineMatch = inlineMonoRegex.exec(text)) !== null) {
 			const contentIndex = inlineMatch.index;
-			noReplaceRanges.push({ start: contentIndex, end: contentIndex + inlineMatch[0].length });
+			noReplaceRanges.push({start: contentIndex, end: contentIndex + inlineMatch[0].length});
 		}
 
 		// 3. Find AsciiDoc comments (single-line and block).
 		const singleLineCommentRegex = /^\/\/.*/gm;
 		let commentMatch;
 		while ((commentMatch = singleLineCommentRegex.exec(text)) !== null) {
-			noReplaceRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+			noReplaceRanges.push({start: commentMatch.index, end: commentMatch.index + commentMatch[0].length});
 		}
 		const blockCommentRegex = /^\/{4,}\n[\s\S]*?\n\/{4,}$/gm;
 		while ((commentMatch = blockCommentRegex.exec(text)) !== null) {
-			noReplaceRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+			noReplaceRanges.push({start: commentMatch.index, end: commentMatch.index + commentMatch[0].length});
 		}
 
 		// 4. Find AsciiDoc section IDs and anchors (e.g., [[my-id]] or [#my-id]).
 		const sectionIdRegex = /\[\[[^\]]+\]\]|\[#[^\]]+\]/g;
 		let idMatch;
 		while ((idMatch = sectionIdRegex.exec(text)) !== null) {
-			noReplaceRanges.push({ start: idMatch.index, end: idMatch.index + idMatch[0].length });
+			noReplaceRanges.push({start: idMatch.index, end: idMatch.index + idMatch[0].length});
 		}
 
 		// 5. Find AsciiDoc cross-references (e.g., <<my-anchor>>).
 		const xrefRegex = /<<[^>]+>>/g;
 		let xrefMatch;
 		while ((xrefMatch = xrefRegex.exec(text)) !== null) {
-			noReplaceRanges.push({ start: xrefMatch.index, end: xrefMatch.index + xrefMatch[0].length });
+			noReplaceRanges.push({start: xrefMatch.index, end: xrefMatch.index + xrefMatch[0].length});
 		}
 
 		// 6. Find content inside double quotes.
@@ -897,21 +918,21 @@ function activate(context) {
 		let quoteMatch;
 		while ((quoteMatch = quoteRegex.exec(text)) !== null) {
 			const valueStartIndex = quoteMatch.index + 1;
-			noReplaceRanges.push({ start: valueStartIndex, end: valueStartIndex + quoteMatch[1].length });
+			noReplaceRanges.push({start: valueStartIndex, end: valueStartIndex + quoteMatch[1].length});
 		}
 
 		// 6. Find URLs and other network schemas (e.g., https://..., ftp://..., mailto:...).
 		const urlRegex = /\b(https?|ftp|file|mailto|irc|news|telnet):\/\/[^\s,>\])]+/g;
 		let urlMatch;
 		while ((urlMatch = urlRegex.exec(text)) !== null) {
-			noReplaceRanges.push({ start: urlMatch.index, end: urlMatch.index + urlMatch[0].length });
+			noReplaceRanges.push({start: urlMatch.index, end: urlMatch.index + urlMatch[0].length});
 		}
 
 		// 7. Find attribute definitions and add the entire definition line to the no-replace ranges.
 		const attributeDefinitionRegex = /^:([^:]+):\s+(.*)$/gm;
 		let attrDefMatch;
 		while ((attrDefMatch = attributeDefinitionRegex.exec(text)) !== null) {
-			noReplaceRanges.push({ start: attrDefMatch.index, end: attrDefMatch.index + attrDefMatch[0].length });
+			noReplaceRanges.push({start: attrDefMatch.index, end: attrDefMatch.index + attrDefMatch[0].length});
 		}
 
 		if (noReplaceRanges.length > 0) {
@@ -986,6 +1007,9 @@ function activate(context) {
 					diagnostic.source = 'DAPS'; // The replacement text is stored in the message
 					diagnostics.push(diagnostic);
 					diagnosedRanges.push(range);
+				}
+				if (match[0].length === 0) {
+					regex.lastIndex++;
 				}
 			}
 		});
@@ -1127,7 +1151,7 @@ function activate(context) {
 	// Command for opening an editor, optionally in a split window.
 	vscode.commands.registerCommand('daps.openFile', async (file, line) => {
 		const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
-		const viewMode = dapsConfig.get('openFileSplit') ? vscode.ViewColumn.Beside : { preview: false };
+		const viewMode = dapsConfig.get('openFileSplit') ? vscode.ViewColumn.Beside : {preview: false};
 
 		try {
 			const document = await vscode.workspace.openTextDocument(file);
@@ -1154,19 +1178,19 @@ function activate(context) {
 
 	// Register the providers
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider(
-		{ pattern: vscode.workspace.getConfiguration('daps').get('dbAssemblyPattern') },
+		{pattern: vscode.workspace.getConfiguration('daps').get('dbAssemblyPattern')},
 		assemblyProvider
 	));
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider(
-		{ pattern: "**/*.{xml,adoc}" },
+		{pattern: "**/*.{xml,adoc}"},
 		xrefProvider
 	));
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider(
-		{ pattern: '**/*.{xml,adoc}', scheme: 'file' },
+		{pattern: '**/*.{xml,adoc}', scheme: 'file'},
 		adocIncludeProvider
 	));
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider(
-		{ pattern: '**/*.{xml,adoc}', scheme: 'file' },
+		{pattern: '**/*.{xml,adoc}', scheme: 'file'},
 		docbookIncludeProvider
 	));
 
@@ -1174,7 +1198,7 @@ function activate(context) {
 	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
 		// Refresh assembly provider
 		const assemblyPattern = vscode.workspace.getConfiguration('daps').get('dbAssemblyPattern');
-		if (vscode.languages.match({ pattern: assemblyPattern }, document)) {
+		if (vscode.languages.match({pattern: assemblyPattern}, document)) {
 			assemblyProvider.refresh(document);
 		}
 
@@ -1291,7 +1315,7 @@ function activate(context) {
 			}
 			transformCmd = `${asciidoctorExecutable} ${transformCmd}`;
 			dbg(`asciidoctor cmd: ${transformCmd}`);
-			htmlContent = execSync(transformCmd, { input: docContent, cwd: path.dirname(srcFile) }).toString();
+			htmlContent = execSync(transformCmd, {input: docContent, cwd: path.dirname(srcFile)}).toString();
 			scrollMap = createAdocScrollMap(srcFile);
 			scrollMap = createScrollMap(
 				srcFile,
@@ -1304,7 +1328,7 @@ function activate(context) {
 			const xsltprocExecutable = dapsConfig.get('xsltprocExecutable');
 			let transformCmd = `${xsltprocExecutable} --stringparam img.src.path ${docPreviewImgPath} ${extensionPath}/xslt/doc-preview.xsl -`;
 			dbg(`xsltproc cmd: ${transformCmd}`);
-			htmlContent = execSync(transformCmd, { input: docContent, cwd: path.dirname(srcFile) }).toString();
+			htmlContent = execSync(transformCmd, {input: docContent, cwd: path.dirname(srcFile)}).toString();
 			scrollMap = createScrollMap(
 				srcFile,
 				/xml:id="([^"]+)"/i,          // Regex for XML IDs
@@ -1430,7 +1454,7 @@ line: lineToScroll
 		dbg(`preview:scrollmap:length ${scrollMap.length}`);
 
 		previewManager.panel.webview.html = html;
-		previewManager.panel.webview.postMessage({ command: 'updateMap', map: scrollMap });
+		previewManager.panel.webview.postMessage({command: 'updateMap', map: scrollMap});
 		previewManager.panel.onDidDispose(() => {
 			previewManager.dispose();
 			previewManager.previewingFile = undefined; // Reset the previewing file
@@ -1484,7 +1508,7 @@ line: lineToScroll
 				// Get the top visible line number
 				const topLine = event.visibleRanges[0].start.line;
 				// Send a message to the webview to sync its scroll position
-				previewManager.panel.webview.postMessage({ command: 'syncScroll', line: topLine });
+				previewManager.panel.webview.postMessage({command: 'syncScroll', line: topLine});
 				dbg(`preview:syncScroll: Sent line ${topLine} to webview.`);
 			}
 		})
@@ -1580,26 +1604,26 @@ line: lineToScroll
 			// Determine whether to use the 'http' or 'https' module.
 			const protocol = link.startsWith('https') ? https : http;
 			// Make a HEAD request to the URL with a 5-second timeout.
-			const request = protocol.request(link, { method: 'HEAD', timeout: 5000 }, (res) => {
+			const request = protocol.request(link, {method: 'HEAD', timeout: 5000}, (res) => {
 				if (res.statusCode >= 200 && res.statusCode < 400) {
-					resolve({ isValid: true, message: `Status: ${res.statusCode}` });
+					resolve({isValid: true, message: `Status: ${res.statusCode}`});
 				} else {
-					resolve({ isValid: false, message: `Broken link (Status: ${res.statusCode})` });
+					resolve({isValid: false, message: `Broken link (Status: ${res.statusCode})`});
 				}
 			});
 
 			// Handle request timeout.
 			request.on('timeout', () => {
 				request.destroy();
-				resolve({ isValid: false, message: 'Request timed out' });
+				resolve({isValid: false, message: 'Request timed out'});
 			});
 
 			request.on('error', (e) => { // Handle network or DNS errors.
 				// Handle common DNS errors
 				if (e.code === 'ENOTFOUND' || e.code === 'EAI_AGAIN') {
-					resolve({ isValid: false, message: `Broken link (DNS lookup failed for ${e.hostname})` });
+					resolve({isValid: false, message: `Broken link (DNS lookup failed for ${e.hostname})`});
 				} else {
-					resolve({ isValid: false, message: `Broken link (Error: ${e.message})` });
+					resolve({isValid: false, message: `Broken link (Error: ${e.message})`});
 				}
 			});
 
@@ -1629,17 +1653,17 @@ line: lineToScroll
 			const commentRegex = /<!--[\s\S]*?-->/g;
 			let commentMatch;
 			while ((commentMatch = commentRegex.exec(text)) !== null) {
-				commentRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+				commentRanges.push({start: commentMatch.index, end: commentMatch.index + commentMatch[0].length});
 			}
 		} else if (languageId === 'asciidoc') {
 			const singleLineCommentRegex = /^\/\/.*/gm;
 			let commentMatch;
 			while ((commentMatch = singleLineCommentRegex.exec(text)) !== null) {
-				commentRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+				commentRanges.push({start: commentMatch.index, end: commentMatch.index + commentMatch[0].length});
 			}
 			const blockCommentRegex = /^\/{4,}\n[\s\S]*?\n\/{4,}$/gm;
 			while ((commentMatch = blockCommentRegex.exec(text)) !== null) {
-				commentRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+				commentRanges.push({start: commentMatch.index, end: commentMatch.index + commentMatch[0].length});
 			}
 		}
 
@@ -1667,7 +1691,7 @@ line: lineToScroll
 
 			linksFound++;
 			dbg(`linkcheck: Checking ${url}`);
-			progress.report({ message: `Checking ${url}` });
+			progress.report({message: `Checking ${url}`});
 
 			// Calculate the exact range of the URL within the document for accurate underlining.
 			const rangeStartIndex = match.index + match[0].indexOf(url);
@@ -1677,7 +1701,7 @@ line: lineToScroll
 			const range = new vscode.Range(startPos, endPos); // Underline the original URL from the text
 
 			// Validate the external link.
-			const { isValid, message } = await checkExternalLink(url);
+			const {isValid, message} = await checkExternalLink(url);
 			if (!isValid) {
 				// If the link is broken, create a warning diagnostic.
 				dbg(`linkcheck: Broken link: ${url} (${message})`);
@@ -1687,7 +1711,7 @@ line: lineToScroll
 				// If a valid link uses HTTP, check if an HTTPS version is also available.
 				if (url.startsWith('http://')) {
 					const httpsLink = url.replace('http://', 'https://');
-					const { isValid: isHttpsValid } = await checkExternalLink(httpsLink);
+					const {isValid: isHttpsValid} = await checkExternalLink(httpsLink);
 					// If the HTTPS version is valid, suggest an upgrade.
 					if (isHttpsValid) {
 						const diagnostic = new vscode.Diagnostic(range, 'Consider upgrading to HTTPS.', vscode.DiagnosticSeverity.Warning);
@@ -1717,9 +1741,9 @@ line: lineToScroll
 			const extendedValidation = dapsConfig.get('enableExtendedValidation')
 			if (extendedValidation) {
 				let opts = [`--extended-validation=${extendedValidation}`]
-				dapsCmd = getDapsCmd({ DCfile: DCfile, cmd: 'validate', options: opts });
+				dapsCmd = getDapsCmd({DCfile: DCfile, cmd: 'validate', options: opts});
 			} else {
-				dapsCmd = getDapsCmd({ DCfile: DCfile, cmd: 'validate' });
+				dapsCmd = getDapsCmd({DCfile: DCfile, cmd: 'validate'});
 			}
 			const success = await executeDapsCommand(dapsCmd, 'Validation succeeded.');
 			if (success) {
@@ -2064,7 +2088,7 @@ function createAdocScrollMap(fileName) {
 		let idMatch = lines[index].match(/^(?:\[\[([^[\]]+)\]\]|\[#([^[\]]+)\])/);
 		if (idMatch) {
 			let idValue = idMatch[1] || idMatch[2];
-			scrollMap.push({ line: index + 2, id: idValue });
+			scrollMap.push({line: index + 2, id: idValue});
 		}
 	}
 	return scrollMap;
@@ -2093,9 +2117,34 @@ function getDCfiles(folderUri) {
 		} else return [];
 	}
 	dbg(`folder: ${folderUri.path}`);
-	var allFiles = fs.readdirSync(folderUri.path);
-	dbg(`no of all files: ${allFiles.length}`)
-	var DCfiles = allFiles.filter(it => it.startsWith('DC-'));
+	const dapsConfig = vscode.workspace.getConfiguration('daps');
+	let searchDirs = dapsConfig.get('searchDCfilesDirs');
+	if (!searchDirs || searchDirs.length === 0) {
+		searchDirs = ['.'];
+		try {
+			const items = fs.readdirSync(folderUri.fsPath);
+			items.forEach(item => {
+				const itemPath = path.join(folderUri.fsPath, item);
+				if (fs.statSync(itemPath).isDirectory() && !item.startsWith('.')) {
+					searchDirs.push(item);
+				}
+			});
+		} catch (err) {
+			dbg(`Error reading workspace root for subdirectories: ${err.message}`);
+		}
+	}
+	let DCfiles = [];
+	searchDirs.forEach(dir => {
+		const targetDir = path.join(folderUri.fsPath, dir);
+		if (fs.existsSync(targetDir) && fs.statSync(targetDir).isDirectory()) {
+			dbg(`searching DC files in: ${targetDir}`);
+			const files = fs.readdirSync(targetDir);
+			const filtered = files
+				.filter(file => file.startsWith('DC-'))
+				.map(file => path.join(dir, file).replace(/\\/g, '/'));
+			DCfiles = DCfiles.concat(filtered);
+		}
+	});
 	dbg(`no of DC files: ${DCfiles.length}`);
 	return DCfiles;
 }
@@ -2297,14 +2346,14 @@ function getADOCattributes(docFileName) {
 	// --- Second pass: Resolve nested attributes and create the final value-to-name map. ---
 	// This map will store the final, fully resolved value to its attribute name, e.g., 'SUSE Liberty Linux' -> ':sliberty:'.
 	const attributeValueMap = new Map();
-	// Regex to find attribute references (e.g., {attr-name}) within a string.
-	const nestedAttrRegex = /\{([a-zA-Z0-9_.-]+)\}/g;
 
 	for (const [attrName, attrValue] of nameToValueMap.entries()) {
 		let resolvedValue = attrValue;
 		let match;
 		// Use a Set to track attributes seen during the resolution of a single value to detect circular references.
 		const seen = new Set();
+		// Regex to find attribute references (e.g., {attr-name}) within a string.
+		const nestedAttrRegex = /\{([a-zA-Z0-9_.-]+)\}/g;
 
 		// Keep replacing nested attributes until no more can be found or a circular dependency is detected.
 		while ((match = nestedAttrRegex.exec(resolvedValue)) !== null) {
@@ -2440,6 +2489,15 @@ function searchInFiles(rootDir, excludeDirs, searchTerm, filePattern) {
 }
 
 /**
+ * Checks if a document is currently visible in any open text editor.
+ * @param {vscode.TextDocument} document 
+ * @returns {boolean}
+ */
+function isDocumentVisible(document) {
+	return vscode.window.visibleTextEditors.some(editor => editor.document.uri.toString() === document.uri.toString());
+}
+
+/**
  * Processes all included entity files and parses each file to extract individual entities
  * into a map where the key is the entity's value and the value is the entity's name.
  * For example, `<!ENTITY sliberty "&suse; Liberty Linux">` would be mapped as
@@ -2501,9 +2559,6 @@ function createEntityValueMap(documentFileName) {
 	// This map will store the final, fully resolved value to its entity name, e.g., 'SUSE Liberty Linux' -> '&sliberty;'.
 	const entityValueMap = new Map();
 
-	// Regex to find entity references (e.g., &entityname;) within a string.
-	const entityRegex = /&([a-zA-Z0-9_.-]+);/g;
-
 	// Iterate over the raw entities collected in the first pass.
 	for (const [entityName, entityValue] of nameToValueMap.entries()) {
 		let resolvedValue = entityValue;
@@ -2511,6 +2566,8 @@ function createEntityValueMap(documentFileName) {
 
 		// Use a Set to track entities seen during the resolution of a single value to detect circular references.
 		const seen = new Set();
+		// Regex to find entity references (e.g., &entityname;) within a string.
+		const entityRegex = /&([a-zA-Z0-9_.-]+);/g;
 
 		// Keep replacing entities until no more can be found or a circular dependency is detected.
 		while ((match = entityRegex.exec(resolvedValue)) !== null) {

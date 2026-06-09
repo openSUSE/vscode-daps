@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.9.13",
+  "version": "0.9.14-beta2",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -17,10 +17,8 @@
     "Linters"
   ],
   "activationEvents": [
-    "workspaceContains: **/DC-*",
-    "onStartupFinished",
-    "onLanguage:xml",
-    "onLanguage:asciidoc"
+    "workspaceContains:DC-*",
+    "workspaceContains:*/DC-*"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -67,51 +65,51 @@
       "daps.editor.title.context": [
         {
           "command": "daps.XMLformat",
-          "when": "resourceExtname == .xml"
+          "when": "resourceLangId == xml"
         },
         {
           "command": "daps.buildXMLfile",
-          "when": "resourceExtname == .xml"
+          "when": "resourceLangId == xml"
         },
         {
           "command": "daps.buildDCfile",
-          "when": "resourceFilename =~ /DC-*/"
+          "when": "resourceFilename =~ /^DC-/"
         },
         {
           "command": "daps.docPreview",
-          "when": "resourceExtname == .xml || resourceExtname == .adoc"
+          "when": "resourceLangId == xml || resourceLangId == asciidoc"
         },
         {
           "command": "daps.validate",
-          "when": "resourceFilename =~ /DC-/"
+          "when": "resourceFilename =~ /^DC-/"
         },
         {
           "command": "daps.checkLinks",
-          "when": "resourceExtname == .xml || resourceExtname == .adoc"
+          "when": "resourceLangId == xml || resourceLangId == asciidoc"
         }
       ],
       "explorer/context": [
         {
           "submenu": "daps.explorer.context",
-          "when": "resourceFilename =~ /DC-*/ || resourceExtname == .xml"
+          "when": "resourceFilename =~ /^DC-/ || resourceLangId == xml"
         }
       ],
       "daps.explorer.context": [
         {
           "command": "daps.validate",
-          "when": "resourceFilename =~ /DC-*/"
+          "when": "resourceFilename =~ /^DC-/"
         },
         {
           "command": "daps.buildDCfile",
-          "when": "resourceFilename =~ /DC-*/"
+          "when": "resourceFilename =~ /^DC-/"
         },
         {
           "command": "daps.XMLformat",
-          "when": "resourceExtname == .xml"
+          "when": "resourceLangId == xml"
         },
         {
           "command": "daps.buildXMLfile",
-          "when": "resourceExtname == .xml"
+          "when": "resourceLangId == xml"
         }
       ]
     },
@@ -123,8 +121,7 @@
       },
       {
         "key": "ctrl+shift+d v",
-        "command": "daps.validate",
-        "when": "resourceLangId == 'xml' || resourceLangId == 'asciidoc' || resourceFilename =~ /DC-*/"
+        "command": "daps.validate"
       },
       {
         "key": "ctrl+shift+d p",
@@ -133,8 +130,7 @@
       },
       {
         "key": "ctrl+shift+d b",
-        "command": "daps.buildDCfile",
-        "when": "resourceLangId == 'xml' || resourceLangId == 'asciidoc' || resourceFilename =~ /DC-*/"
+        "command": "daps.buildDCfile"
       },
       {
         "key": "ctrl+shift+d l",
@@ -167,25 +163,25 @@
         "command": "daps.buildXMLfile",
         "title": "Build XML file",
         "category": "DAPS",
-        "enablement": "resourceExtname == .xml"
+        "enablement": "resourceLangId == xml"
       },
       {
         "command": "daps.XMLformat",
         "title": "Format XML file",
         "category": "DAPS",
-        "enablement": "resourceExtname == .xml"
+        "enablement": "resourceLangId == xml"
       },
       {
         "command": "daps.docPreview",
         "title": "Preview document",
         "category": "DAPS",
-        "enablement": "resourceExtname == .xml || resourceExtname == .adoc"
+        "enablement": "resourceLangId == xml || resourceLangId == asciidoc"
       },
       {
         "command": "daps.checkLinks",
         "title": "Check for broken links",
         "category": "DAPS",
-        "enablement": "resourceExtname == .xml || resourceExtname == .adoc"
+        "enablement": "resourceLangId == xml || resourceLangId == asciidoc"
       }
     ],
     "configuration": {
@@ -484,6 +480,17 @@
           "description": "Additional validation. Leave empty to disable or specify comma-separated combination of  'ids', 'images', 'inlines' or 'tables'. 'all' includes all of them.",
           "type": "string",
           "default": ""
+        },
+        "daps.searchDCfilesDirs": {
+          "description": "Directories to search for DC files, relative to the workspace root.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            ".",
+            "en"
+          ]
         }
       }
     },
