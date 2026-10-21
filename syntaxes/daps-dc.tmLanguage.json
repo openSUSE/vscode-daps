@@ -1,0 +1,66 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "DAPS DC file",
+  "scopeName": "source.daps-dc",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#assignment" },
+    { "include": "#keyword" },
+    { "include": "#string" },
+    { "include": "#variable" }
+  ],
+  "repository": {
+    "comment": {
+      "match": "(^|\\s)(#.*$)",
+      "captures": {
+        "2": { "name": "comment.line.number-sign.dc" }
+      }
+    },
+    "assignment": {
+      "match": "^\\s*(?:(export)\\s+)?([A-Za-z_][A-Za-z0-9_]*)(\\+?=)",
+      "captures": {
+        "1": { "name": "keyword.control.export.dc" },
+        "2": { "name": "variable.other.assignment.dc" },
+        "3": { "name": "keyword.operator.assignment.dc" }
+      }
+    },
+    "keyword": {
+      "match": "\\b(?:yes|no|true|false)\\b",
+      "name": "constant.language.dc"
+    },
+    "string": {
+      "patterns": [
+        {
+          "name": "string.quoted.single.dc",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            { "include": "#option" }
+          ]
+        },
+        {
+          "name": "string.quoted.double.dc",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            { "match": "\\\\.", "name": "constant.character.escape.dc" },
+            { "include": "#variable" },
+            { "include": "#option" }
+          ]
+        }
+      ]
+    },
+    "option": {
+      "match": "(?<=\\s|^|['\"])--?[A-Za-z][A-Za-z0-9-]*",
+      "name": "support.type.option.dc"
+    },
+    "variable": {
+      "patterns": [
+        {
+          "match": "\\$\\{[^}]*\\}|\\$[A-Za-z_][A-Za-z0-9_]*",
+          "name": "variable.other.readwrite.dc"
+        }
+      ]
+    }
+  }
+}

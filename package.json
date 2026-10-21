@@ -22,6 +22,25 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "languages": [
+      {
+        "id": "daps-dc",
+        "aliases": ["DAPS DC file", "DC"],
+        "filenamePatterns": ["DC-*"],
+        "icon": {
+          "light": "./icons/daps-dc.png",
+          "dark": "./icons/daps-dc.png"
+        },
+        "configuration": "./syntaxes/daps-dc-language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "daps-dc",
+        "scopeName": "source.daps-dc",
+        "path": "./syntaxes/daps-dc.tmLanguage.json"
+      }
+    ],
     "views": {
       "explorer": [
         {

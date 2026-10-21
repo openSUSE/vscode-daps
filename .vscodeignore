@@ -11,3 +11,4 @@ vsc-extension-quickstart.md
 node_modules
 tests/build
 doc/build
+icons/*.svg
