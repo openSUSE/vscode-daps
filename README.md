@@ -4,8 +4,11 @@ The SUSE Documentation Team <doc-team@suse.com>
 
 A VSCode extension that makes use of DAPS (https://github.com/openSUSE/daps) to validate and build documents.
 
-> **TIP:**
-> Complete documentation is available at from https://opensuse.github.io/vscode-daps/doc/index.html.
+> [!TIP]
+> The complete documentation is available at https://opensuse.github.io/vscode-daps.
+>
+> It can be displayed from the installed extension as well, open the command palette (`F1` or
+> `Ctrl+Shift+P`) and run the `DAPS: Extension Help` command.
 
 `vscode-daps` is released under the GPL (version 2 or 3 at your choice).
 
@@ -42,4 +45,8 @@ If you would like to contribute to the project, do the following:
 
 4. Make your changes.
 
-5. Send a pull request.
+5. To build the extension and run it locally press `F5` key.
+
+6. To build the extension package locally (to inspect its conetent) run `npx vsce package`.
+
+7. Send a pull request.

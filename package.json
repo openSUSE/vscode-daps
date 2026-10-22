@@ -201,6 +201,11 @@
         "title": "Check for broken links",
         "category": "DAPS",
         "enablement": "resourceLangId == xml || resourceLangId == asciidoc"
+      },
+      {
+        "command": "daps.help",
+        "title": "Extension Help",
+        "category": "DAPS"
       }
     ],
     "configuration": {

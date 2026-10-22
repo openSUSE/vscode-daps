@@ -1270,6 +1270,32 @@ function activate(context) {
 		}, '&'));
 	}
 
+	// Shows the online documentation in a webview tab
+	const helpUrl = 'https://opensuse.github.io/vscode-daps/';
+	let helpPanel;
+	context.subscriptions.push(vscode.commands.registerCommand('daps.help', function help() {
+		if (helpPanel) {
+			helpPanel.reveal();
+			return;
+		}
+		helpPanel = vscode.window.createWebviewPanel(
+			'dapsHelp',
+			'DAPS Extension Help',
+			vscode.ViewColumn.Active,
+			{ enableScripts: true } // the embedded page needs scripts (font loading, navigation)
+		);
+		helpPanel.webview.html = `<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src ${helpUrl}; style-src 'unsafe-inline';">
+	<style>html, body, iframe { margin: 0; padding: 0; width: 100%; height: 100%; border: 0; background: #fff; }</style>
+</head>
+<body><iframe src="${helpUrl}" title="DAPS Help"></iframe></body>
+</html>`;
+		helpPanel.onDidDispose(() => { helpPanel = undefined; }, null, context.subscriptions);
+	}));
+
 	// Enables document HTML preview and a handler to update it
 	context.subscriptions.push(vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) { // get img src path from config
 		const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
