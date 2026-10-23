@@ -1795,7 +1795,7 @@ line: lineToScroll
 		if (buildTarget) {
 			dbg(`buildTarget from config: ${buildTarget}`);
 		} else {
-			buildTarget = await vscode.window.showQuickPick(buildTargets);
+			buildTarget = await vscode.window.showQuickPick(buildTargets, { title: "Select the generated documentation type"});
 			dbg(`buildTarget form picker: ${buildTarget}`);
 		}
 
@@ -2149,7 +2149,7 @@ line: lineToScroll
 			rootId = dapsConfig.get('buildRootId')
 			dbg(`rootId from config: ${rootId}`);
 		} else { // get rootId from picker
-			rootId = await vscode.window.showQuickPick(getRootIds(DCfile));
+			rootId = await vscode.window.showQuickPick(getRootIds(DCfile), {title: "Select Root Id"});
 			dbg(`rootId form picker: ${rootId}`);
 		}
 		return rootId;
