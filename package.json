@@ -65,6 +65,16 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "daps.buildWatchDCfile",
+          "when": "!daps.watching"
+        },
+        {
+          "command": "daps.stopWatching",
+          "when": "daps.watching"
+        }
+      ],
       "editor/context": [
         {
           "submenu": "daps.editor.context",
@@ -95,6 +105,14 @@
           "when": "resourceFilename =~ /^DC-/"
         },
         {
+          "command": "daps.buildWatchDCfile",
+          "when": "resourceFilename =~ /^DC-/ && !daps.watching"
+        },
+        {
+          "command": "daps.stopWatching",
+          "when": "resourceFilename =~ /^DC-/ && daps.watching"
+        },
+        {
           "command": "daps.docPreview",
           "when": "resourceLangId == xml || resourceLangId == asciidoc"
         },
@@ -121,6 +139,14 @@
         {
           "command": "daps.buildDCfile",
           "when": "resourceFilename =~ /^DC-/"
+        },
+        {
+          "command": "daps.buildWatchDCfile",
+          "when": "resourceFilename =~ /^DC-/ && !daps.watching"
+        },
+        {
+          "command": "daps.stopWatching",
+          "when": "resourceFilename =~ /^DC-/ && daps.watching"
         },
         {
           "command": "daps.XMLformat",
@@ -152,6 +178,14 @@
         "command": "daps.buildDCfile"
       },
       {
+        "key": "ctrl+shift+d w",
+        "command": "daps.buildWatchDCfile"
+      },
+      {
+        "key": "ctrl+shift+d s",
+        "command": "daps.stopWatching"
+      },
+      {
         "key": "ctrl+shift+d l",
         "command": "daps.checkLinks",
         "when": "resourceLangId == 'asciidoc' || resourceLangId == 'xml'"
@@ -172,6 +206,18 @@
         "command": "daps.buildDCfile",
         "title": "Build with DC file",
         "category": "DAPS"
+      },
+      {
+        "command": "daps.buildWatchDCfile",
+        "title": "Build and watch DC file",
+        "category": "DAPS",
+        "enablement": "!daps.watching"
+      },
+      {
+        "command": "daps.stopWatching",
+        "title": "Stop watching",
+        "category": "DAPS",
+        "enablement": "daps.watching"
       },
       {
         "command": "daps.buildRootId",

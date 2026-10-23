@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+- added "Build and watch DC file" / "Stop watching" commands, automatically
+  rebuild the documentation after any change in the DC file or referenced source
+  files (recursively)
 ## 0.9.14-beta2
 - introduced options for `asciidoctor` and `xsltproc` executables
 - DC files are now searched in workspace root and direct subdirs
