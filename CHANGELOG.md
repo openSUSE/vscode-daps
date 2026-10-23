@@ -4,6 +4,13 @@
 - added "Build and watch DC file" / "Stop watching" commands, automatically
   rebuild the documentation after any change in the DC file or referenced source
   files (recursively)
+- added grammar and syntax highlighting for the DC files, added file type icon
+- reduced size of the published extension package from 12MiB (!!) to 75kiB
+- added "Extension Help" command to show the extension online help in a separate
+  webview tab
+- added a build task, run it before launching the extension in the extension
+  development host (this ensures the compiled code is always up to date before
+  running the extension)
 ## 0.9.14-beta2
 - introduced options for `asciidoctor` and `xsltproc` executables
 - DC files are now searched in workspace root and direct subdirs
