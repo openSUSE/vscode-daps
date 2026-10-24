@@ -1,0 +1,82 @@
+[#vscode-daps-commons-watch]
+= Building and watching a document
+
+Instead of rebuilding a document manually after each edit, you can let the
+extension do it for you. When you start watching a document, it is built
+immediately and then rebuilt automatically whenever the DC file or any of the
+source files it references changes.
+
+[#vscode-daps-commons-watch-start]
+== Starting to watch
+
+To build and watch a document specified by its DC file, use one of these
+methods:
+
+* Right-click the DC file in the Explorer view, or right-click its editor tab, and select
+  menu:DAPS[Build and watch DC file].
+
+* Press kbd:[Ctrl+Shift+P], start typing `daps`, and select the `DAPS: Build and watch DC file`
+  command. Select the DC file from the populated list.
+
+Then choose whether to build `pdf` or `html`.
+
+Default shortcut: kbd:[Ctrl+Shift+D W]
+
+[#vscode-daps-commons-watch-stop]
+== Stopping watching
+
+To stop watching, right-click the DC file in the Explorer view, or right-click its editor tab, and
+select menu:DAPS[Stop watching]. You can also run the `DAPS: Stop watching` command from the Command
+Palette.
+
+Default shortcut: kbd:[Ctrl+Shift+D S]
+
+NOTE: Only one document can be watched at a time. Watching also stops when VSCode is closed or the
+extension is deactivated.
+
+[#vscode-daps-commons-watch-how]
+== How it works
+
+The watched files are the DC file and all source files that the document references, including files
+included recursively. The list is refreshed after every build, so newly added or removed includes
+are picked up automatically.
+
+If a change happens while a build is running, another build starts as soon as the current one
+finishes.
+
+[#vscode-daps-commons-watch-output]
+== Build log
+
+Details of the watching process are written to the `DAPS Watch` output channel (menu:View[Output],
+then select `DAPS Watch`).
+
+[#vscode-daps-commons-watch-liveserver]
+== Showing the rebuilt document in VSCode
+
+Watching rebuilds the document, but you still have to open it and reload it after each build. If you
+build `html`, you can automate this with the
+https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer[Live Server] extension and
+the integrated Simple Browser of VSCode. Live Server serves the built files and reloads the page
+whenever they change, and the Simple Browser displays the page in an editor tab next to your source.
+
+. Install the Live Server extension (`ritwickdey.LiveServer`). Start watching the DC file with the
+  `html` target, as described in <<vscode-daps-commons-watch-start>>.  Wait for the first build to
+  finish.
+. In the Explorer view, right-click the built `index.html` and select menu:Open with Live Server[] .
+  Or press kbd:[Ctrl+Shift+P] and run the `Live Server: Open with Live Server` command.
+. Press kbd:[Ctrl+Shift+P] and run the `Browser: Open Integrated Browser`
+  command.
+  Enter the URL `http://localhost:5500` in the browser.
+. Right-click the browser tab title and select menu:Split & Move[Move right].
+
+[TIP]
+====
+
+By default the Live Server also opens the page in your external web browser. To avoid
+this and use only the integrated browser, set the `liveServer.settings.NoBrowser` option to `true`.
+
+It is recommended to set the `liveServer.settings.root` option to the directory with the built
+document, like `/build/`. This avoids refreshing the page twice (when the source document
+is saved and then when the HTML document is updated).
+
+====
