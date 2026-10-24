@@ -4,7 +4,7 @@
 Instead of rebuilding a document manually after each edit, you can let the
 extension do it for you. When you start watching a document, it is built
 immediately and then rebuilt automatically whenever the DC file or any of the
-source files it references changes.
+dependant source files it references changes.
 
 [#vscode-daps-commons-watch-start]
 == Starting to watch
@@ -37,12 +37,12 @@ extension is deactivated.
 [#vscode-daps-commons-watch-how]
 == How it works
 
-The watched files are the DC file and all source files that the document references, including files
-included recursively. The list is refreshed after every build, so newly added or removed includes
-are picked up automatically.
+The DC file and all source files that the document references are watched, with all files included
+recursively. The list is refreshed after every build, so newly added includes are picked up
+automatically.
 
-If a change happens while a build is running, another build starts as soon as the current one
-finishes.
+If a change happens while a build is running, another build is scheduled and starts as soon as the
+current one finishes.
 
 [#vscode-daps-commons-watch-output]
 == Build log
