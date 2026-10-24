@@ -2347,7 +2347,7 @@ async function getBuildTarget() {
 	if (buildTarget) {
 		dbg(`buildTarget from config: ${buildTarget}`);
 	} else {
-		buildTarget = await vscode.window.showQuickPick(buildTargets);
+		buildTarget = await vscode.window.showQuickPick(buildTargets, { title: "Select the generated documentation type"});
 		dbg(`buildTarget form picker: ${buildTarget}`);
 	}
 	return buildTarget;
