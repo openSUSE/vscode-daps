@@ -4,6 +4,8 @@
 - added "Build and watch DC file" / "Stop watching" commands, automatically
   rebuild the documentation after any change in the DC file or referenced source
   files (recursively)
+- fixed validating, building and watching DC files located in a subdirectory
+  (DAPS was called without the parent directory)
 - added grammar and syntax highlighting for the DC files, added file type icon
 - reduced size of the published extension package from 12MiB (!!) to 75kiB
 - added "Extension Help" command to show the extension online help in a separate

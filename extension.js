@@ -2324,9 +2324,12 @@ async function getDCfile(contextDCfile, title) {
 	var DCfile;
 	const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
 	if (contextDCfile) { // check if DCfile URI was passed as argument
-		DCfile = contextDCfile
-		// if yes, use only the base name from the full URI
-		DCfile = DCfile.path.split('/').pop();
+		// if yes, use the path relative to the workspace folder (DAPS is run from there),
+		// so DC files in subdirectories are found
+		DCfile = path.relative(workspaceFolderUri.fsPath, contextDCfile.fsPath).replace(/\\/g, '/');
+		if (DCfile.startsWith('..')) { // outside of the workspace folder, use the absolute path
+			DCfile = contextDCfile.fsPath;
+		}
 		dbg(`DCfile from context: ${DCfile}`);
 	} else if (dapsConfig.get('DCfile')) { // try if DC file is included in settings.json
 		DCfile = dapsConfig.get('DCfile')
