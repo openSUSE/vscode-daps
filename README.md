@@ -48,6 +48,6 @@ If you would like to contribute to the project, do the following:
 
 5. To build the extension and run it locally press `F5` key.
 
-6. To build the extension package locally (to inspect its conetent) run `npx vsce package`.
+6. To build the extension package locally (to inspect its content) run `npx vsce package`.
 
 7. Send a pull request.

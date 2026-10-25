@@ -75,8 +75,4 @@ whenever they change, and the Simple Browser displays the page in an editor tab 
 By default the Live Server also opens the page in your external web browser. To avoid
 this and use only the integrated browser, set the `liveServer.settings.NoBrowser` option to `true`.
 
-It is recommended to set the `liveServer.settings.root` option to the directory with the built
-document, like `/build/`. This avoids refreshing the page twice (when the source document
-is saved and then when the HTML document is updated).
-
 ====
