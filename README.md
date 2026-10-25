@@ -8,7 +8,8 @@ A VSCode extension that makes use of DAPS (https://github.com/openSUSE/daps) to 
 > The complete documentation is available at https://opensuse.github.io/vscode-daps.
 >
 > It can be displayed from the installed extension as well, open the command palette (`F1` or
-> `Ctrl+Shift+P`) and run the `DAPS: Extension Help` command.
+> `Ctrl+Shift+P`) and run the `DAPS: Extension Help` command
+> or press `Ctrl+Shift+D H`.
 
 `vscode-daps` is released under the GPL (version 2 or 3 at your choice).
 

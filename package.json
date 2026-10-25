@@ -189,6 +189,10 @@
         "key": "ctrl+shift+d l",
         "command": "daps.checkLinks",
         "when": "resourceLangId == 'asciidoc' || resourceLangId == 'xml'"
+      },
+      {
+        "key": "ctrl+shift+d h",
+        "command": "daps.help"
       }
     ],
     "commands": [

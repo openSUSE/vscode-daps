@@ -7,7 +7,7 @@ immediately and then rebuilt automatically whenever the DC file or any of the
 dependant source files it references changes.
 
 [#vscode-daps-commons-watch-start]
-== Starting to watch
+== Starting to watch a document
 
 To build and watch a document specified by its DC file, use one of these
 methods:
