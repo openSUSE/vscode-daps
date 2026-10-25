@@ -1,0 +1,55 @@
+name: Publish documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - adoc/**
+      - .github/workflows/pages.yml
+  # allow starting the workflow manually from the GitHub web page
+  workflow_dispatch:
+
+# Required by actions/deploy-pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Do not run multiple deployments at once, but let a running one finish
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: registry.opensuse.org/documentation/containers/15.6/opensuse-daps-toolchain:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build the HTML documentation
+        run: daps -d adoc/DC-vscode-daps html
+
+      - name: Check the build result
+        run: test -f adoc/build/vscode-daps/html/vscode-daps/index.html
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: adoc/build/vscode-daps/html/vscode-daps
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
