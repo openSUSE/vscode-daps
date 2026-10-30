@@ -9,5 +9,15 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 node_modules
-tests/build
+tests/**
 doc/build
+icons/*.svg
+# the extension documentation is pretty huge (7MB+8MB)
+docs/**
+adoc/**
+# the extension source code
+extension.js
+# development files
+eslint.config.mjs
+jsconfig.json
+.devcontainer/**

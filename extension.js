@@ -1270,6 +1270,32 @@ function activate(context) {
 		}, '&'));
 	}
 
+	// Shows the online documentation in a webview tab
+	const helpUrl = 'https://opensuse.github.io/vscode-daps/';
+	let helpPanel;
+	context.subscriptions.push(vscode.commands.registerCommand('daps.help', function help() {
+		if (helpPanel) {
+			helpPanel.reveal();
+			return;
+		}
+		helpPanel = vscode.window.createWebviewPanel(
+			'dapsHelp',
+			'DAPS Extension Help',
+			vscode.ViewColumn.Active,
+			{ enableScripts: true } // the embedded page needs scripts (font loading, navigation)
+		);
+		helpPanel.webview.html = `<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src ${helpUrl}; style-src 'unsafe-inline';">
+	<style>html, body, iframe { margin: 0; padding: 0; width: 100%; height: 100%; border: 0; background: #fff; }</style>
+</head>
+<body><iframe src="${helpUrl}" title="DAPS Help"></iframe></body>
+</html>`;
+		helpPanel.onDidDispose(() => { helpPanel = undefined; }, null, context.subscriptions);
+	}));
+
 	// Enables document HTML preview and a handler to update it
 	context.subscriptions.push(vscode.commands.registerCommand('daps.docPreview', function docPreview(contextFileURI) { // get img src path from config
 		const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
@@ -1733,7 +1759,7 @@ line: lineToScroll
 			vscode.window.showErrorMessage("Cannot run DAPS command: No workspace folder is open.");
 			return false;
 		}
-		var DCfile = await getDCfile(contextDCfile);
+		var DCfile = await getDCfile(contextDCfile, "Select DC file to validate");
 		if (DCfile) {
 			var dapsCmd;
 			const dapsConfig = vscode.workspace.getConfiguration('daps');
@@ -1762,14 +1788,14 @@ line: lineToScroll
 		}
 		const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 		var buildTarget;
-		var DCfile = await getDCfile(contextDCfile);
+		var DCfile = await getDCfile(contextDCfile, "Select DC file to build");
 		// try if buildTarget is included in settings or get it from user
 		const dapsConfig = vscode.workspace.getConfiguration('daps');
 		buildTarget = dapsConfig.get('buildTarget')
 		if (buildTarget) {
 			dbg(`buildTarget from config: ${buildTarget}`);
 		} else {
-			buildTarget = await vscode.window.showQuickPick(buildTargets);
+			buildTarget = await vscode.window.showQuickPick(buildTargets, { title: "Select the generated documentation type"});
 			dbg(`buildTarget form picker: ${buildTarget}`);
 		}
 
@@ -1813,6 +1839,142 @@ line: lineToScroll
 		}
 		return false;
 	}));
+
+	// Build and watch with a DC file.
+	// Builds the document and then rebuilds it whenever the DC file or any referenced source file changes.
+	// Debugging messages go to a dedicated output channel.
+	const watchChannel = vscode.window.createOutputChannel('DAPS Watch');
+	context.subscriptions.push(watchChannel);
+	const watchDebounceMs = 500;
+	let watchSession; // undefined if no watch is running
+
+	function watchLog(msg) {
+		watchChannel.appendLine(`[${new Date().toLocaleTimeString()}] ${msg}`);
+	}
+
+	// Lists the source files of the document identified by the DC file (including the DC file itself).
+	function getWatchedFiles(DCfile, cwd) {
+		const files = new Set([path.resolve(cwd, DCfile)]);
+		try {
+			const out = execSync(getDapsCmd({DCfile: DCfile, cmd: 'list-srcfiles'}), {cwd: cwd}).toString();
+			// the file names are space-separated (all on one line)
+			out.split(/\s+/).filter(file => file).forEach(file => files.add(path.resolve(cwd, file)));
+		} catch (err) {
+			watchLog(`Cannot list source files: ${err.message}`);
+		}
+		return files;
+	}
+
+	// (Re)creates file system watchers if the set of referenced files has changed.
+	function updateWatchers(session) {
+		const files = getWatchedFiles(session.DCfile, session.cwd);
+		const current = [...session.watchers.keys()];
+		if (files.size === current.length && current.every(file => files.has(file))) {
+			return;
+		}
+		watchLog(`Watching ${files.size} files`);
+		current.filter(file => !files.has(file)).forEach(file => {
+			session.watchers.get(file).dispose();
+			session.watchers.delete(file);
+			watchLog(`Stopped watching ${file}`);
+		});
+		files.forEach(file => {
+			if (session.watchers.has(file)) return;
+			const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(path.dirname(file)), path.basename(file)));
+			const onChange = () => {
+				watchLog(`Change detected: ${file}`);
+				scheduleWatchBuild(session);
+			};
+			watcher.onDidChange(onChange);
+			watcher.onDidCreate(onChange);
+			watcher.onDidDelete(onChange);
+			session.watchers.set(file, watcher);
+			watchLog(`Watching ${file}`);
+		});
+	}
+
+	function scheduleWatchBuild(session) {
+		clearTimeout(session.timer);
+		session.timer = setTimeout(() => runWatchBuild(session), watchDebounceMs);
+	}
+
+	function runWatchBuild(session) {
+		if (session !== watchSession) return;
+		if (session.building) {
+			session.rebuild = true; // build again once the current one finishes
+			watchLog('Build in progress, rebuild queued');
+			return;
+		}
+		session.building = true;
+		session.rebuild = false;
+		const dapsCmd = getDapsCmd({DCfile: session.DCfile, buildTarget: session.buildTarget});
+		watchLog(`Building: ${dapsCmd}`);
+		exec(dapsCmd, {cwd: session.cwd}, (err, stdout, stderr) => {
+			session.building = false;
+			if (session !== watchSession) return; // watching was stopped meanwhile
+			if (stdout.trim()) watchLog(`stdout: ${stdout.trim()}`);
+			if (stderr.trim()) watchLog(`stderr: ${stderr.trim()}`);
+			if (err) {
+				watchLog(`Build failed: ${err.message}`);
+				vscode.window.showErrorMessage(`DAPS build of ${session.DCfile} failed, see the "DAPS Watch" output.`);
+			} else {
+				let targetBuild = stdout.trim().split('\n').pop();
+				if (session.buildTarget == 'html') {
+					targetBuild = targetBuild + 'index.html';
+				}
+				watchLog(`Build succeeded: ${targetBuild}`);
+				vscode.window.setStatusBarMessage(`DAPS: ${session.DCfile} rebuilt`, 3000);
+			}
+			// the build might have changed includes, refresh the list of watched files
+			updateWatchers(session);
+			if (session.rebuild) runWatchBuild(session);
+		});
+	}
+
+	function stopWatching() {
+		if (!watchSession) return;
+		const session = watchSession;
+		watchSession = undefined;
+		clearTimeout(session.timer);
+		session.watchers.forEach(watcher => watcher.dispose());
+		watchLog(`Stopped watching ${session.DCfile}`);
+		vscode.commands.executeCommand('setContext', 'daps.watching', false);
+		vscode.window.showInformationMessage(`Stopped watching ${session.DCfile}.`);
+	}
+	context.subscriptions.push({dispose: () => stopWatching()});
+	vscode.commands.executeCommand('setContext', 'daps.watching', false);
+
+	context.subscriptions.push(vscode.commands.registerCommand('daps.buildWatchDCfile', async function buildWatchDCfile(contextDCfile) {
+		if (!vscode.workspace.workspaceFolders) {
+			vscode.window.showErrorMessage("Cannot run DAPS command: No workspace folder is open.");
+			return false;
+		}
+		if (watchSession) {
+			vscode.window.showInformationMessage(`Already watching ${watchSession.DCfile}. Stop watching first.`);
+			return false;
+		}
+		const DCfile = await getDCfile(contextDCfile, "Select DC file to build and watch");
+		const buildTarget = DCfile && await getBuildTarget();
+		if (!DCfile || !buildTarget) return false;
+		if (watchSession) return false; // another watch was started while the pickers were open
+		const session = {
+			DCfile: DCfile,
+			buildTarget: buildTarget,
+			cwd: vscode.workspace.workspaceFolders[0].uri.fsPath,
+			watchers: new Map(),
+			timer: undefined,
+			building: false,
+			rebuild: false,
+		};
+		watchSession = session;
+		vscode.commands.executeCommand('setContext', 'daps.watching', true);
+		watchLog(`Start watching ${DCfile} (target: ${buildTarget})`);
+		updateWatchers(session);
+		runWatchBuild(session);
+		return true;
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('daps.stopWatching', stopWatching));
 
 	// Command to build a single XML file.
 	context.subscriptions.push(vscode.commands.registerCommand('daps.buildXMLfile', async function buildXMLfile(contextFileURI) {
@@ -1987,7 +2149,7 @@ line: lineToScroll
 			rootId = dapsConfig.get('buildRootId')
 			dbg(`rootId from config: ${rootId}`);
 		} else { // get rootId from picker
-			rootId = await vscode.window.showQuickPick(getRootIds(DCfile));
+			rootId = await vscode.window.showQuickPick(getRootIds(DCfile), {title: "Select Root Id"});
 			dbg(`rootId form picker: ${rootId}`);
 		}
 		return rootId;
@@ -2150,8 +2312,10 @@ function getDCfiles(folderUri) {
 }
 
 // Picks a DC file from various sources (context, configuration, or user prompt).
+// @param {vscode.Uri} [contextDCfile] - DC file URI passed from the context (e.g. explorer menu).
+// @param {string} [title] - Optional title of the quick pick shown when the DC file has to be selected.
 // @returns {string} - The name of the DC file.
-async function getDCfile() {
+async function getDCfile(contextDCfile, title) {
 	if (!vscode.workspace.workspaceFolders) {
 		vscode.window.showErrorMessage("Cannot get DC file: No workspace folder is open.");
 		return;
@@ -2159,16 +2323,19 @@ async function getDCfile() {
 	const workspaceFolderUri = vscode.workspace.workspaceFolders[0].uri;
 	var DCfile;
 	const dapsConfig = vscode.workspace.getConfiguration('daps'); // This is fine as it's within the command handler
-	if (arguments[0]) { // check if DCfile URI was passed as argument
-		DCfile = arguments[0]
-		// if yes, use only the base name from the full URI
-		DCfile = DCfile.path.split('/').pop();
+	if (contextDCfile) { // check if DCfile URI was passed as argument
+		// if yes, use the path relative to the workspace folder (DAPS is run from there),
+		// so DC files in subdirectories are found
+		DCfile = path.relative(workspaceFolderUri.fsPath, contextDCfile.fsPath).replace(/\\/g, '/');
+		if (DCfile.startsWith('..')) { // outside of the workspace folder, use the absolute path
+			DCfile = contextDCfile.fsPath;
+		}
 		dbg(`DCfile from context: ${DCfile}`);
 	} else if (dapsConfig.get('DCfile')) { // try if DC file is included in settings.json
 		DCfile = dapsConfig.get('DCfile')
 		dbg(`DC file from config: ${DCfile}`);
 	} else { // get DC file from picker
-		DCfile = await vscode.window.showQuickPick(getDCfiles(workspaceFolderUri));
+		DCfile = await vscode.window.showQuickPick(getDCfiles(workspaceFolderUri), { title });
 		dbg(`DC file form picker: ${DCfile}`);
 	}
 	return DCfile;
@@ -2183,7 +2350,7 @@ async function getBuildTarget() {
 	if (buildTarget) {
 		dbg(`buildTarget from config: ${buildTarget}`);
 	} else {
-		buildTarget = await vscode.window.showQuickPick(buildTargets);
+		buildTarget = await vscode.window.showQuickPick(buildTargets, { title: "Select the generated documentation type"});
 		dbg(`buildTarget form picker: ${buildTarget}`);
 	}
 	return buildTarget;

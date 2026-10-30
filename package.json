@@ -2,7 +2,7 @@
   "name": "daps",
   "displayName": "DAPS",
   "description": "Tool for authoring and publishing documentation written in DocBook XML.",
-  "version": "0.9.14-beta2",
+  "version": "0.10.0",
   "repository": "https://github.com/openSUSE/vscode-daps",
   "publisher": "openSUSE",
   "author": {
@@ -22,6 +22,25 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "languages": [
+      {
+        "id": "daps-dc",
+        "aliases": ["DAPS DC file", "DC"],
+        "filenamePatterns": ["DC-*"],
+        "icon": {
+          "light": "./icons/daps-dc.png",
+          "dark": "./icons/daps-dc.png"
+        },
+        "configuration": "./syntaxes/daps-dc-language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "daps-dc",
+        "scopeName": "source.daps-dc",
+        "path": "./syntaxes/daps-dc.tmLanguage.json"
+      }
+    ],
     "views": {
       "explorer": [
         {
@@ -46,6 +65,16 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "daps.buildWatchDCfile",
+          "when": "!daps.watching"
+        },
+        {
+          "command": "daps.stopWatching",
+          "when": "daps.watching"
+        }
+      ],
       "editor/context": [
         {
           "submenu": "daps.editor.context",
@@ -76,6 +105,14 @@
           "when": "resourceFilename =~ /^DC-/"
         },
         {
+          "command": "daps.buildWatchDCfile",
+          "when": "resourceFilename =~ /^DC-/ && !daps.watching"
+        },
+        {
+          "command": "daps.stopWatching",
+          "when": "resourceFilename =~ /^DC-/ && daps.watching"
+        },
+        {
           "command": "daps.docPreview",
           "when": "resourceLangId == xml || resourceLangId == asciidoc"
         },
@@ -102,6 +139,14 @@
         {
           "command": "daps.buildDCfile",
           "when": "resourceFilename =~ /^DC-/"
+        },
+        {
+          "command": "daps.buildWatchDCfile",
+          "when": "resourceFilename =~ /^DC-/ && !daps.watching"
+        },
+        {
+          "command": "daps.stopWatching",
+          "when": "resourceFilename =~ /^DC-/ && daps.watching"
         },
         {
           "command": "daps.XMLformat",
@@ -133,9 +178,21 @@
         "command": "daps.buildDCfile"
       },
       {
+        "key": "ctrl+shift+d w",
+        "command": "daps.buildWatchDCfile"
+      },
+      {
+        "key": "ctrl+shift+d s",
+        "command": "daps.stopWatching"
+      },
+      {
         "key": "ctrl+shift+d l",
         "command": "daps.checkLinks",
         "when": "resourceLangId == 'asciidoc' || resourceLangId == 'xml'"
+      },
+      {
+        "key": "ctrl+shift+d h",
+        "command": "daps.help"
       }
     ],
     "commands": [
@@ -153,6 +210,18 @@
         "command": "daps.buildDCfile",
         "title": "Build with DC file",
         "category": "DAPS"
+      },
+      {
+        "command": "daps.buildWatchDCfile",
+        "title": "Build and watch DC file",
+        "category": "DAPS",
+        "enablement": "!daps.watching"
+      },
+      {
+        "command": "daps.stopWatching",
+        "title": "Stop watching",
+        "category": "DAPS",
+        "enablement": "daps.watching"
       },
       {
         "command": "daps.buildRootId",
@@ -182,6 +251,11 @@
         "title": "Check for broken links",
         "category": "DAPS",
         "enablement": "resourceLangId == xml || resourceLangId == asciidoc"
+      },
+      {
+        "command": "daps.help",
+        "title": "Extension Help",
+        "category": "DAPS"
       }
     ],
     "configuration": {
