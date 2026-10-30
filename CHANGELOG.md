@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 0.10.0
 - added "Build and watch DC file" / "Stop watching" commands, automatically
   rebuild the documentation after any change in the DC file or referenced source
   files (recursively) (`Ctrl+Shift+D W` and `Ctrl+Shift+D S` keyboard shortcut)
@@ -13,7 +13,6 @@
 - added a build task, run it before launching the extension in the extension
   development host (this ensures the compiled code is always up to date before
   running the extension)
-## 0.9.14-beta2
 - introduced options for `asciidoctor` and `xsltproc` executables
 - DC files are now searched in workspace root and direct subdirs
 - extension + command + shortcuts activation is cleaner
